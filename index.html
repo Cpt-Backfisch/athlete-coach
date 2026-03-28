@@ -70,9 +70,9 @@ body{flex-direction:column}
 .nav-collapsed .nav-item{padding:7px 10px}
 
 /* ── MAIN ── */
-.main-wrap{flex:1;min-height:calc(100vh - 90px);display:flex;justify-content:center;overflow-x:hidden}
+.main-wrap{flex:1;min-height:calc(100vh - 90px);overflow-x:hidden}
 .topbar-title{display:none}
-.main{flex:1;padding:20px 28px;width:100%;box-sizing:border-box;overflow-x:hidden}
+.main{padding:20px 28px;width:100%;max-width:100%;box-sizing:border-box;overflow-x:hidden}
 
 /* ── CARDS ── */
 .card{background:var(--card);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:20px}
@@ -216,37 +216,35 @@ textarea.form-input{resize:vertical;min-height:80px}
 .plan-tag{display:flex;align-items:center;justify-content:space-between;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:600;font-family:'DM Mono',monospace;border:1.5px solid transparent;margin-bottom:3px}
 
 /* ── RESPONSIVE ── */
-@media(max-width:900px){
-  .main{padding:14px 16px}
-  .stat-val{font-size:22px}
+*{box-sizing:border-box}
+.main-wrap{width:100%;overflow-x:hidden}
+.main{width:100%;overflow-x:hidden}
+@media(max-width:1024px){
+  .main{padding:16px 20px}
 }
-@media(max-width:700px){
-  .main{padding:12px}
-  .topbar-logo .logo-sub{display:none}
-  .nav-item{padding:5px 7px;font-size:11px;gap:3px}
-  .nav-icon{font-size:13px}
-  .section-title{font-size:18px}
-  .card{padding:14px}
-}
-/* Grid responsive overrides */
 @media(max-width:800px){
-  [style*="grid-template-columns:repeat(4,1fr)"]{
-    grid-template-columns:repeat(2,1fr) !important;
-  }
-  [style*="grid-template-columns:1fr 1fr"]{
-    grid-template-columns:1fr !important;
-  }
-  [style*="grid-template-columns:2fr 1fr"]{
-    grid-template-columns:1fr !important;
-  }
+  .main{padding:14px 16px}
+  .stat-val{font-size:20px}
+  [style*="grid-template-columns:repeat(4"]{grid-template-columns:repeat(2,1fr) !important}
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
+  [style*="grid-template-columns:2fr 1fr"]{grid-template-columns:1fr !important}
+  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr 1fr !important}
+  #topbar-date{display:none}
 }
-@media(max-width:480px){
-  [style*="grid-template-columns:repeat(4,1fr)"]{
-    grid-template-columns:1fr 1fr !important;
-  }
-  .main{padding:10px}
+@media(max-width:600px){
+  .main{padding:10px 12px}
+  .nav-item{padding:5px 8px;font-size:11px;gap:3px}
+  .nav-icon{font-size:13px}
+  .section-title{font-size:17px}
+  .card{padding:12px}
+  .stat-val{font-size:18px}
+  [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr 1fr !important}
+}
+@media(max-width:400px){
+  .main{padding:8px}
   .nav-label{display:none}
-  .nav-item{padding:6px 8px}
+  .nav-item{padding:6px 9px}
+  .card{padding:10px}
 }
 
 </style>
@@ -270,6 +268,7 @@ textarea.form-input{resize:vertical;min-height:80px}
     <button class="nav-item" id="nav-settings" onclick="showPage('settings')"><span class="nav-icon">⚙️</span><span class="nav-label">Einstellungen</span></button>
   </nav>
   <div class="topbar-right">
+    <span id="topbar-date" style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap"></span>
     <span class="act-pill" id="activity-count-badge"></span>
     <button class="collapse-btn" onclick="toggleNav()" id="collapse-btn" title="Menü ein-/ausklappen">⇔ Kompakt</button>
   </div>
@@ -364,12 +363,23 @@ let pastResults=DB.get('pastResults',[
 function savePastResults(){_origSavePastResults();}
 let weekFrame=DB.get('weekFrame',{mon:['rest'],tue:['run-easy'],wed:['strength'],thu:['run-tempo'],fri:['swim'],sat:['bike-long'],sun:['run-long']});
 let stravaToken=DB.get('stravaToken',null);
-let settings=DB.get('settings',{name:'',stravaClientId:'',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'',refreshToken:'',expiresAt:0,supabaseUrl:'',supabaseAnonKey:''});
+let settings=DB.get('settings',{name:'',stravaClientId:'',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4'});
 
 function saveActivities(){_origSaveActivities();}
 function saveRaces(){_origSaveRaces();}
 function saveSettings(){_origSaveSettings();}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function updateTopbarDate(){
+  const el=document.getElementById('topbar-date');
+  if(!el) return;
+  const now=new Date();
+  const days=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const day=days[now.getDay()];
+  const date=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  el.textContent=day+', '+date;
+}
+updateTopbarDate();
+setInterval(updateTopbarDate,60000);
 
 function fmtDate(d){if(!d)return'–';return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})}
 function fmtDuration(sec){if(!sec)return'–';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;return`${m}:${String(s).padStart(2,'0')}`}
@@ -395,10 +405,17 @@ function toggleNav(){
 function showPage(p){
   if(_sb&&!_sbUser){showLoginScreen();return;}
   currentPage=p;
+  // Always restore layout in case login screen messed with styles
+  const tb=document.getElementById('topbar');
+  const mw=document.getElementById('main-wrap');
+  const pc=document.getElementById('page-content');
+  if(tb) tb.style.cssText='';
+  if(mw) mw.style.cssText='';
+  if(pc) pc.style.cssText='';
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   const nb=document.getElementById('nav-'+p);if(nb)nb.classList.add('active');
   const pages={dashboard:renderDashboard,coach:renderCoach,import:renderImport,activities:renderActivities,goals:renderGoals,plan:renderPlan,settings:renderSettings};
-  document.getElementById('page-content').innerHTML='';
+  if(pc) pc.innerHTML='';
   (pages[p]||renderImport)();
 }
 function updateBadge(){const b=document.getElementById('activity-count-badge');if(b)b.textContent=activities.length>0?activities.length+' Einheiten':''}
@@ -474,7 +491,7 @@ function showSetupScreen(){
   if(tb) tb.style.display='none';
   if(mw) mw.style.display='none';
   const el=document.getElementById('page-content')||document.body;
-  el.style.display='flex';el.style.alignItems='center';el.style.justifyContent='center';el.style.minHeight='100vh';
+  el.style.cssText='display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;box-sizing:border-box;';
   el.innerHTML=`
   <div style="width:100%;max-width:420px;padding:40px 20px">
     <div style="text-align:center;margin-bottom:28px">
@@ -531,10 +548,7 @@ function showLoginScreen(){
   if(tb) tb.style.display='none';
   if(mw) mw.style.display='none';
   const el=document.getElementById('page-content')||document.body;
-  el.style.display='flex';
-  el.style.alignItems='center';
-  el.style.justifyContent='center';
-  el.style.minHeight='100vh';
+  el.style.cssText='display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;box-sizing:border-box;';
   el.innerHTML=`
   <div style="width:100%;max-width:400px;padding:40px 20px">
     <div style="text-align:center;margin-bottom:32px">
@@ -609,10 +623,12 @@ function showLoginError(msg){
 }
 
 async function onLoginSuccess(){
-  document.getElementById('topbar').style.display='';
-  document.getElementById('main-wrap').style.display='';
+  const tb=document.getElementById('topbar');
+  const mw=document.getElementById('main-wrap');
   const el=document.getElementById('page-content');
-  el.style.display='';el.style.alignItems='';el.style.justifyContent='';el.style.minHeight='';
+  if(tb){tb.style.display='';tb.style.cssText='';}
+  if(mw){mw.style.display='';mw.style.cssText='';}
+  if(el){el.style.display='';el.style.cssText='';}
   toast('Angemeldet ✓');
   await sbLoadAll();
   showPage('dashboard');
@@ -795,10 +811,46 @@ function mBar(mActs,mDate){
   const totalH=hrs(baseActs,'all');
   const totalKm=Math.round(baseActs.reduce((s,a)=>s+(a.distance||0),0)/1000);
 
+  // ── AKTUELLE WOCHE ──
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay()+1); weekStart.setHours(0,0,0,0);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6); weekEnd.setHours(23,59,59,999);
+  const weekActs=activities.filter(a=>{const d=new Date(a.date);return d>=weekStart&&d<=weekEnd;});
+  const wRun=hrs(weekActs,'run'), wBike=hrs(weekActs,'bike'), wSwim=hrs(weekActs,'swim'), wOther=hrs(weekActs,'other')+hrs(weekActs,'tri');
+  const wTotal=wRun+wBike+wSwim+wOther;
+  const wMax=Math.max(wRun,wBike,wSwim,wOther,0.01);
+  const kw=getKW(weekStart);
+
   el.innerHTML=`
 <div class="section-header" style="margin-bottom:12px">
   <div><div class="section-title">Dashboard</div><div class="section-sub">${baseActs.length} Einheiten · ${totalH.toFixed(1)}h · ${totalKm} km</div></div>
   ${nextRace?`<div style="text-align:right"><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Nächster Wettkampf</div><div style="font-weight:700;font-size:15px">${nextRace.name}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:${nrColor}">${daysUntil(nextRace.date)} Tage</div></div>`:''}
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-weight:700;font-size:15px">Diese Woche <span style="font-size:12px;font-weight:500;color:var(--text3)">KW${kw}</span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">${weekActs.length} Einheiten · ${wTotal.toFixed(1)} Std gesamt</div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${weekStart.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})} – ${weekEnd.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}</div>
+  </div>
+  ${(()=>{
+    if(wTotal===0) return '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px 0">Noch keine Einheiten diese Woche</div>';
+    const sports=[{l:'Laufen',h:wRun,c:'var(--run)'},{l:'Rad',h:wBike,c:'var(--bike)'},{l:'Schwimmen',h:wSwim,c:'var(--swim)'},{l:'Sonstige',h:wOther,c:'#9ca3af'}];
+    return '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">'+
+      sports.map(s=>{
+        const bw=s.h>0?Math.round((s.h/wMax)*100):0;
+        const hStr=s.h>0?s.h.toFixed(1)+' Std':'–';
+        return '<div>'+
+          '<div style="font-size:11px;font-weight:600;color:'+s.c+';margin-bottom:4px">'+s.l+'</div>'+
+          '<div style="font-size:18px;font-weight:800;color:'+s.c+';line-height:1;margin-bottom:6px">'+hStr+'</div>'+
+          '<div style="height:6px;background:var(--card2);border-radius:3px;overflow:hidden">'+
+            '<div style="height:100%;width:'+bw+'%;background:'+s.c+';border-radius:3px"></div>'+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  })()}
 </div>
 
 <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow-sm)">
@@ -819,7 +871,7 @@ function mBar(mActs,mDate){
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px">
   <div class="stat-card"><div class="stat-val">${baseActs.length}</div><div class="stat-label">Einheiten</div></div>
   <div class="stat-card"><div class="stat-val">${totalH.toFixed(1)} <span style="font-size:14px;font-weight:500;color:var(--text3)">Std</span></div><div class="stat-label">Trainingszeit</div></div>
   <div class="stat-card"><div class="stat-val">${totalKm} <span style="font-size:14px;font-weight:500;color:var(--text3)">km</span></div><div class="stat-label">Distanz</div></div>
@@ -841,7 +893,7 @@ function mBar(mActs,mDate){
   </div>
 </div>
 
-${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px">
   ${[...races].filter(r=>daysUntil(r.date)>0).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,4).map(r=>{
     const rc={run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)',tri:'var(--tri)'}[r.type]||'var(--accent)';
     return`<div class="stat-card" style="border-top:2px solid ${rc}">
@@ -2702,13 +2754,12 @@ function loadDemoData(){
 // ── INIT ──
 document.addEventListener('DOMContentLoaded',function(){
 (async function init(){
-  // Supabase — read from localStorage (never hardcoded in public code)
-  const sbUrl=settings.supabaseUrl||localStorage.getItem('sb_url')||'';
-  const sbKey=settings.supabaseAnonKey||localStorage.getItem('sb_key')||'';
-  if(!sbUrl||!sbKey){
-    showSetupScreen();
-    return;
-  }
+  // Supabase — Anon Key ist by design öffentlich, Daten durch RLS geschützt
+  const sbUrl='https://cpzdqgrqodvwtnqmusso.supabase.co';
+  const sbKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4';
+  // Auch in localStorage speichern für Einstellungsseite
+  localStorage.setItem('sb_url',sbUrl);
+  localStorage.setItem('sb_key',sbKey);
   if(sbUrl&&sbKey){
     sbInit(sbUrl,sbKey);
     if(_sb){
