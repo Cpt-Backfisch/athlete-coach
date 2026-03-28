@@ -294,8 +294,14 @@ let _sbUser=null;
 
 function sbInit(url,key){
   if(!url||!key) return null;
-  try{ _sb=supabase.createClient(url,key); return _sb; }
-  catch(e){ console.warn('Supabase init failed',e); return null; }
+  try{
+    if(typeof supabase==='undefined'||!supabase.createClient){
+      console.warn('Supabase library not loaded yet');
+      return null;
+    }
+    _sb=supabase.createClient(url,key);
+    return _sb;
+  }catch(e){ console.warn('Supabase init failed',e); return null; }
 }
 
 // Upsert a full table (replaces all rows for this user)
@@ -2761,7 +2767,21 @@ document.addEventListener('DOMContentLoaded',function(){
   localStorage.setItem('sb_url',sbUrl);
   localStorage.setItem('sb_key',sbKey);
   if(sbUrl&&sbKey){
-    sbInit(sbUrl,sbKey);
+    // Wait up to 3s for Supabase library to load
+    for(let i=0;i<30;i++){
+      sbInit(sbUrl,sbKey);
+      if(_sb) break;
+      await new Promise(r=>setTimeout(r,100));
+    }
+    if(!_sb){
+      // Library failed to load — show helpful error
+      showLoginScreen();
+      setTimeout(()=>{
+        const el=document.getElementById('page-content');
+        if(el) el.innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">Verbindungsfehler — bitte Seite neu laden (F5)</div>';
+      },100);
+      return;
+    }
     if(_sb){
       try{
         const {data:{session}}=await _sb.auth.getSession();
@@ -2784,12 +2804,7 @@ document.addEventListener('DOMContentLoaded',function(){
         }
       }catch(e){
         console.warn('Supabase session check failed',e);
-        // If DOM is ready, show login; otherwise wait
-        if(document.getElementById('topbar')){
-          showLoginScreen();
-        }else{
-          window.addEventListener('DOMContentLoaded',showLoginScreen,{once:true});
-        }
+        showLoginScreen();
         return;
       }
     }
