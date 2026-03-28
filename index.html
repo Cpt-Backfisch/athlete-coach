@@ -369,7 +369,7 @@ let pastResults=DB.get('pastResults',[
 function savePastResults(){_origSavePastResults();}
 let weekFrame=DB.get('weekFrame',{mon:['rest'],tue:['run-easy'],wed:['strength'],thu:['run-tempo'],fri:['swim'],sat:['bike-long'],sun:['run-long']});
 let stravaToken=DB.get('stravaToken',null);
-let settings=DB.get('settings',{name:'',stravaClientId:'',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4'});
+let settings=DB.get('settings',{name:'',stravaClientId:'',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4',telegramToken:'8650139968:AAE6_gsUfzZZV7ka5p0ekkzj08KxRyRRAls',telegramChatId:'8725020855'});
 
 function saveActivities(){_origSaveActivities();}
 function saveRaces(){_origSaveRaces();}
@@ -647,6 +647,89 @@ async function doLogout(){
 }
 
 
+// ── TELEGRAM COACH ──
+async function sendTelegramCoachMsg(activity){
+  const token=settings.telegramToken||'';
+  const chatId=settings.telegramChatId||'';
+  if(!token||!chatId) return;
+  if(!settings.claudeApiKey) return;
+
+  // Build activity summary for Claude
+  const distKm=activity.distance?(activity.distance/1000).toFixed(1)+'km':'';
+  const durMin=activity.duration?Math.round(activity.duration/60)+'min':'';
+  const pace=activity.avgSpeed?fmtPace(activity.avgSpeed,activity.type):'';
+  const hr=activity.avgHr?'Ø HF '+Math.round(activity.avgHr):'';
+  const typeNames={run:'Laufen',bike:'Rad',swim:'Schwimmen',tri:'Triathlon',other:'Training'};
+  const typeName=typeNames[activity.type]||'Training';
+
+  // Get last 4 weeks context
+  const w4=new Date(); w4.setDate(w4.getDate()-28);
+  const recent=activities.filter(a=>new Date(a.date)>=w4);
+  const recentH=(recent.reduce((s,a)=>s+(a.duration||0),0)/3600).toFixed(1);
+
+  const prompt=`Du bist ein erfahrener Triathlon-Coach. Bewerte diese Trainingseinheit in 2-3 kurzen, motivierenden Sätzen auf Deutsch. Sei konkret, persönlich und direkt. Keine langen Erklärungen.
+
+Einheit: ${typeName} — ${activity.name||'Training'}
+Datum: ${activity.date}
+${distKm?'Distanz: '+distKm:''}
+${durMin?'Dauer: '+durMin:''}
+${pace?'Pace/Tempo: '+pace:''}
+${hr?hr:''}
+${activity.intensity?'Intensität: '+activity.intensity+'/5':''}
+
+Kontext: Letzte 4 Wochen insgesamt ${recentH} Std Training.
+
+Schreibe die Bewertung direkt, ohne Einleitung. Max 3 Sätze.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':settings.claudeApiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const msg=data.content?.[0]?.text||'';
+    if(!msg) return;
+
+    // Format Telegram message
+    const icon={run:'🏃',bike:'🚴',swim:'🏊',tri:'🏅',other:'💪'}[activity.type]||'💪';
+    const telegramMsg=`${icon} *${typeName} abgeschlossen!*
+`+
+      `${distKm?distKm+' ':''}`+
+      `${durMin?durMin+' ':''}`+
+      `${pace?'· '+pace:''}`.trim()+
+      `
+
+_Coach-Bewertung:_
+${msg}`;
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:chatId,text:telegramMsg,parse_mode:'Markdown'})
+    });
+    toast('Coach-Bewertung per Telegram gesendet ✓');
+  }catch(e){
+    console.warn('Telegram send failed',e);
+  }
+}
+
+async function testTelegramConnection(){
+  const token=settings.telegramToken||'';
+  const chatId=settings.telegramChatId||'';
+  if(!token||!chatId){toast('Telegram nicht konfiguriert','error');return;}
+  try{
+    const res=await fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:chatId,text:'✅ *athlete.coach* verbunden!\n\nDu bekommst ab jetzt nach jeder neuen Einheit eine Coach-Bewertung hier.',parse_mode:'Markdown'})
+    });
+    const data=await res.json();
+    if(data.ok) toast('Testnachricht gesendet ✓');
+    else toast('Fehler: '+data.description,'error');
+  }catch(e){toast('Verbindung fehlgeschlagen','error');}
+}
+
 function renderDashboard(){
   const el=document.getElementById('page-content');
   const now=new Date(); now.setHours(23,59,59,999);
@@ -826,31 +909,81 @@ function mBar(mActs,mDate){
   const wMax=Math.max(wRun,wBike,wSwim,wOther,0.01);
   const kw=getKW(weekStart);
 
+  // Belastungsampel: Vergleich mit Zielumfang aus Trainingsplan
+  const wtgt=weekFrame.targets||{};
+  const targetRunH=(parseFloat(wtgt.targetRunSessions)||3)*1.0;
+  const targetBikeH=(parseFloat(wtgt.targetBikeSessions)||2)*1.5;
+  const targetSwimH=(parseFloat(wtgt.targetSwimSessions)||2)*0.75;
+  const targetTotalH=targetRunH+targetBikeH+targetSwimH||8; // default 8h/Woche
+  const wPct=wTotal/targetTotalH; // 0=nichts, 1=genau Ziel, >1.2=zu viel
+
+  // Wochentag-Faktor: wie weit sind wir in der Woche? (Mo=1/7 bis So=7/7)
+  const dayOfWeek=now.getDay()===0?7:now.getDay(); // 1=Mo, 7=So
+  const weekProgress=dayOfWeek/7;
+  const expectedPct=weekProgress; // sollte proportional zur Woche sein
+  const ratio=wPct/Math.max(expectedPct,0.1); // actual vs expected
+
+  // Ampel bestimmen
+  let ampel;
+  if(wTotal===0&&dayOfWeek>=3){
+    ampel={color:'#ef4444',bg:'#fef2f2',emoji:'🔴',label:'Unterbelastet',text:'Noch keine Einheiten diese Woche — Zeit loszulegen!'};
+  } else if(ratio<0.5){
+    ampel={color:'#f97316',bg:'#fff7ed',emoji:'🟠',label:'Unter Plan',text:'Du liegst deutlich unter deinem Wochenziel.'};
+  } else if(ratio<=1.25){
+    ampel={color:'#10b981',bg:'#f0fdf4',emoji:'🟢',label:'Im grünen Bereich',text:'Gute Belastung — weiter so!'};
+  } else if(ratio<=1.6){
+    ampel={color:'#f59e0b',bg:'#fffbeb',emoji:'🟡',label:'Erhöhte Belastung',text:'Du trainierst mehr als geplant — auf Regeneration achten.'};
+  } else {
+    ampel={color:'#ef4444',bg:'#fef2f2',emoji:'🔴',label:'Überbelastet',text:'Deutlich über dem Wochenziel — Erholung einplanen!'};
+  }
+
   el.innerHTML=`
 <div class="section-header" style="margin-bottom:12px">
   <div><div class="section-title">Dashboard</div><div class="section-sub">${baseActs.length} Einheiten · ${totalH.toFixed(1)}h · ${totalKm} km</div></div>
   ${nextRace?`<div style="text-align:right"><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Nächster Wettkampf</div><div style="font-weight:700;font-size:15px">${nextRace.name}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:${nrColor}">${daysUntil(nextRace.date)} Tage</div></div>`:''}
 </div>
 
-<div class="card" style="margin-bottom:16px">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+<div class="card" style="margin-bottom:16px;border-left:4px solid ${ampel.color}">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div style="font-weight:700;font-size:15px">Diese Woche <span style="font-size:12px;font-weight:500;color:var(--text3)">KW${kw}</span></div>
-      <div style="font-size:12px;color:var(--text3);margin-top:2px">${weekActs.length} Einheiten · ${wTotal.toFixed(1)} Std gesamt</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">${weekActs.length} Einheiten · ${wTotal.toFixed(1)} Std · Ziel: ${targetTotalH.toFixed(1)} Std</div>
     </div>
-    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${weekStart.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})} – ${weekEnd.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;background:${ampel.bg}">
+      <span style="font-size:16px">${ampel.emoji}</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${ampel.color}">${ampel.label}</div>
+        <div style="font-size:11px;color:var(--text3);max-width:200px">${ampel.text}</div>
+      </div>
+    </div>
   </div>
+
+  <div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px">
+      <span>Wochenfortschritt</span>
+      <span>${Math.round(wPct*100)}% des Wochenziels</span>
+    </div>
+    <div style="height:8px;background:var(--card2);border-radius:4px;overflow:hidden;position:relative">
+      <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(Math.round(wPct*100),100)}%;background:${ampel.color};border-radius:4px;transition:width 0.5s"></div>
+      <div style="position:absolute;left:${Math.round(weekProgress*100)}%;top:-2px;height:calc(100%+4px);width:2px;background:var(--text3);opacity:0.4;border-radius:1px" title="Erwarteter Stand heute"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px">
+      <span>Mo</span><span>Mi</span><span>Fr</span><span>So</span>
+    </div>
+  </div>
+
   ${(()=>{
-    if(wTotal===0) return '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px 0">Noch keine Einheiten diese Woche</div>';
-    const sports=[{l:'Laufen',h:wRun,c:'var(--run)'},{l:'Rad',h:wBike,c:'var(--bike)'},{l:'Schwimmen',h:wSwim,c:'var(--swim)'},{l:'Sonstige',h:wOther,c:'#9ca3af'}];
-    return '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">'+
+    const sports=[{l:'Laufen',h:wRun,c:'var(--run)',t:targetRunH},{l:'Rad',h:wBike,c:'var(--bike)',t:targetBikeH},{l:'Schwimmen',h:wSwim,c:'var(--swim)',t:targetSwimH}];
+    return '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">'+
       sports.map(s=>{
-        const bw=s.h>0?Math.round((s.h/wMax)*100):0;
+        const bw=s.t>0?Math.min(Math.round((s.h/s.t)*100),100):0;
         const hStr=s.h>0?s.h.toFixed(1)+' Std':'–';
+        const tStr=s.t>0?'/ '+s.t.toFixed(1)+' Std Ziel':'';
         return '<div>'+
           '<div style="font-size:11px;font-weight:600;color:'+s.c+';margin-bottom:4px">'+s.l+'</div>'+
-          '<div style="font-size:18px;font-weight:800;color:'+s.c+';line-height:1;margin-bottom:6px">'+hStr+'</div>'+
-          '<div style="height:6px;background:var(--card2);border-radius:3px;overflow:hidden">'+
+          '<div style="font-size:20px;font-weight:800;color:'+s.c+';line-height:1;margin-bottom:2px">'+hStr+'</div>'+
+          '<div style="font-size:10px;color:var(--text3);margin-bottom:6px">'+tStr+'</div>'+
+          '<div style="height:5px;background:var(--card2);border-radius:3px;overflow:hidden">'+
             '<div style="height:100%;width:'+bw+'%;background:'+s.c+';border-radius:3px"></div>'+
           '</div>'+
         '</div>';
@@ -2134,6 +2267,27 @@ function renderSettings(){
     <button class="btn btn-ghost btn-sm" onclick="exportData()">📥 Daten exportieren (JSON)</button>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer;justify-content:center">📤 Backup importieren<input type="file" accept=".json" style="display:none" onchange="importBackup(event)"/></label>
     <button class="btn btn-danger btn-sm" onclick="clearAll()">Alle Daten löschen</button>
+  </div>
+</div>
+<div class="card mb-16">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="width:36px;height:36px;background:#e8f4fd;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✈️</div>
+    <div><div style="font-weight:700;font-size:15px">Telegram Coach-Nachrichten</div><div style="font-size:12px;color:var(--text3)">Automatische Bewertung nach jedem Training</div></div>
+  </div>
+  <div style="padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:600;background:${settings.telegramToken?'var(--run-light)':'var(--card2)'};color:${settings.telegramToken?'#059669':'var(--text3)'}">
+    ${settings.telegramToken?'✓ Telegram verbunden':'– Nicht konfiguriert'}
+  </div>
+  <div class="form-group">
+    <label class="form-label">Bot Token</label>
+    <input class="form-input" id="s-tg-token" type="password" value="${settings.telegramToken||''}" placeholder="1234567890:AAH..." style="font-family:monospace;font-size:12px"/>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Chat ID</label>
+    <input class="form-input" id="s-tg-chatid" value="${settings.telegramChatId||''}" placeholder="123456789"/>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-primary btn-sm" onclick="settings.telegramToken=document.getElementById('s-tg-token').value.trim();settings.telegramChatId=document.getElementById('s-tg-chatid').value.trim();saveSettings();toast('Gespeichert ✓')">Speichern</button>
+    <button class="btn btn-ghost btn-sm" onclick="testTelegramConnection()">🔔 Testnachricht</button>
   </div>
 </div>
 <div class="card">
