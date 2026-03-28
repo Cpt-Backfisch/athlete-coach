@@ -730,6 +730,148 @@ async function testTelegramConnection(){
   }catch(e){toast('Verbindung fehlgeschlagen','error');}
 }
 
+// ── PUBLIC SHARE ──
+async function generateShareLink(){
+  if(!_sb||!_sbUser){toast('Nicht eingeloggt','error');return;}
+  try{
+    // Generate random token
+    const token=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+    // Delete old share if exists
+    await _sb.from('public_shares').delete().eq('user_id',_sbUser.id);
+    // Insert new
+    const {error}=await _sb.from('public_shares').insert({user_id:_sbUser.id,share_token:token});
+    if(error) throw error;
+    const url=window.location.origin+window.location.pathname+'?share='+token;
+    // Copy to clipboard
+    try{await navigator.clipboard.writeText(url);}catch(e){}
+    toast('Share-Link kopiert ✓');
+    showPage('settings');
+    return url;
+  }catch(e){toast('Fehler: '+e.message,'error');}
+}
+
+async function loadShareData(token){
+  if(!_sb) return null;
+  try{
+    // Verify token exists
+    const {data:share}=await _sb.from('public_shares').select('user_id').eq('share_token',token).single();
+    if(!share) return null;
+    const uid=share.user_id;
+    // Load all public data
+    const [acts,rc,pr,wf]=await Promise.all([
+      _sb.from('activities').select('data').eq('user_id',uid).single(),
+      _sb.from('races').select('data').eq('user_id',uid).single(),
+      _sb.from('past_results').select('data').eq('user_id',uid).single(),
+      _sb.from('week_frame').select('data').eq('user_id',uid).single(),
+    ]);
+    return {
+      activities: acts.data?JSON.parse(acts.data.data):[],
+      races: rc.data?JSON.parse(rc.data.data):[],
+      pastResults: pr.data?JSON.parse(pr.data.data):[],
+      weekFrame: wf.data?JSON.parse(wf.data.data):{},
+      shareToken: token,
+      ownerId: uid
+    };
+  }catch(e){console.warn('loadShareData failed',e);return null;}
+}
+
+async function loadComments(token){
+  if(!_sb) return [];
+  try{
+    const {data}=await _sb.from('comments').select('*').eq('share_token',token).order('created_at',{ascending:false});
+    return data||[];
+  }catch(e){return [];}
+}
+
+async function postComment(token, ownerId, name, message){
+  if(!_sb||!name||!message) return false;
+  try{
+    const {error}=await _sb.from('comments').insert({
+      user_id:ownerId, share_token:token, author_name:name.trim(), message:message.trim()
+    });
+    return !error;
+  }catch(e){return false;}
+}
+
+function renderShareView(shareData){
+  // Override global data with shared data
+  activities=shareData.activities;
+  races=shareData.races;
+  pastResults=shareData.pastResults;
+  weekFrame=shareData.weekFrame;
+  // Hide nav, show read-only banner
+  const tb=document.getElementById('topbar');
+  if(tb){
+    tb.innerHTML=`
+    <div class="topbar-logo"><div class="logo-text">athlete<span>.</span>coach</div><div class="logo-sub">Training Intelligence</div></div>
+    <div style="flex:1;display:flex;align-items:center;gap:10px;padding:0 16px">
+      <span style="font-size:12px;background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:20px;font-weight:600">👁 Nur-Lese-Ansicht</span>
+    </div>
+    <div id="topbar-date" style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;padding:0 16px"></div>`;
+    updateTopbarDate();
+  }
+  // Render dashboard in read-only mode
+  renderDashboard();
+  // Add comments section below dashboard
+  setTimeout(()=>renderCommentsSection(shareData.shareToken, shareData.ownerId), 100);
+}
+
+function renderCommentsSection(token, ownerId){
+  const pc=document.getElementById('page-content');
+  if(!pc) return;
+  const commentDiv=document.createElement('div');
+  commentDiv.id='comments-section';
+  commentDiv.style.cssText='margin-top:0;padding:0 0 40px';
+  commentDiv.innerHTML=`
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px">Kommentare & Motivation</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Hinterlasse eine Nachricht</div>
+    <div class="form-group">
+      <input class="form-input" id="comment-name" placeholder="Dein Name" style="margin-bottom:8px"/>
+      <textarea class="form-input" id="comment-msg" placeholder="Schreib eine kurze Nachricht…" rows="3" style="resize:none"></textarea>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="submitComment('${token}','${ownerId}')">Kommentar senden</button>
+  </div>
+  <div id="comments-list"><div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Lade Kommentare…</div></div>`;
+  pc.appendChild(commentDiv);
+  loadComments(token).then(renderCommentsList);
+}
+
+function renderCommentsList(comments){
+  const el=document.getElementById('comments-list');
+  if(!el) return;
+  if(!comments.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px">Noch keine Kommentare — sei der Erste!</div>';return;}
+  el.innerHTML=comments.map(c=>{
+    const d=new Date(c.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return`<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-weight:700;font-size:14px;color:var(--accent)">${c.author_name}</div>
+        <div style="font-size:11px;color:var(--text3)">${d}</div>
+      </div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">${c.message}</div>
+    </div>`;
+  }).join('');
+}
+
+async function submitComment(token, ownerId){
+  const name=document.getElementById('comment-name')?.value;
+  const msg=document.getElementById('comment-msg')?.value;
+  if(!name||!msg){toast('Name und Nachricht erforderlich','error');return;}
+  const btn=document.querySelector('#comments-section .btn-primary');
+  if(btn){btn.textContent='Senden…';btn.disabled=true;}
+  const ok=await postComment(token,ownerId,name,msg);
+  if(ok){
+    document.getElementById('comment-name').value='';
+    document.getElementById('comment-msg').value='';
+    toast('Kommentar gesendet ✓');
+    const comments=await loadComments(token);
+    renderCommentsList(comments);
+  }else{
+    toast('Fehler beim Senden','error');
+  }
+  if(btn){btn.textContent='Kommentar senden';btn.disabled=false;}
+}
+
 function renderDashboard(){
   const el=document.getElementById('page-content');
   const now=new Date(); now.setHours(23,59,59,999);
@@ -2261,6 +2403,19 @@ function renderSettings(){
 </div>
 <div>
 <div class="card mb-16">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="width:36px;height:36px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔗</div>
+    <div><div style="font-weight:700;font-size:15px">Dashboard teilen</div><div style="font-size:12px;color:var(--text3)">Freunde können dein Dashboard lesen & kommentieren</div></div>
+  </div>
+  <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">Generiere einen Link den du per WhatsApp oder E-Mail teilen kannst. Ohne Login, nur lesen.</div>
+  <button class="btn btn-primary btn-sm" onclick="generateShareLink().then(url=>{if(url){document.getElementById('share-url-display').style.display='block';document.getElementById('share-url-text').value=url;}})">🔗 Share-Link generieren</button>
+  <div id="share-url-display" style="display:none;margin-top:10px">
+    <input class="form-input" id="share-url-text" readonly style="font-size:11px;font-family:monospace" onclick="this.select()"/>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">Link in Zwischenablage kopiert ✓ — auch oben anklicken zum Kopieren</div>
+  </div>
+</div>
+
+<div class="card mb-16">
   <div style="font-weight:700;font-size:14px;margin-bottom:6px">Datenverwaltung</div>
   <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Alle Daten werden lokal im Browser gespeichert.</div>
   <div style="display:flex;flex-direction:column;gap:8px">
@@ -2920,6 +3075,10 @@ document.addEventListener('DOMContentLoaded',function(){
   // Auch in localStorage speichern für Einstellungsseite
   localStorage.setItem('sb_url',sbUrl);
   localStorage.setItem('sb_key',sbKey);
+  // Check for share token first
+  const _urlParams=new URLSearchParams(window.location.search);
+  const _shareToken=_urlParams.get('share');
+
   if(sbUrl&&sbKey){
     // Wait up to 3s for Supabase library to load
     for(let i=0;i<30;i++){
@@ -2928,13 +3087,24 @@ document.addEventListener('DOMContentLoaded',function(){
       await new Promise(r=>setTimeout(r,100));
     }
     if(!_sb){
-      // Library failed to load — show helpful error
       showLoginScreen();
       setTimeout(()=>{
         const el=document.getElementById('page-content');
         if(el) el.innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">Verbindungsfehler — bitte Seite neu laden (F5)</div>';
       },100);
       return;
+    }
+    // Handle share token — no login needed
+    if(_shareToken){
+      const shareData=await loadShareData(_shareToken);
+      if(shareData){
+        renderShareView(shareData);
+        return;
+      }else{
+        const el=document.getElementById('page-content');
+        if(el) el.innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">Dieser Link ist ungültig oder abgelaufen.</div>';
+        return;
+      }
     }
     if(_sb){
       try{
