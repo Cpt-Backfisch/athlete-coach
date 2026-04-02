@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775162200';
+  const BUILD='1775163137';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2432,7 +2432,14 @@ function renderSettings(){
   </div>
 
   <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text)">Schritt 3 — Mit Strava verbinden</div>
-  <button class="btn btn-strava" style="width:100%;justify-content:center" onclick="stravaOAuthStart()">
+  <button class="btn btn-strava" style="width:100%;justify-content:center" onclick="
+    const pu=document.getElementById('s-proxy')?.value.trim().replace(/\/$/,'');
+    const ci=document.getElementById('s-clientid')?.value.trim();
+    if(pu) settings.proxyUrl=pu;
+    if(ci) settings.stravaClientId=ci;
+    saveSettings();
+    stravaOAuthStart();
+  ">
     🔗 Mit Strava verbinden (OAuth)
   </button>
 
