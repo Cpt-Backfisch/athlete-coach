@@ -514,13 +514,13 @@ function showSetupScreen(){
         <input class="form-input" id="setup-url" placeholder="https://xxxx.supabase.co" style="font-family:monospace;font-size:12px"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Anon Key</label>
+        <label class="form-label">API Key (Publishable Key)</label>
         <input class="form-input" id="setup-key" type="password" placeholder="eyJhbGci…" style="font-family:monospace;font-size:12px"/>
       </div>
       <div id="setup-err" style="font-size:12px;color:var(--red);margin-bottom:10px;display:none"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doSetup()">Verbinden & weiter</button>
       <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center">
-        Supabase Dashboard → Settings → API → Project URL + anon key
+        Supabase Dashboard → Settings → API Keys → Publishable Key
       </div>
     </div>
   </div>`;
@@ -2331,11 +2331,11 @@ function renderSettings(){
     <input class="form-input" id="s-sb-url" value="${settings.supabaseUrl||''}" placeholder="https://xxxx.supabase.co" style="font-family:monospace;font-size:12px"/>
   </div>
   <div class="form-group">
-    <label class="form-label">Supabase Anon Key</label>
+    <label class="form-label">API Key (Publishable Key)</label>
     <input class="form-input" id="s-sb-key" type="password" value="${settings.supabaseAnonKey||''}" placeholder="eyJhbGci…" style="font-family:monospace;font-size:12px"/>
   </div>
   <button class="btn btn-primary btn-sm" onclick="settings.supabaseUrl=document.getElementById('s-sb-url').value.trim();settings.supabaseAnonKey=document.getElementById('s-sb-key').value.trim();saveSettings();sbInit(settings.supabaseUrl,settings.supabaseAnonKey);toast('Gespeichert – bitte Seite neu laden')">Speichern & verbinden</button>
-  <div style="font-size:11px;color:var(--text3);margin-top:8px">URL und Anon Key findest du in Supabase → Einstellungen → API</div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px">Publishable Key findest du in Supabase → Settings → API Keys</div>
 </div>
 
 <div class="card mb-16">
