@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775162042';
+  const BUILD='1775162200';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1407,6 +1407,36 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
 
 `;
   setTimeout(buildCumChart, 20);
+
+  // Load & show friend comments at bottom of dashboard
+  if(_sb&&_sbUser){
+    _sb.from('public_shares').select('share_token').eq('user_id',_sbUser.id).single()
+      .then(res=>{
+        if(!res.data||!res.data.share_token) return Promise.resolve([]);
+        return loadComments(res.data.share_token);
+      }).then(comments=>{
+        if(!comments||!comments.length) return;
+        const pc=document.getElementById('page-content');
+        if(!pc||document.getElementById('dashboard-comments')) return;
+        const div=document.createElement('div');
+        div.id='dashboard-comments';
+        div.style.marginTop='16px';
+        const rows=comments.map(c=>{
+          const d=new Date(c.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+          return '<div style="padding:12px;background:var(--card2);border-radius:10px;margin-bottom:10px">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+              '<div style="font-weight:700;font-size:14px;color:var(--accent)">'+c.author_name+'</div>'+
+              '<div style="font-size:11px;color:var(--text3)">'+d+'</div>'+
+            '</div>'+
+            '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+c.message+'</div>'+
+          '</div>';
+        }).join('');
+        div.innerHTML='<div class="card"><div style="font-weight:700;font-size:15px;margin-bottom:16px">'+
+          '&#x1F4AC; Kommentare deiner Freunde <span style="font-size:12px;font-weight:500;color:var(--text3)">'+comments.length+' Nachrichten</span></div>'+
+          rows+'</div>';
+        pc.appendChild(div);
+      }).catch(e=>console.warn('comments failed',e));
+  }
 }
 
 function buildCumChart(){
@@ -1593,50 +1623,6 @@ function buildHFChart(){
   </div></div>`;
   el.innerHTML=html;
 
-  // Show comments for logged-in user
-  if(_sb&&_sbUser){
-    // Use setTimeout to ensure all innerHTML assignments are done
-    setTimeout(()=>{
-      const pc=document.getElementById('page-content');
-      if(!pc) return;
-      const commDiv=document.createElement('div');
-      commDiv.id='dashboard-comments';
-      commDiv.style.cssText='margin-top:16px';
-      commDiv.innerHTML='<div class="card"><div style="font-size:13px;color:var(--text3)">Lade Kommentare…</div></div>';
-      pc.appendChild(commDiv);
-
-    _sb.from('public_shares').select('share_token').eq('user_id',_sbUser.id).single()
-      .then(({data})=>{
-        const div=document.getElementById('dashboard-comments');
-        if(!div) return;
-        if(!data?.share_token){
-          div.innerHTML='';
-          return;
-        }
-        return loadComments(data.share_token).then(comments=>{
-          const div2=document.getElementById('dashboard-comments');
-          if(!div2) return;
-          if(!comments.length){
-            div2.innerHTML='<div class="card"><div style="font-weight:700;font-size:15px;margin-bottom:4px">💬 Kommentare deiner Freunde</div><div style="font-size:13px;color:var(--text3);margin-top:4px">Noch keine Kommentare — teile deinen Link damit Freunde dich motivieren können!</div></div>';
-            return;
-          }
-          div2.innerHTML='<div class="card">'+
-            '<div style="font-weight:700;font-size:15px;margin-bottom:16px">💬 Kommentare deiner Freunde <span style="font-size:12px;font-weight:500;color:var(--text3)">'+comments.length+' Nachrichten</span></div>'+
-            comments.map(c=>{
-              const d=new Date(c.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-              return'<div style="padding:12px;background:var(--card2);border-radius:10px;margin-bottom:10px">'+
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-                  '<div style="font-weight:700;font-size:14px;color:var(--accent)">'+c.author_name+'</div>'+
-                  '<div style="font-size:11px;color:var(--text3)">'+d+'</div>'+
-                '</div>'+
-                '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+c.message+'</div>'+
-              '</div>';
-            }).join('')+
-          '</div>';
-        });
-      }).catch(e=>console.warn('comments load failed',e));
-    },1500);
-  }
 }
 
 // ── IMPORT PAGE ──
