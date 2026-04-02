@@ -369,7 +369,7 @@ let pastResults=DB.get('pastResults',[
 function savePastResults(){_origSavePastResults();}
 let weekFrame=DB.get('weekFrame',{mon:['rest'],tue:['run-easy'],wed:['strength'],thu:['run-tempo'],fri:['swim'],sat:['bike-long'],sun:['run-long']});
 let stravaToken=DB.get('stravaToken',null);
-let settings=DB.get('settings',{name:'',stravaClientId:'',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4',telegramToken:'8650139968:AAE6_gsUfzZZV7ka5p0ekkzj08KxRyRRAls',telegramChatId:'8725020855'});
+let settings=DB.get('settings',{name:'',stravaClientId:'',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4',telegramToken:'',telegramChatId:''});
 
 function saveActivities(){_origSaveActivities();}
 function saveRaces(){_origSaveRaces();}
