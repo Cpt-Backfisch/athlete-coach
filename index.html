@@ -249,6 +249,19 @@ textarea.form-input{resize:vertical;min-height:80px}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// Cache busting: check if new version available every 5 min
+(function(){
+  const BUILD='1775161827';
+  const stored=localStorage.getItem('ac_build');
+  if(stored&&stored!==BUILD){
+    localStorage.setItem('ac_build',BUILD);
+    window.location.reload(true);
+  } else {
+    localStorage.setItem('ac_build',BUILD);
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -1582,12 +1595,15 @@ function buildHFChart(){
 
   // Show comments for logged-in user
   if(_sb&&_sbUser){
-    // Add placeholder div immediately so el reference stays valid
-    const commDiv=document.createElement('div');
-    commDiv.id='dashboard-comments';
-    commDiv.style.cssText='margin-top:16px';
-    commDiv.innerHTML='<div class="card"><div style="font-size:13px;color:var(--text3)">Lade Kommentare…</div></div>';
-    el.appendChild(commDiv);
+    // Use setTimeout to ensure all innerHTML assignments are done
+    setTimeout(()=>{
+      const pc=document.getElementById('page-content');
+      if(!pc) return;
+      const commDiv=document.createElement('div');
+      commDiv.id='dashboard-comments';
+      commDiv.style.cssText='margin-top:16px';
+      commDiv.innerHTML='<div class="card"><div style="font-size:13px;color:var(--text3)">Lade Kommentare…</div></div>';
+      pc.appendChild(commDiv);
 
     _sb.from('public_shares').select('share_token').eq('user_id',_sbUser.id).single()
       .then(({data})=>{
@@ -1619,6 +1635,7 @@ function buildHFChart(){
           '</div>';
         });
       }).catch(e=>console.warn('comments load failed',e));
+    },200);
   }
 }
 
