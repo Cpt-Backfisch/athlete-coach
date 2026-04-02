@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775161827';
+  const BUILD='1775162042';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1635,7 +1635,7 @@ function buildHFChart(){
           '</div>';
         });
       }).catch(e=>console.warn('comments load failed',e));
-    },200);
+    },1500);
   }
 }
 
