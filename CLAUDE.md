@@ -111,8 +111,8 @@ Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Shar
 
 🔒 **Diese Werte nur in App-Einstellungen (Supabase `settings` Tabelle):**
 - Claude API Key
-- Telegram Bot Token: `8650139968:AAGbuBf6WAfM_lGg6yYyOc9pUhnh-JWJdBs` ← nur in App, nie in Code!
-- Telegram Chat ID: `8725020855`
+- Telegram Bot Token: nur in Supabase `settings` Tabelle speichern, nie in Code/CLAUDE.md!
+- Telegram Chat ID: nur in Supabase `settings` Tabelle speichern
 
 ---
 
