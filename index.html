@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775163387';
+  const BUILD='1775217600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2872,13 +2872,13 @@ function stravaOAuthStart(){
     showPage('settings');
     return;
   }
-  // Callback-URL = diese Seite + ?strava_callback=1
-  // Strava erlaubt auch localhost und file:// wenn in App eingetragen
-  const callbackUrl=encodeURIComponent(window.location.origin+window.location.pathname+'?strava_callback=1');
-  // Client ID aus Proxy-URL ableiten ist nicht möglich — muss separat gespeichert werden
   const clientId=settings.stravaClientId;
   if(!clientId){toast('Strava Client ID fehlt — in Einstellungen eintragen','error');showPage('settings');return;}
-  const oauthUrl=`https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&approval_prompt=auto&scope=activity:read_all`;
+  // Saubere redirect_uri ohne Query-Parameter (Strava validiert streng)
+  // Callback-Erkennung läuft über den state-Parameter
+  const basePath=window.location.pathname.replace(/\/index\.html$/,'/');
+  const callbackUrl=encodeURIComponent(window.location.origin+basePath);
+  const oauthUrl=`https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&approval_prompt=auto&scope=activity:read_all&state=strava_oauth`;
   window.location.href=oauthUrl;
 }
 function stravaToActivity(act){
@@ -3162,10 +3162,10 @@ document.addEventListener('DOMContentLoaded',function(){
         const {data:{session}}=await _sb.auth.getSession();
         if(session){
           _sbUser=session.user;
-          // Check Strava OAuth callback
+          // Check Strava OAuth callback (state=strava_oauth oder legacy strava_callback=1)
           const urlParams=new URLSearchParams(window.location.search);
           const oauthCode=urlParams.get('code');
-          if(urlParams.get('strava_callback')==='1'&&oauthCode){
+          if((urlParams.get('state')==='strava_oauth'||urlParams.get('strava_callback')==='1')&&oauthCode){
             window.history.replaceState({},'',window.location.pathname);
             setTimeout(()=>handleStravaCallback(oauthCode),100);
             return;
@@ -3187,7 +3187,7 @@ document.addEventListener('DOMContentLoaded',function(){
   // No Supabase / fallback: local mode
   const urlParams=new URLSearchParams(window.location.search);
   const oauthCode=urlParams.get('code');
-  if(urlParams.get('strava_callback')==='1'&&oauthCode){
+  if((urlParams.get('state')==='strava_oauth'||urlParams.get('strava_callback')==='1')&&oauthCode){
     window.history.replaceState({},'',window.location.pathname);
     setTimeout(()=>handleStravaCallback(oauthCode),100);
     return;
