@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1743811200';
+  const BUILD='1743897600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -401,7 +401,7 @@ updateTopbarDate();
 setInterval(updateTopbarDate,60000);
 
 function fmtDate(d){if(!d)return'–';return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})}
-function fmtDuration(sec){if(!sec)return'–';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;return`${m}:${String(s).padStart(2,'0')}`}
+function fmtDuration(sec){if(!sec)return'–';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);if(h>0)return`${h}:${String(m).padStart(2,'0')} Std`;return`${m} Min`}
 function fmtThousands(n){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
 function fmtDist(m){if(!m)return'–';if(m>=1000){const km=m/1000;return(km>=100?fmtThousands(km):km.toFixed(1))+' km';}return m+' m'}
 function fmtHHMM(h){const t=Math.round(h*60);return Math.floor(t/60)+':'+(t%60<10?'0':'')+(t%60)}
@@ -790,6 +790,14 @@ async function loadShareData(token){
   }catch(e){console.warn('loadShareData failed',e);return null;}
 }
 
+async function deleteComment(id){
+  if(!_sb||!id) return;
+  await _sb.from('comments').delete().eq('id',id);
+  const el=document.getElementById('dashboard-comments');
+  if(el) el.remove();
+  // re-trigger comment load
+  renderDashboard();
+}
 async function loadComments(token){
   if(!_sb) return [];
   try{
@@ -1115,19 +1123,31 @@ function mBar(mActs,mDate){
     </div>
   </div>
 
-  <div style="margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px">
-      <span>Wochenfortschritt</span>
-      <span>${Math.round(wPct*100)}% des Wochenziels</span>
-    </div>
-    <div style="height:8px;background:var(--card2);border-radius:4px;overflow:hidden;position:relative">
-      <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(Math.round(wPct*100),100)}%;background:${ampel.color};border-radius:4px;transition:width 0.5s"></div>
-      <div style="position:absolute;left:${Math.round(weekProgress*100)}%;top:-2px;height:calc(100%+4px);width:2px;background:var(--text3);opacity:0.4;border-radius:1px" title="Erwarteter Stand heute"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px">
-      <span>Mo</span><span>Mi</span><span>Fr</span><span>So</span>
-    </div>
-  </div>
+  ${(()=>{
+    const pct=Math.min(wPct,1.5);
+    const R=34,CX=44,CY=44,SW=9;
+    const circ=2*Math.PI*R;
+    const filled=Math.min(wPct,1)*circ;
+    const expAngle=weekProgress*2*Math.PI-Math.PI/2;
+    const mx=(CX+R*Math.cos(expAngle)).toFixed(1),my=(CY+R*Math.sin(expAngle)).toFixed(1);
+    const pctLabel=Math.round(wPct*100)+'%';
+    return`<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+      <svg width="88" height="88" viewBox="0 0 88 88" style="flex-shrink:0">
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="var(--card2)" stroke-width="${SW}"/>
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${ampel.color}" stroke-width="${SW}"
+          stroke-dasharray="${filled.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"
+          transform="rotate(-90 ${CX} ${CY})" style="transition:stroke-dasharray 0.5s"/>
+        ${wPct>0.05?`<circle cx="${mx}" cy="${my}" r="4" fill="white" stroke="var(--text3)" stroke-width="1.5" opacity="0.6"/>`:``}
+        <text x="${CX}" y="${CY-4}" text-anchor="middle" font-family="DM Mono,monospace" font-size="15" font-weight="800" fill="${ampel.color}">${pctLabel}</text>
+        <text x="${CX}" y="${CY+10}" text-anchor="middle" font-family="inherit" font-size="9" fill="var(--text3)">des Ziels</text>
+      </svg>
+      <div style="flex:1;font-size:11px;color:var(--text3);line-height:1.8">
+        <div><span style="color:var(--text2);font-weight:600">Ist</span> ${fmtHHMM(wTotal)} Std</div>
+        <div><span style="color:var(--text2);font-weight:600">Ziel</span> ${fmtHHMM(targetTotalH)} Std</div>
+        <div style="margin-top:4px;font-size:10px;opacity:0.7">● erwartet heute: ${Math.round(weekProgress*100)}%</div>
+      </div>
+    </div>`;
+  })()}
 
   ${(()=>{
     const sports=[{l:'Laufen',h:wRun,c:'var(--run)',t:targetRunH},{l:'Rad',h:wBike,c:'var(--bike)',t:targetBikeH},{l:'Schwimmen',h:wSwim,c:'var(--swim)',t:targetSwimH}];
@@ -1321,13 +1341,22 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
     function tSec(t){if(!t)return 0;const p=t.split(':').map(Number);return p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:0;}
     function fmtT(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?h+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0'):m+':'+String(sc).padStart(2,'0');}
     const typeColors={run:'#10b981',bike:'#3b82f6',swim:'#8b5cf6',tri:'#f59e0b'};
-    const typeLabel={run:'Laufen',bike:'Rad',swim:'Schwimmen',tri:'Triathlon'};
+    function runPace(r){
+      const m=(r.notes||'').match(/(\d+:\d+)\s*min\/km/);
+      if(m) return m[1]+' min/km';
+      const n=(r.name||'').toLowerCase();
+      const dist=n.includes('marathon')&&!n.includes('halb')?42.195:n.includes('halb')||n.includes(' hm')?21.0975:n.includes('10km')||n.includes('10 km')?10:n.includes('5km')||n.includes('5 km')?5:null;
+      if(!dist) return null;
+      const sec=tSec(r.actualTime);if(!sec) return null;
+      const ps=sec/dist;return Math.floor(ps/60)+':'+String(Math.round(ps%60)).padStart(2,'0')+' min/km';
+    }
     return allR.map((r,i)=>{
       const sc=tSec(r.actualTime),gc=tSec(r.goalTime);
       const col=typeColors[r.type]||'#9ca3af';
       const diff=gc>0?sc-gc:null;
-      const diffStr=diff===null?'':diff<=0?'✓ '+fmtT(Math.abs(diff))+' unter Ziel':'▲ '+fmtT(diff)+' über Ziel';
-      const diffCol=diff===null?'var(--text3)':diff<=0?'#10b981':'#f97316';
+      const beatGoal=diff!==null&&diff<=0;
+      const beatStr=beatGoal?'✓ '+fmtT(Math.abs(diff))+' unter Ziel':'';
+      const pace=r.type==='run'?runPace(r):null;
       const detailId='perf-detail-'+i;
       const hasDetail=r.notes&&r.notes.trim();
       return`<div style="border-bottom:1px solid var(--border)">
@@ -1337,9 +1366,12 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}${r.location?` <span style="font-size:11px;color:var(--text3);font-weight:400">· ${r.location}</span>`:''}</div>
           </div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:800;color:${col};flex-shrink:0">${r.actualTime}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <span style="font-family:'DM Mono',monospace;font-size:14px;font-weight:800;color:${col}">${r.actualTime}</span>
+            ${pace?`<span style="font-size:11px;color:var(--text3)">(${pace})</span>`:''}
+          </div>
           ${gc>0?`<div style="font-size:11px;color:var(--text3);flex-shrink:0">/ ${r.goalTime}</div>`:''}
-          ${diffStr?`<div style="font-size:11px;font-weight:600;color:${diffCol};flex-shrink:0">${diffStr}</div>`:''}
+          ${beatStr?`<div style="font-size:11px;font-weight:600;color:#10b981;flex-shrink:0">${beatStr}</div>`:''}
           ${hasDetail?`<div style="font-size:12px;color:var(--text3);flex-shrink:0">▸</div>`:''}
         </div>
         ${hasDetail?`<div id="${detailId}" style="display:none;padding:8px 12px 12px 20px;background:var(--card2);border-radius:8px;margin-bottom:8px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap">${r.notes}</div>`:''}
@@ -1371,7 +1403,10 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
           return '<div style="padding:12px;background:var(--card2);border-radius:10px;margin-bottom:10px">'+
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
               '<div style="font-weight:700;font-size:14px;color:var(--accent)">'+c.author_name+'</div>'+
-              '<div style="font-size:11px;color:var(--text3)">'+d+'</div>'+
+              '<div style="display:flex;align-items:center;gap:8px">'+
+                '<div style="font-size:11px;color:var(--text3)">'+d+'</div>'+
+                '<button onclick="deleteComment(\''+c.id+'\')" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--text3);padding:0 2px;line-height:1" title="Kommentar löschen">×</button>'+
+              '</div>'+
             '</div>'+
             '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+c.message+'</div>'+
           '</div>';
@@ -1669,7 +1704,7 @@ ${activities.length>0?`
 
 // ── ACTIVITIES PAGE ──
 let actFilter='all', actSearch='', actPeriod='all';
-let dashPeriod='3m', dashSport='all';
+let dashPeriod='2026', dashSport='all';
 
 function getYears(){
   const ys=new Set(activities.map(a=>(a.date||'').slice(0,4)).filter(Boolean));
@@ -1710,15 +1745,6 @@ function renderActivities(){
 <div class="section-header">
   <div><div class="section-title">Trainingseinheiten</div><div class="section-sub">${activities.length} Einheiten gesamt</div></div>
   <button class="btn btn-primary" onclick="openAddModal()">+ Einheit erfassen</button>
-</div>
-<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px">
-  <div class="stat-card" style="grid-column:span 1"><div class="stat-val">${filtered.length}</div><div class="stat-label">Gesamt</div></div>
-  <div class="stat-card" style="grid-column:span 1"><div class="stat-val">${fKm}</div><div class="stat-label">km</div></div>
-  <div class="stat-card" style="grid-column:span 1"><div class="stat-val">${fH} <span style="font-size:12px;font-weight:500;color:var(--text3)">Std</span></div><div class="stat-label">Zeit</div></div>
-  <div class="stat-card" style="grid-column:span 1;border-top:2px solid var(--run)"><div class="stat-val" style="color:var(--run)">${fRuns}</div><div class="stat-label">Laufen</div></div>
-  <div class="stat-card" style="grid-column:span 1;border-top:2px solid var(--bike)"><div class="stat-val" style="color:var(--bike)">${fBikes}</div><div class="stat-label">Rad</div></div>
-  <div class="stat-card" style="grid-column:span 1;border-top:2px solid var(--swim)"><div class="stat-val" style="color:var(--swim)">${fSwims}</div><div class="stat-label">Schwimmen</div></div>
-  <div class="stat-card" style="grid-column:span 1;border-top:2px solid var(--other)"><div class="stat-val" style="color:var(--other)">${fOther}</div><div class="stat-label">Sonstige</div></div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
   <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">Zeitraum</span>
