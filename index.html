@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775736000';
+  const BUILD='1775822400';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2847,7 +2847,7 @@ async function stravaSync(){
       const ts=new Date().toLocaleDateString('de-DE')+' '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       DB.set('lastSync',ts);
       toast(newCount>0?`${newCount} neue Einheiten importiert ✓`:'Bereits aktuell ✓');
-      showPage('dashboard');
+      if(newCount>0) showPage(currentPage);
     }catch(e){toast('Sync fehlgeschlagen: '+e.message,'error');}
     return;
   }
@@ -2868,7 +2868,7 @@ async function stravaSync(){
     saveActivities();
     const ts=new Date().toLocaleDateString('de-DE')+' '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
     DB.set('lastSync',ts);
-    toast(`${newCount} neue Einheiten importiert ✓`);showPage('dashboard');
+    toast(newCount>0?`${newCount} neue Einheiten importiert ✓`:'Bereits aktuell ✓');
   }catch(e){toast('Sync fehlgeschlagen: '+e.message,'error');}
 }
 
