@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775304000';
+  const BUILD='1775390400';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1629,6 +1629,7 @@ function buildHFChart(){
 function renderImport(){
   const el=document.getElementById('page-content');
   const connected=!!stravaToken;
+  const oauthConnected=connected&&!!settings.refreshToken;
   el.innerHTML=`
 <div class="section-header">
   <div><div class="section-title">Datenimport</div><div class="section-sub">Aktivitäten laden oder manuell erfassen</div></div>
@@ -1640,7 +1641,9 @@ function renderImport(){
     <div style="font-weight:700;font-size:15px;margin-bottom:4px">${connected?'✓ Strava verbunden':'Strava Access Token eintragen'}</div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
       ${connected
-        ?`Token gespeichert · Letzte Sync: ${DB.get('lastSync','–')} · <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--accent)">Token erneuern</a> (läuft alle 6h ab)`
+        ?oauthConnected
+          ?`OAuth verbunden · Auto-Sync aktiv · Letzte Sync: ${DB.get('lastSync','–')}`
+          :`Token gespeichert · Letzte Sync: ${DB.get('lastSync','–')} · <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--accent)">Token erneuern</a> (läuft alle 6h ab)`
         :`Geh zu <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--accent)">strava.com/settings/api</a> → kopiere deinen <strong style="color:var(--text)">Access Token</strong> und füge ihn hier ein`}
     </div>
     ${!connected?`
