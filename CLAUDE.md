@@ -39,6 +39,7 @@ E-Mail: sebastian.hofherr@gmail.com
 - `settings` — App-Einstellungen (Claude Key, Telegram, etc.)
 - `public_shares` — Share-Tokens für read-only Links
 - `comments` — Kommentare von Freunden über Share-Link
+- `streams` — Strava Streams-Cache (HR, GPS, Pace, Höhe) pro Aktivität; `{id, user_id, activity_id text, data text, created_at}`; UNIQUE(user_id, activity_id)
 
 Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Share-Token vorhanden.
 
@@ -49,16 +50,18 @@ Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Shar
 - Wochenvolumen-Charts (Stunden + km) pro Sportart
 - **Belastungsampel** — Ist vs. Soll-Stunden mit Ampelfarben
 - Kumulierte Trainingszeit (Jahresvergleich SVG)
-- VO2max-Schätzung (Jack Daniels VDOT)
 - Wettkampf-Performance-Chart
-- HRV-Zonenverteilung
 - Events: Countdown + Prognose
-- Vergangene Wettkämpfe mit Splits
+- Vergangene Wettkämpfe mit Splits (pace für Läufe)
 - Strava CSV-Import (Schwimm-Fix: Meter nicht km)
+- **Strava OAuth + Webhook** — nach jedem Training → Claude Haiku analysiert → Telegram-Nachricht; Webhook-ID 338947 aktiv
+- **Strava Streams** — on-demand Rohdaten in Aktivitäts-Detail: HR-Kurve (rot), Pace/Speed (blau), Höhenprofil (grün), GPS-Track (HR-gefärbt); permanent gecacht in Supabase `streams`
+- **Editierbarer Coach-Prompt** — im Menü Coach als Textarea; wird in Supabase `settings.coachPrompt` gespeichert; `api/webhook.js` liest ihn vor jeder Telegram-Nachricht
 - Read-Only Share-Link für Freunde (kein Login nötig)
 - Kommentarfunktion im Share-Link (Name + Nachricht)
 - Kommentare von Freunden sichtbar im eigenen Dashboard
-- Telegram Coach-Nachrichten nach jedem Training (via Claude API)
+- Wochenfortschritt als Donut-Chart (Belastungsampel)
+- Sportverteilung SVG-Kuchendiagramm
 - PWA-Icon (Triathlon-Fisch, Base64 eingebettet)
 - Login-Screen mit Supabase Auth
 - Datum/Uhrzeit in Topbar
@@ -69,29 +72,20 @@ Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Shar
 
 ## Offene Bugs / Priorität 1
 
-### Strava OAuth funktioniert nicht
-- Beim Klick auf "Mit Strava verbinden" passiert nichts
-- Console zeigt: `redirect_uri invalid` (400 Bad Request von Strava)
-- Strava App Callback-Domain ist auf `cpt-backfisch.github.io` gesetzt
-- Client ID: `216084`
-- Proxy URL: `https://athlete-coach-proxy-rnuy.vercel.app`
-- Die `stravaOAuthStart()` Funktion in `index.html` baut die OAuth URL korrekt zusammen, aber Strava lehnt die redirect_uri ab
-- Es gibt auch einen JavaScript Syntaxfehler der alles blockiert (`Uncaught SyntaxError: Unexpected token 'const'`) — Browser zeigt noch alte gecachte Version
+*Aktuell keine bekannten kritischen Bugs.*
 
 ---
 
 ## Feature Backlog (priorisiert)
 
-1. **Strava Auto-Sync** — beim App-Start automatisch neue Einheiten von Strava laden (Option C: kein Webhook, kein Polling, nur beim Öffnen)
-2. **Soziale Features** — Freunde können über Share-Link kommentieren, liken, reagieren. Bei neuen Kommentaren/Likes → Telegram-Benachrichtigung an Sebastian
-3. **Strava Streams API** — sekündliche Rohdaten (HR-Kurve, GPS, Kadenz, Höhe) in Aktivitäts-Detailansicht
-4. **Aktivitäts-Detailseite** — Klick auf Einheit → Charts, Karte, alle Details
-5. **KI-Trainingsplan** — dynamisch basierend auf Wettkampfterminen und aktueller Form
-6. **Wettkampf-Prognosen** — KI schätzt Zielzeiten pro Segment
-7. **Wöchentliche Coach-Zusammenfassung** — jeden Montag automatisch per Telegram
-8. **Pace-Rechner** — Zielzeit eingeben → Pace pro km
-9. **Garmin FIT-Import** — für HRV-Daten
-10. **PWA verbessern** — besseres iPhone-Erlebnis, Push Notifications
+1. **Wöchentliche Coach-Zusammenfassung** — jeden Montag automatisch per Telegram (cron job in `api/cron.js` auf Vercel)
+2. **Strava Auto-Sync** — beim App-Start automatisch neue Einheiten laden (nur beim Öffnen, kein Polling)
+3. **KI-Trainingsplan** — dynamisch basierend auf Wettkampfterminen und aktueller Form
+4. **Wettkampf-Prognosen** — KI schätzt Zielzeiten pro Segment
+5. **Soziale Features** — liken/reagieren im Share-Link; Telegram-Benachrichtigung bei neuen Kommentaren
+6. **Pace-Rechner** — Zielzeit eingeben → Pace pro km
+7. **Garmin FIT-Import** — für HRV-Daten
+8. **PWA verbessern** — besseres iPhone-Erlebnis, Push Notifications
 
 ---
 
@@ -162,7 +156,16 @@ Immer warnen wenn Features Kosten verursachen:
 - RLS-Policy: Lesezugriff auf activities/races/past_results wenn Share-Token existiert
 - Kommentare: `comments` Tabelle, insert für alle erlaubt
 
-### Telegram Integration
-- Nach jedem Training → Claude API analysiert → sendet Bewertung per Telegram
-- Trigger: nach Strava-Sync oder manuell erfasster Einheit
+### Telegram / Webhook Integration
+- Strava Webhook → `api/webhook.js` (Vercel) → Claude Haiku analysiert → Telegram-Nachricht
+- Webhook-Subscription ID: 338947, aktiv
+- `api/webhook.js` liest `coachPrompt` aus Supabase `settings` vor jeder Nachricht
+- Vercel Env Vars benötigt: `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_ATHLETE_REFRESH_TOKEN`, `CLAUDE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_SERVICE_KEY`
 - Token und Chat ID nur in Supabase `settings`, nie im Code
+
+### Strava Streams
+- `loadStreams(a)` in `index.html`: prüft `streams` Tabelle in Supabase, fällt auf direkte Strava API zurück
+- Strava Streams Endpoint: `GET https://www.strava.com/api/v3/activities/{id}/streams?keys=heartrate,latlng,velocity_smooth,cadence,altitude,time&key_by_type=true`
+- Daten werden permanent in Supabase `streams` gecacht (UPSERT)
+- `renderStreamChart(container, streams, type, a)` — type: `'hr'|'pace'|'alt'`
+- `renderGPSTrack(container, streams)` — GPS-Track als SVG, Farbe nach HR-Intensität
