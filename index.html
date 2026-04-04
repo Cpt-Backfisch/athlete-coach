@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775476800';
+  const BUILD='1775563200';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -3180,6 +3180,8 @@ document.addEventListener('DOMContentLoaded',function(){
           }
           await sbLoadAll();
           showPage('dashboard');
+          // Auto-Sync: neue Strava-Einheiten im Hintergrund laden
+          if(settings.refreshToken) setTimeout(stravaSync, 1000);
           return;
         }else{
           showLoginScreen();
