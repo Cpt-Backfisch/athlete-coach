@@ -174,6 +174,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 .toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
 .toast{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 16px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;animation:slideIn 0.2s ease;max-width:320px}
 @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .toast-success{border-left:3px solid var(--run)}
 .toast-error{border-left:3px solid var(--red)}
 
@@ -252,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1743984000';
+  const BUILD='1743987600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2552,20 +2553,152 @@ function openAddModal(pre={}){
   document.body.insertAdjacentHTML('beforeend',html);
 }
 
+async function loadStreams(a){
+  if(!a.stravaId) return null;
+  // check Supabase cache first
+  if(_sb&&_sbUser){
+    try{
+      const {data,error}=await _sb.from('streams').select('data').eq('user_id',_sbUser.id).eq('activity_id',String(a.stravaId)).single();
+      if(data&&!error) return JSON.parse(data.data);
+    }catch(_){}
+  }
+  // fetch from Strava
+  let accessToken=stravaToken?.access_token;
+  if(!accessToken) return null;
+  // refresh if expired
+  if(settings.expiresAt&&settings.expiresAt<Math.floor(Date.now()/1000)&&settings.refreshToken&&settings.proxyUrl){
+    try{
+      const r=await fetch(`${settings.proxyUrl}/api/strava?action=refresh&refresh_token=${encodeURIComponent(settings.refreshToken)}`);
+      if(r.ok){const d=await r.json();if(d.access_token){accessToken=d.access_token;settings.expiresAt=d.expires_at||0;stravaToken={access_token:accessToken};DB.set('stravaToken',stravaToken);saveSettings();}}
+    }catch(_){}
+  }
+  try{
+    const res=await fetch(`https://www.strava.com/api/v3/activities/${a.stravaId}/streams?keys=heartrate,latlng,velocity_smooth,cadence,altitude,time&key_by_type=true`,{headers:{Authorization:`Bearer ${accessToken}`}});
+    if(!res.ok) return null;
+    const streams=await res.json();
+    // cache in Supabase
+    if(_sb&&_sbUser){
+      try{await _sb.from('streams').upsert({user_id:_sbUser.id,activity_id:String(a.stravaId),data:JSON.stringify(streams)},{onConflict:'user_id,activity_id'});}catch(_){}
+    }
+    return streams;
+  }catch(_){return null;}
+}
+
+function renderStreamChart(container,streams,type,a){
+  const W=container.clientWidth||560,H=120,PL=36,PR=12,PT=8,PB=20;
+  const cW=W-PL-PR,cH=H-PT-PB;
+  let vals,label,color,unit,yMin,yMax;
+  if(type==='hr'){
+    if(!streams.heartrate?.data?.length) return;
+    vals=streams.heartrate.data;label='Herzfrequenz';color='#ef4444';unit=' bpm';
+  }else if(type==='pace'){
+    if(!streams.velocity_smooth?.data?.length) return;
+    // convert m/s to pace in s/km, clamp outliers
+    vals=streams.velocity_smooth.data.map(v=>v>0.5?1000/v:null);
+    label=a.type==='bike'||a.type==='tri'?'Geschwindigkeit':'Pace';color='#3b82f6';unit=a.type==='bike'||a.type==='tri'?' km/h':' min/km';
+    if(a.type==='bike'||a.type==='tri') vals=streams.velocity_smooth.data.map(v=>v*3.6);
+  }else if(type==='alt'){
+    if(!streams.altitude?.data?.length) return;
+    vals=streams.altitude.data;label='Höhe';color='#10b981';unit=' m';
+  }else return;
+  const timeArr=streams.time?.data||[];
+  const clean=vals.map((v,i)=>({v,t:timeArr[i]||i})).filter(p=>p.v!=null&&isFinite(p.v));
+  if(clean.length<2) return;
+  // smooth for pace
+  let plotVals=clean.map(p=>p.v);
+  if(type==='pace'&&a.type!=='bike'&&a.type!=='tri'){const sm=5;plotVals=plotVals.map((_,i)=>{const sl=plotVals.slice(Math.max(0,i-sm),i+sm+1);return sl.reduce((a,b)=>a+b,0)/sl.length;});}
+  yMin=Math.min(...plotVals);yMax=Math.max(...plotVals);
+  if(yMax===yMin){yMin-=1;yMax+=1;}
+  const pad=(yMax-yMin)*0.1;yMin-=pad;yMax+=pad;
+  // reverse pace axis (lower = faster)
+  const flipY=type==='pace'&&a.type!=='bike'&&a.type!=='tri';
+  const xS=i=>PL+i*(cW/(plotVals.length-1));
+  const yS=v=>PT+(flipY?(v-yMin)/(yMax-yMin):(1-(v-yMin)/(yMax-yMin)))*cH;
+  const pts=plotVals.map((v,i)=>`${xS(i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+  const apts=`${PL},${PT+cH} `+pts+` ${PL+cW},${PT+cH}`;
+  // y-axis ticks
+  const ticks=3;let ticksSvg='';
+  for(let i=0;i<=ticks;i++){
+    const v=yMin+(yMax-yMin)*i/ticks;const y=yS(v);
+    let lbl;
+    if(type==='pace'&&a.type!=='bike'&&a.type!=='tri'){const sec=v;const m=Math.floor(sec/60);const s=Math.round(sec%60);lbl=`${m}:${String(s).padStart(2,'0')}`;}
+    else lbl=v>=100?Math.round(v):v.toFixed(1);
+    ticksSvg+=`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${PL+cW}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="0.5"/>`;
+    ticksSvg+=`<text x="${PL-4}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text3)">${lbl}</text>`;
+  }
+  // time labels
+  const totalSec=clean[clean.length-1].t;
+  const fmtT=s=>{const m=Math.floor(s/60);return m<60?m+'m':Math.floor(m/60)+'h'+(m%60?String(m%60).padStart(2,'0'):'');};
+  const tl=[0,0.25,0.5,0.75,1].map(f=>{const i=Math.round(f*(plotVals.length-1));return{x:xS(i),t:clean[i]?.t||0};});
+  const timeSvg=tl.map(p=>`<text x="${p.x.toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="9" fill="var(--text3)">${fmtT(p.t)}</text>`).join('');
+  // avg line
+  const avg=plotVals.reduce((s,v)=>s+v,0)/plotVals.length;
+  const avgY=yS(avg);
+  let avgLbl;
+  if(type==='hr') avgLbl=Math.round(avg)+' bpm';
+  else if(type==='pace'&&a.type!=='bike'&&a.type!=='tri'){const m=Math.floor(avg/60);avgLbl=`Ø ${m}:${String(Math.round(avg%60)).padStart(2,'0')}/km`;}
+  else avgLbl=`Ø ${avg.toFixed(1)}${unit}`;
+  container.innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600">${label}</div>
+  <svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block">
+    <defs><linearGradient id="grad-${type}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.3"/><stop offset="100%" stop-color="${color}" stop-opacity="0.03"/></linearGradient></defs>
+    ${ticksSvg}
+    <polygon points="${apts}" fill="url(#grad-${type})" opacity="0.8"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="${PL}" y1="${avgY.toFixed(1)}" x2="${PL+cW}" y2="${avgY.toFixed(1)}" stroke="${color}" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.6"/>
+    <text x="${PL+cW-2}" y="${(avgY-3).toFixed(1)}" text-anchor="end" font-size="9" fill="${color}" opacity="0.8">${avgLbl}</text>
+    ${timeSvg}
+  </svg>`;
+}
+
+function renderGPSTrack(container,streams){
+  if(!streams.latlng?.data?.length) return;
+  const pts=streams.latlng.data;
+  const lats=pts.map(p=>p[0]),lngs=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  const W=container.clientWidth||560,H=180;
+  const latRange=maxLat-minLat||0.001,lngRange=maxLng-minLng||0.001;
+  // maintain aspect ratio
+  const scale=Math.min((W-20)/lngRange,(H-20)/latRange);
+  const offX=(W-lngRange*scale)/2,offY=(H-latRange*scale)/2;
+  const xS=lng=>offX+(lng-minLng)*scale;
+  const yS=lat=>H-offY-(lat-minLat)*scale;
+  // color by HR if available
+  const hr=streams.heartrate?.data;
+  const hrMin=hr?Math.min(...hr):0,hrMax=hr?Math.max(...hr):1;
+  const hrColor=(h)=>{const t=(h-hrMin)/(hrMax-hrMin||1);return`hsl(${Math.round(220-t*180)},80%,55%)`;};
+  let path='';
+  if(hr&&hr.length===pts.length){
+    for(let i=1;i<pts.length;i++){
+      path+=`<line x1="${xS(pts[i-1][1]).toFixed(1)}" y1="${yS(pts[i-1][0]).toFixed(1)}" x2="${xS(pts[i][1]).toFixed(1)}" y2="${yS(pts[i][0]).toFixed(1)}" stroke="${hrColor(hr[i])}" stroke-width="2" stroke-linecap="round"/>`;
+    }
+  }else{
+    const coords=pts.map(p=>`${xS(p[1]).toFixed(1)},${yS(p[0]).toFixed(1)}`).join(' ');
+    path=`<polyline points="${coords}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>`;
+  }
+  // start/end markers
+  const s=pts[0],e=pts[pts.length-1];
+  const markers=`<circle cx="${xS(s[1]).toFixed(1)}" cy="${yS(s[0]).toFixed(1)}" r="5" fill="#10b981" stroke="var(--card)" stroke-width="1.5"/>
+  <circle cx="${xS(e[1]).toFixed(1)}" cy="${yS(e[0]).toFixed(1)}" r="5" fill="#ef4444" stroke="var(--card)" stroke-width="1.5"/>`;
+  container.innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600">GPS-Track${hr?' · Farbe = Herzfrequenz':''}</div>
+  <svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;border-radius:8px;background:var(--card2)">${path}${markers}</svg>
+  <div style="display:flex;gap:16px;margin-top:4px;font-size:10px;color:var(--text3)"><span style="color:#10b981">● Start</span><span style="color:#ef4444">● Ende</span>${hr?'<span>Blau=niedrige HF, Rot=hohe HF</span>':''}</div>`;
+}
+
 function openActivityDetail(id){
   const a=activities.find(x=>x.id===id);if(!a)return;
-  const typeNames={run:'Laufen',bike:'Rad',swim:'Schwimmen',tri:'Triathlon',other:'Sonstige'};
   const intNames={1:'Sehr leicht',2:'Leicht',3:'Mittel',4:'Hart',5:'Sehr hart'};
   const d=document.createElement('div');
   d.id='modal-overlay';d.className='modal-overlay';
-  d.innerHTML=`<div class="modal" style="max-width:480px">
+  const hasStrava=!!a.stravaId;
+  d.innerHTML=`<div class="modal" style="max-width:640px">
     <div class="modal-title">${a.name||'Training'}<button class="modal-close" onclick="closeModal()">×</button></div>
     <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
       ${sportBadge(a.type)}
       <span class="badge" style="background:var(--card2);color:var(--text2)">${fmtDate(a.date)}</span>
       <span class="badge" style="background:var(--card2);color:var(--text3)">${a.source||'manuell'}</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
       ${a.distance?`<div style="background:var(--card2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text)">${fmtDist(a.distance)}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Distanz</div></div>`:''}
       ${a.duration?`<div style="background:var(--card2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text)">${fmtDuration(a.duration)}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Dauer</div></div>`:''}
       ${a.avgSpeed?`<div style="background:var(--card2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text)">${fmtPace(a.avgSpeed,a.type)}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Pace</div></div>`:''}
@@ -2574,6 +2707,11 @@ function openActivityDetail(id){
       ${a.intensity?`<div style="background:var(--accent-light);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--accent)">${a.intensity}/5</div><div style="font-size:11px;color:var(--accent);opacity:0.7;margin-top:2px">${intNames[a.intensity]||'Intensität'}</div></div>`:''}
     </div>
     ${a.notes?`<div style="background:var(--card2);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7"><strong style="color:var(--text)">Notizen:</strong> ${a.notes}</div>`:''}
+    ${hasStrava?`<div id="streams-section" style="margin-bottom:16px">
+      <div id="streams-loading" style="display:flex;align-items:center;gap:8px;padding:16px;background:var(--card2);border-radius:10px;font-size:13px;color:var(--text3)">
+        <span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> Lade Strava-Daten…
+      </div>
+    </div>`:''}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
       <button class="btn btn-primary" onclick="closeModal();openEditModal('${a.id}')">✎ Bearbeiten</button>
@@ -2581,6 +2719,39 @@ function openActivityDetail(id){
   </div>`;
   d.addEventListener('click',e=>{if(e.target===d)closeModal()});
   document.body.appendChild(d);
+  // load streams async
+  if(hasStrava){
+    loadStreams(a).then(streams=>{
+      const sec=document.getElementById('streams-section');
+      if(!sec) return;
+      if(!streams||Object.keys(streams).length===0){
+        sec.innerHTML=`<div style="padding:12px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--text3)">Keine Strava-Rohdaten verfügbar.</div>`;
+        return;
+      }
+      sec.innerHTML='';
+      const hasHR=streams.heartrate?.data?.length>0;
+      const hasPace=streams.velocity_smooth?.data?.length>0;
+      const hasAlt=streams.altitude?.data?.length>0;
+      const hasGPS=streams.latlng?.data?.length>0;
+      if(hasHR||hasPace||hasAlt){
+        const chartsDiv=document.createElement('div');
+        chartsDiv.style.cssText='display:flex;flex-direction:column;gap:16px';
+        if(hasHR){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'hr',a));}
+        if(hasPace){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'pace',a));}
+        if(hasAlt){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'alt',a));}
+        sec.appendChild(chartsDiv);
+      }
+      if(hasGPS){
+        const c=document.createElement('div');
+        c.style.cssText='background:var(--card2);border-radius:10px;padding:12px;margin-top:'+(hasHR||hasPace||hasAlt?'16':'0')+'px';
+        sec.appendChild(c);
+        requestAnimationFrame(()=>renderGPSTrack(c,streams));
+      }
+    }).catch(()=>{
+      const sec=document.getElementById('streams-section');
+      if(sec) sec.innerHTML=`<div style="padding:12px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--text3)">Strava-Daten konnten nicht geladen werden.</div>`;
+    });
+  }
 }
 
 function openEditModal(id){
