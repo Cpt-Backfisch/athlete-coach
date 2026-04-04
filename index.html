@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775649600';
+  const BUILD='1775736000';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2357,6 +2357,10 @@ async function runCoachMsg(userMsg){
 
 // ── SETTINGS PAGE ──
 function renderSettings(){
+  if(!settings.webhookVerifyToken){
+    settings.webhookVerifyToken=Math.random().toString(36).substring(2,10)+Math.random().toString(36).substring(2,10);
+    saveSettings();
+  }
   const el=document.getElementById('page-content');
   el.innerHTML=`
 <div class="section-header">
