@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775563200';
+  const BUILD='1775649600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -382,7 +382,7 @@ let pastResults=DB.get('pastResults',[
 function savePastResults(){_origSavePastResults();}
 let weekFrame=DB.get('weekFrame',{mon:['rest'],tue:['run-easy'],wed:['strength'],thu:['run-tempo'],fri:['swim'],sat:['bike-long'],sun:['run-long']});
 let stravaToken=DB.get('stravaToken',null);
-let settings=DB.get('settings',{name:'',stravaClientId:'216084',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'https://athlete-coach-proxy-rnuy.vercel.app',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4',telegramToken:'',telegramChatId:''});
+let settings=DB.get('settings',{name:'',stravaClientId:'216084',stravaClientSecret:'',stravaAccessToken:'',claudeApiKey:'',maxHR:185,proxyUrl:'https://athlete-coach-proxy-rnuy.vercel.app',refreshToken:'',expiresAt:0,supabaseUrl:'https://cpzdqgrqodvwtnqmusso.supabase.co',supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwemRxZ3Jxb2R2d3RucW11c3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzQxODUsImV4cCI6MjA5MDIxMDE4NX0.qJe5-VH7FHU6LQGyokrHxJ-XwvIFm8ikrIMxTE4PFZ4',telegramToken:'',telegramChatId:'',webhookVerifyToken:'',webhookSubscriptionId:null});
 
 function saveActivities(){_origSaveActivities();}
 function saveRaces(){_origSaveRaces();}
@@ -2501,6 +2501,32 @@ function renderSettings(){
   </div>
 </div>
 <div class="card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="width:36px;height:36px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🤖</div>
+    <div><div style="font-weight:700;font-size:15px">Coach Webhook</div><div style="font-size:12px;color:var(--text3)">Sofort-Feedback per Telegram nach jedem Training</div></div>
+  </div>
+  <div style="padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:600;background:${settings.webhookSubscriptionId?'var(--run-light)':'var(--card2)'};color:${settings.webhookSubscriptionId?'#059669':'var(--text3)'}">
+    ${settings.webhookSubscriptionId?'✓ Webhook aktiv · ID: '+settings.webhookSubscriptionId:'– Nicht eingerichtet'}
+  </div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+    <strong>Einmalig:</strong> Setze diese Werte als Env-Variablen in deinem <a href="https://vercel.com/dashboard" target="_blank" style="color:var(--accent)">Vercel Dashboard</a>:
+  </div>
+  <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-family:monospace;line-height:2">
+    <div>STRAVA_VERIFY_TOKEN = <strong style="color:var(--accent);user-select:all">${settings.webhookVerifyToken||'(wird beim Registrieren generiert)'}</strong></div>
+    <div>STRAVA_ATHLETE_REFRESH_TOKEN = <strong style="color:var(--accent);user-select:all">${settings.refreshToken||'–'}</strong></div>
+    <div>CLAUDE_API_KEY = <strong style="color:var(--accent);user-select:all">${settings.claudeApiKey||'–'}</strong></div>
+    <div>TELEGRAM_BOT_TOKEN = <strong style="color:var(--accent);user-select:all">${settings.telegramToken||'–'}</strong></div>
+    <div>TELEGRAM_CHAT_ID = <strong style="color:var(--accent);user-select:all">${settings.telegramChatId||'–'}</strong></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    ${settings.webhookSubscriptionId
+      ?'<button class="btn btn-danger btn-sm" onclick="webhookDelete()">Webhook löschen</button>'
+      :'<button class="btn btn-primary btn-sm" onclick="webhookRegister()">Webhook registrieren</button>'}
+    <button class="btn btn-ghost btn-sm" onclick="webhookCheckStatus()">Status prüfen</button>
+  </div>
+  ${!settings.refreshToken?'<div style="font-size:11px;color:var(--text3);margin-top:8px">⚠ Erst Strava verbinden (OAuth), dann Webhook einrichten</div>':''}
+</div>
+<div class="card">
   <div style="font-weight:700;font-size:14px;margin-bottom:6px">Über athlete.coach</div>
   <div style="font-size:12px;color:var(--text2);line-height:1.8">
     Alle Daten lokal im Browser gespeichert.<br/>KI-Coaching via Claude API aktiv.<br/><span style="color:var(--text3)">Version 2.0 · KI-Coach aktiv</span>
@@ -2869,6 +2895,59 @@ function saveProxyUrl(){
   saveSettings();
   toast('Gespeichert ✓');
 }
+// ── WEBHOOK ──
+async function webhookRegister(){
+  const proxy=settings.proxyUrl;
+  if(!proxy){toast('Proxy-URL fehlt','error');return;}
+  if(!settings.refreshToken){toast('Erst Strava verbinden','error');return;}
+  if(!settings.webhookVerifyToken){
+    settings.webhookVerifyToken=Math.random().toString(36).substring(2,10)+Math.random().toString(36).substring(2,10);
+    saveSettings();
+  }
+  toast('Registriere Webhook…');
+  try{
+    const cbUrl=encodeURIComponent(proxy+'/api/webhook');
+    const res=await fetch(`${proxy}/api/strava?action=webhook_register&callback_url=${cbUrl}&verify_token=${settings.webhookVerifyToken}`);
+    const data=await res.json();
+    if(data.id){
+      settings.webhookSubscriptionId=data.id;
+      saveSettings();
+      toast('Webhook registriert ✓ · ID: '+data.id);
+      showPage('settings');
+    }else{
+      toast('Fehler: '+(data.message||data.errors?.[0]?.message||JSON.stringify(data)),'error');
+    }
+  }catch(e){toast('Fehler: '+e.message,'error');}
+}
+async function webhookDelete(){
+  const proxy=settings.proxyUrl;
+  if(!proxy||!settings.webhookSubscriptionId)return;
+  toast('Lösche Webhook…');
+  try{
+    const res=await fetch(`${proxy}/api/strava?action=webhook_delete&subscription_id=${settings.webhookSubscriptionId}`);
+    if(res.ok){settings.webhookSubscriptionId=null;saveSettings();toast('Webhook gelöscht ✓');showPage('settings');}
+    else{const d=await res.json();toast('Fehler: '+JSON.stringify(d),'error');}
+  }catch(e){toast('Fehler: '+e.message,'error');}
+}
+async function webhookCheckStatus(){
+  const proxy=settings.proxyUrl;
+  if(!proxy){toast('Proxy-URL fehlt','error');return;}
+  try{
+    const res=await fetch(`${proxy}/api/strava?action=webhook_status`);
+    const data=await res.json();
+    if(Array.isArray(data)&&data.length>0){
+      settings.webhookSubscriptionId=data[0].id;
+      saveSettings();
+      toast('Webhook aktiv · ID: '+data[0].id);
+    }else{
+      settings.webhookSubscriptionId=null;
+      saveSettings();
+      toast('Kein aktiver Webhook gefunden');
+    }
+    showPage('settings');
+  }catch(e){toast('Fehler: '+e.message,'error');}
+}
+
 function stravaOAuthStart(){
   const proxy=settings.proxyUrl;
   if(!proxy||!proxy.startsWith('https://')){
