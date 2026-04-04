@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1743724800';
+  const BUILD='1743811200';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1098,7 +1098,6 @@ function mBar(mActs,mDate){
   el.innerHTML=`
 <div class="section-header" style="margin-bottom:12px">
   <div><div class="section-title">Dashboard</div><div class="section-sub">${baseActs.length} Einheiten · ${fmtHHMM(totalH)} Std · ${totalKm} km</div></div>
-  ${nextRaces.length?`<div style="text-align:right"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Nächste Events</div>${nextRaces.map(r=>{const rc={run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)',tri:'var(--tri)'}[r.type]||'var(--accent)';return`<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:2px"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${r.name}</div><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${rc};flex-shrink:0">${daysUntil(r.date)}d</div></div>`;}).join('')}</div>`:''}
 </div>
 
 <div class="card" style="margin-bottom:16px;border-left:4px solid ${ampel.color}">
@@ -1172,22 +1171,22 @@ function mBar(mActs,mDate){
   <div class="stat-card">
     <div class="stat-val">${baseActs.length}</div>
     <div class="stat-label">Einheiten</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <div style="text-align:center">
-        <div style="font-size:18px;font-weight:800;color:var(--run);line-height:1">${baseActs.filter(a=>a.type==='run').length}</div>
-        <div style="font-size:10px;color:var(--run);font-weight:600;margin-top:2px">Lauf</div>
+        <div style="font-size:26px;font-weight:800;color:var(--run);line-height:1">${baseActs.filter(a=>a.type==='run').length}</div>
+        <div style="font-size:12px;color:var(--run);font-weight:600;margin-top:4px">Laufen</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:18px;font-weight:800;color:var(--bike);line-height:1">${baseActs.filter(a=>a.type==='bike').length}</div>
-        <div style="font-size:10px;color:var(--bike);font-weight:600;margin-top:2px">Rad</div>
+        <div style="font-size:26px;font-weight:800;color:var(--bike);line-height:1">${baseActs.filter(a=>a.type==='bike').length}</div>
+        <div style="font-size:12px;color:var(--bike);font-weight:600;margin-top:4px">Rad</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:18px;font-weight:800;color:var(--swim);line-height:1">${baseActs.filter(a=>a.type==='swim').length}</div>
-        <div style="font-size:10px;color:var(--swim);font-weight:600;margin-top:2px">Swim</div>
+        <div style="font-size:26px;font-weight:800;color:var(--swim);line-height:1">${baseActs.filter(a=>a.type==='swim').length}</div>
+        <div style="font-size:12px;color:var(--swim);font-weight:600;margin-top:4px">Schwimmen</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:18px;font-weight:800;color:#9ca3af;line-height:1">${baseActs.filter(a=>a.type==='other'||a.type==='tri').length}</div>
-        <div style="font-size:10px;color:#9ca3af;font-weight:600;margin-top:2px">Sonst.</div>
+        <div style="font-size:26px;font-weight:800;color:#9ca3af;line-height:1">${baseActs.filter(a=>a.type==='other'||a.type==='tri').length}</div>
+        <div style="font-size:12px;color:#9ca3af;font-weight:600;margin-top:4px">Sonstige</div>
       </div>
     </div>
   </div>
@@ -1315,113 +1314,40 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
 </div>
 
 <div class="card" style="margin-bottom:16px">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-    <div>
-      <div style="font-weight:700;font-size:15px">Wettkampf-Performance</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:1px">Ergebnisse über Zeit · Vergleich mit Zielzeit</div>
-    </div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap" id="perf-filter-btns">
-      ${['all','run','tri'].map(t=>{
-        const lbl={all:'Alle',run:'Laufen',tri:'Triathlon'};
-        const col={all:'var(--accent)',run:'var(--run)',tri:'var(--tri)'};
-        const act=(settings.perfFilter||'all')===t;
-        return`<button onclick="settings.perfFilter='${t}';saveSettings();renderDashboard()" style="padding:4px 12px;border-radius:20px;border:1.5px solid ${act?col[t]:'var(--border2)'};background:${act?'color-mix(in srgb,'+col[t]+' 12%,#fff)':'#fff'};color:${act?col[t]:'var(--text2)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${lbl[t]}</button>`;
-      }).join('')}
-    </div>
-  </div>
+  <div style="font-weight:700;font-size:15px;margin-bottom:14px">Wettkampf-Ergebnisse</div>
   ${(()=>{
-    const filt=settings.perfFilter||'all';
-    const allR=[...pastResults].filter(r=>r.actualTime&&(filt==='all'||r.type===filt)).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    if(allR.length<1) return '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Keine Ergebnisse für diesen Filter</div>';
+    const allR=[...pastResults].filter(r=>r.actualTime).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if(allR.length<1) return '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Noch keine Ergebnisse eingetragen</div>';
     function tSec(t){if(!t)return 0;const p=t.split(':').map(Number);return p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:0;}
     function fmtT(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?h+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0'):m+':'+String(sc).padStart(2,'0');}
     const typeColors={run:'#10b981',bike:'#3b82f6',swim:'#8b5cf6',tri:'#f59e0b'};
-    // Build rows
-    let rows='';
-    allR.forEach(r=>{
+    const typeLabel={run:'Laufen',bike:'Rad',swim:'Schwimmen',tri:'Triathlon'};
+    return allR.map((r,i)=>{
       const sc=tSec(r.actualTime),gc=tSec(r.goalTime);
       const col=typeColors[r.type]||'#9ca3af';
       const diff=gc>0?sc-gc:null;
-      const diffStr=diff===null?'–':diff<=0?'✓ '+fmtT(Math.abs(diff))+' unter Ziel':'▲ '+fmtT(diff)+' über Ziel';
+      const diffStr=diff===null?'':diff<=0?'✓ '+fmtT(Math.abs(diff))+' unter Ziel':'▲ '+fmtT(diff)+' über Ziel';
       const diffCol=diff===null?'var(--text3)':diff<=0?'#10b981':'#f97316';
-      rows+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-        <div style="min-width:68px;font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${r.date.slice(0,7)}</div>
-        <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
-        <div style="flex:1;min-width:120px">
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${r.name}</div>
-          ${r.location?`<div style="font-size:11px;color:var(--text3)">${r.location}</div>`:''}
+      const detailId='perf-detail-'+i;
+      const hasDetail=r.notes&&r.notes.trim();
+      return`<div style="border-bottom:1px solid var(--border)">
+        <div onclick="var d=document.getElementById('${detailId}');if(d)d.style.display=d.style.display==='none'?'block':'none'" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:${hasDetail?'pointer':'default'}">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);width:52px;flex-shrink:0">${new Date(r.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
+          <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}${r.location?` <span style="font-size:11px;color:var(--text3);font-weight:400">· ${r.location}</span>`:''}</div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:800;color:${col};flex-shrink:0">${r.actualTime}</div>
+          ${gc>0?`<div style="font-size:11px;color:var(--text3);flex-shrink:0">/ ${r.goalTime}</div>`:''}
+          ${diffStr?`<div style="font-size:11px;font-weight:600;color:${diffCol};flex-shrink:0">${diffStr}</div>`:''}
+          ${hasDetail?`<div style="font-size:12px;color:var(--text3);flex-shrink:0">▸</div>`:''}
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:${col}">${r.actualTime}</div>
-        ${gc>0?`<div style="font-size:11px;color:var(--text3)">Ziel: ${r.goalTime}</div>`:''}
-        <div style="font-size:11px;font-weight:600;color:${diffCol}">${diffStr}</div>
+        ${hasDetail?`<div id="${detailId}" style="display:none;padding:8px 12px 12px 20px;background:var(--card2);border-radius:8px;margin-bottom:8px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap">${r.notes}</div>`:''}
       </div>`;
-    });
-    // SVG timeline
-    const svgW=640,svgH=90,padL=10,padR=10,padT=20,padB=20;
-    const dates=allR.map(r=>new Date(r.date).getTime());
-    const minD=Math.min(...dates),maxD=Math.max(...dates);
-    const spanD=maxD-minD||1;
-    const xD=(d)=>padL+Math.round(((new Date(d).getTime()-minD)/spanD)*(svgW-padL-padR));
-    let svg=`<svg width="100%" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;margin-bottom:8px">`;
-    svg+=`<line x1="${padL}" y1="${svgH/2}" x2="${svgW-padR}" y2="${svgH/2}" stroke="#e8eaf0" stroke-width="1.5"/>`;
-    allR.forEach(r=>{
-      const x=xD(r.date),col=typeColors[r.type]||'#9ca3af';
-      const sc=tSec(r.actualTime),gc=tSec(r.goalTime);
-      const hit=gc>0&&sc<=gc;
-      svg+=`<circle cx="${x}" cy="${svgH/2}" r="7" fill="${col}" stroke="${hit?'white':'#fff'}" stroke-width="2"/>`;
-      if(hit) svg+=`<text x="${x}" y="${svgH/2+4}" text-anchor="middle" font-size="9" fill="white" font-weight="700">✓</text>`;
-      // Year label
-      svg+=`<text x="${x}" y="${padT-4}" text-anchor="middle" font-family="DM Mono,monospace" font-size="10" fill="#9ca3af">${r.date.slice(0,4)}</text>`;
-      // Time label below
-      svg+=`<text x="${x}" y="${svgH-4}" text-anchor="middle" font-family="DM Mono,monospace" font-size="10" fill="${col}" font-weight="600">${r.actualTime.slice(0,5)}</text>`;
-    });
-    svg+='</svg>';
-    return svg+`<div style="max-height:280px;overflow-y:auto">${rows}</div>`;
+    }).join('');
   })()}
 </div>
 
-<div class="card" style="margin-bottom:16px">
-  ${(()=>{
-    const ests=calcVO2max();
-    if(!ests.length) return '<div style="font-weight:700;font-size:15px;margin-bottom:8px">Geschätzte VO2max</div><div style="color:var(--text3);font-size:13px">Noch keine Wettkampfergebnisse für Berechnung vorhanden.</div>';
-    const best=ests.filter(e=>!e.training).sort((a,b)=>b.v-a.v)[0]||ests[0];
-    const v=best.v;
-    const cat=v>=60?{l:'Exzellent',c:'#10b981'}:v>=52?{l:'Sehr gut',c:'#3b82f6'}:v>=44?{l:'Gut',c:'#f59e0b'}:v>=36?{l:'Durchschnitt',c:'#f97316'}:{l:'Unterdurchschnitt',c:'#ef4444'};
-    const allEsts=ests.filter(e=>!e.training).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
-    // VO2max over time as small sparkline
-    const svgW=160,svgH=40;
-    const vals=allEsts.map(e=>e.v).reverse();
-    const minV=Math.min(...vals)-2,maxV=Math.max(...vals)+2;
-    let spark='';
-    if(vals.length>1){
-      const pts=vals.map((v,i)=>{
-        const x=Math.round(i*(svgW-10)/(vals.length-1))+5;
-        const y=Math.round(svgH-5-((v-minV)/(maxV-minV))*(svgH-10));
-        return x+','+y;
-      }).join(' ');
-      spark=`<svg width="${svgW}" height="${svgH}" style="flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${cat.c}" stroke-width="2" stroke-linecap="round"/>${vals.map((v,i)=>{const x=Math.round(i*(svgW-10)/(vals.length-1))+5,y=Math.round(svgH-5-((v-minV)/(maxV-minV))*(svgH-10));return`<circle cx="${x}" cy="${y}" r="3" fill="${cat.c}" stroke="white" stroke-width="1"/>`}).join('')}</svg>`;
-    }
-    return `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-      <div>
-        <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Geschätzte VO2max</div>
-        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-          <div style="font-size:40px;font-weight:800;color:${cat.c};line-height:1">${v.toFixed(1)}</div>
-          <div style="font-size:14px;color:var(--text3)">ml/kg/min</div>
-          <div style="font-size:13px;font-weight:700;color:${cat.c};background:color-mix(in srgb,${cat.c} 12%,#fff);padding:3px 12px;border-radius:20px">${cat.l}</div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">Jack-Daniels-VDOT aus Wettkampfergebnissen</div>
-      </div>
-      ${spark}
-    </div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${allEsts.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--card2);border-radius:8px;gap:12px">
-        <span style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.name}</span>
-        <span style="font-size:11px;color:var(--text3);white-space:nowrap">${e.date.slice(0,7)}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--text);flex-shrink:0">${e.v.toFixed(1)}</span>
-      </div>`).join('')}
-    </div>`;
-  })()}
-</div>
 
 
 `;
@@ -1517,7 +1443,7 @@ function buildCumChart(){
       svg+=`<path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"${dash?` stroke-dasharray="${dash}"`:''} opacity="0.95"/>`;
       // End label
       const last=validPts[validPts.length-1];
-      if(last&&last.v>0) svg+=`<text x="${last.x+7}" y="${last.y+4}" font-family="DM Mono,monospace" font-size="11" fill="${color}" font-weight="700">${last.v.toFixed(0)}h</text>`;
+      if(last&&last.v>0){const nearEdge=last.m>=10;svg+=`<text x="${nearEdge?last.x-7:last.x+7}" y="${last.y-6}" text-anchor="${nearEdge?'end':'start'}" font-family="DM Mono,monospace" font-size="11" fill="${color}" font-weight="700">${last.v.toFixed(0)}h</text>`;}
       // Interactive dots
       validPts.forEach(p=>{
         svg+=`<circle class="cum-dot" cx="${p.x}" cy="${p.y}" r="4" fill="${color}" stroke="white" stroke-width="1.5" data-v="${p.v}" data-y="${p.year}" data-m="${p.m}" style="cursor:pointer"/>`;
