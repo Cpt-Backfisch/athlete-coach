@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775390400';
+  const BUILD='1775476800';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2886,7 +2886,7 @@ function stravaOAuthStart(){
   window.location.href=oauthUrl;
 }
 function stravaToActivity(act){
-  const tm={Run:'run',Ride:'bike',Swim:'swim',VirtualRide:'bike',VirtualRun:'run',Walk:'run',Hike:'run'};
+  const tm={Run:'run',Ride:'bike',Swim:'swim',VirtualRide:'bike',VirtualRun:'run',Walk:'run',Hike:'run',OpenWaterSwimming:'swim',Swimming:'swim',PoolSwim:'swim',EBikeRide:'bike',GravelRide:'bike',MountainBikeRide:'bike'};
   const isBike=(tm[act.type]||'other')==='bike';
   const rawDist=act.distance||0;
   const estDist=(isBike&&rawDist<500&&act.moving_time>0)?Math.round(act.moving_time*(30/3.6)):rawDist;
@@ -2925,9 +2925,9 @@ function importStravaCsv(event){
 
       const typeMap={
         run:'run',running:'run',virtualrun:'run',trailrun:'run',treadmill:'run',walk:'run',hike:'run',
-        ride:'bike',cycling:'bike',virtualride:'bike',mountainbikeride:'bike',gravel_ride:'bike',
-        swim:'swim',swimming:'swim',openwater:'swim',
-        workout:'other',weighttraining:'other',yoga:'other',crossfit:'other',
+        ride:'bike',cycling:'bike',virtualride:'bike',mountainbikeride:'bike',gravelride:'bike',ebikeride:'bike',
+        swim:'swim',swimming:'swim',openwater:'swim',openwaterswim:'swim',openwaterswimming:'swim',poolswim:'swim',
+        workout:'other',weighttraining:'other',yoga:'other',crossfit:'other',strengthtraining:'other',
         triathlon:'tri'
       };
 
@@ -2956,6 +2956,10 @@ function importStravaCsv(event){
           dist=dist;
         } else {
           dist=dist*1000; // km → meters
+          // Safety net: if result looks like a swim distance that was wrongly multiplied
+          // (e.g. 540m swim misidentified as other → 540000m), cap at realistic max
+          // A single swim session >50km is impossible
+          if(dist>50000&&(rawType.includes('swim')||rawType.includes('water'))){dist=dist/1000;}
         }
 
         const dur=parseInt(cols[iDur])||0; // already in seconds
