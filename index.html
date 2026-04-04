@@ -252,7 +252,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775822400';
+  const BUILD='1743724800';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -402,7 +402,9 @@ setInterval(updateTopbarDate,60000);
 
 function fmtDate(d){if(!d)return'–';return new Date(d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})}
 function fmtDuration(sec){if(!sec)return'–';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;return`${m}:${String(s).padStart(2,'0')}`}
-function fmtDist(m){if(!m)return'–';return m>=1000?(m/1000).toFixed(1)+' km':m+' m'}
+function fmtThousands(n){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
+function fmtDist(m){if(!m)return'–';if(m>=1000){const km=m/1000;return(km>=100?fmtThousands(km):km.toFixed(1))+' km';}return m+' m'}
+function fmtHHMM(h){const t=Math.round(h*60);return Math.floor(t/60)+':'+(t%60<10?'0':'')+(t%60)}
 function fmtPace(mps,type){if(!mps)return'–';if(type==='bike'||type==='tri')return(mps*3.6).toFixed(1)+' km/h';if(type==='swim'){const s100=100/mps,mi=Math.floor(s100/60),s=Math.round(s100%60);return`${mi}:${String(s).padStart(2,'0')} /100m`}const sk=1000/mps,mi=Math.floor(sk/60),s=Math.round(sk%60);return`${mi}:${String(s).padStart(2,'0')} /km`}
 function daysUntil(ds){const t=new Date();t.setHours(0,0,0,0);const d=new Date(ds);d.setHours(0,0,0,0);return Math.ceil((d-t)/86400000)}
 function sportBadge(type){const m={run:['badge-run','Laufen'],bike:['badge-bike','Rad'],swim:['badge-swim','Schwimmen'],tri:['badge-tri','Triathlon'],other:['badge-other','Sonstige']};const[cls,lbl]=m[type]||['badge-other',type];return`<span class="badge ${cls}">${lbl}</span>`}
@@ -895,10 +897,10 @@ function renderDashboard(){
   // Period → from/to dates
   function pFrom(p){
     const d=new Date(now);
-    if(p==='4w') d.setDate(d.getDate()-28);
-    else if(p==='12w') d.setDate(d.getDate()-84);
+    if(p==='1m') d.setDate(d.getDate()-28);
+    else if(p==='3m') d.setDate(d.getDate()-84);
     else if(p==='6m') d.setMonth(d.getMonth()-6);
-    else if(p==='1y') d.setFullYear(d.getFullYear()-1);
+    else if(p==='12m') d.setFullYear(d.getFullYear()-1);
     else if(/^\d{4}$/.test(p)) return new Date(p+'-01-01T00:00:00');
     else d.setFullYear(d.getFullYear()-20);
     return d;
@@ -943,12 +945,12 @@ function mBar(mActs,mDate){
   }
   function buildBars(){
     const bars=[];
-    const isMonthly=isYearView||dashPeriod==='1y'||dashPeriod==='6m'||dashPeriod==='all';
+    const isMonthly=isYearView||dashPeriod==='12m'||dashPeriod==='6m'||dashPeriod==='all';
     if(isMonthly){
       let startM, endM;
       if(isYearView){startM=new Date(chartYear+'-01-01');endM=new Date(chartYear+'-12-31T23:59:59');}
       else if(dashPeriod==='6m'){startM=new Date(toDate.getFullYear(),toDate.getMonth()-5,1);endM=toDate;}
-      else if(dashPeriod==='1y'){startM=new Date(fromDate.getFullYear(),fromDate.getMonth(),1);endM=toDate;}
+      else if(dashPeriod==='12m'){startM=new Date(fromDate.getFullYear(),fromDate.getMonth(),1);endM=toDate;}
       else{// all — span from earliest activity to today
         const dates=activities.map(a=>a.date).filter(Boolean).sort();
         startM=dates.length?new Date(dates[0].slice(0,7)+'-01'):new Date(toDate.getFullYear(),0,1);
@@ -962,7 +964,7 @@ function mBar(mActs,mDate){
         cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
       }
     } else {
-      const n=dashPeriod==='4w'?4:12;
+      const n=dashPeriod==='1m'?4:12;
       for(let i=n-1;i>=0;i--){
         const wEnd=new Date(toDate); wEnd.setDate(wEnd.getDate()-i*7);
         const wStart=new Date(wEnd); wStart.setDate(wStart.getDate()-6);
@@ -1017,7 +1019,8 @@ function mBar(mActs,mDate){
   const iTarget={easy:parseInt(tgt.pctEasy)||80,tempo:parseInt(tgt.pctTempo)||15,hard:parseInt(tgt.pctHard)||5};
 
   // ── RACES ──
-  const nextRace=[...races].filter(r=>daysUntil(r.date)>0).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+  const nextRaces=[...races].filter(r=>daysUntil(r.date)>0).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
+  const nextRace=nextRaces[0];
   const nrColor={run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)',tri:'var(--tri)'}[nextRace?.type]||'var(--accent)';
 
   // ── UI HELPERS ──
@@ -1048,12 +1051,12 @@ function mBar(mActs,mDate){
   function fmtH(h){ return h<0.1?'':h<1?Math.round(h*60)+'m':h.toFixed(1)+'h'; }
 
   const yearBtns=allYears.map(y=>({v:y,l:y}));
-  const periodBtns=[{v:'all',l:'Alle'},{v:'4w',l:'4 Wo'},{v:'12w',l:'12 Wo'},{v:'6m',l:'6 Mo'},{v:'1y',l:'1 Jahr'},...yearBtns];
-  const sportBtns=[{v:'all',l:'Alle'},{v:'run',l:'Laufen'},{v:'bike',l:'Rad'},{v:'swim',l:'Schwimmen'}];
+  const periodBtns=[{v:'all',l:'Alle'},...yearBtns,{v:'12m',l:'12 Mo'},{v:'6m',l:'6 Mo'},{v:'3m',l:'3 Mo'},{v:'1m',l:'1 Mo'}];
+  const sportBtns=[{v:'all',l:'Alle'},{v:'run',l:'Laufen'},{v:'bike',l:'Rad'},{v:'swim',l:'Schwimmen'},{v:'other',l:'Sonstige'}];
   const chip=(active,val,fn,label)=>`<button onclick="${fn}='${val}';renderDashboard()" style="padding:5px 13px;border-radius:20px;border:1.5px solid ${active?'var(--accent)':'var(--border2)'};background:${active?'var(--accent-light)':'#fff'};color:${active?'var(--accent)':'var(--text2)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.12s;white-space:nowrap">${label}</button>`;
 
   const totalH=hrs(baseActs,'all');
-  const totalKm=Math.round(baseActs.reduce((s,a)=>s+(a.distance||0),0)/1000);
+  const totalKm=fmtThousands(Math.round(baseActs.reduce((s,a)=>s+(a.distance||0),0)/1000));
 
   // ── AKTUELLE WOCHE ──
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay()+1); weekStart.setHours(0,0,0,0);
@@ -1066,9 +1069,9 @@ function mBar(mActs,mDate){
 
   // Belastungsampel: Vergleich mit Zielumfang aus Trainingsplan
   const wtgt=weekFrame.targets||{};
-  const targetRunH=(parseFloat(wtgt.targetRunSessions)||3)*1.0;
-  const targetBikeH=(parseFloat(wtgt.targetBikeSessions)||2)*1.5;
-  const targetSwimH=(parseFloat(wtgt.targetSwimSessions)||2)*0.75;
+  const targetRunH=parseFloat(wtgt.targetRunH)||(parseFloat(wtgt.targetRunSessions)||3)*1.0;
+  const targetBikeH=parseFloat(wtgt.targetBikeH)||(parseFloat(wtgt.targetBikeSessions)||2)*1.5;
+  const targetSwimH=parseFloat(wtgt.targetSwimH)||(parseFloat(wtgt.targetSwimSessions)||2)*0.75;
   const targetTotalH=targetRunH+targetBikeH+targetSwimH||8; // default 8h/Woche
   const wPct=wTotal/targetTotalH; // 0=nichts, 1=genau Ziel, >1.2=zu viel
 
@@ -1094,15 +1097,15 @@ function mBar(mActs,mDate){
 
   el.innerHTML=`
 <div class="section-header" style="margin-bottom:12px">
-  <div><div class="section-title">Dashboard</div><div class="section-sub">${baseActs.length} Einheiten · ${totalH.toFixed(1)}h · ${totalKm} km</div></div>
-  ${nextRace?`<div style="text-align:right"><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Nächster Wettkampf</div><div style="font-weight:700;font-size:15px">${nextRace.name}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:${nrColor}">${daysUntil(nextRace.date)} Tage</div></div>`:''}
+  <div><div class="section-title">Dashboard</div><div class="section-sub">${baseActs.length} Einheiten · ${fmtHHMM(totalH)} Std · ${totalKm} km</div></div>
+  ${nextRaces.length?`<div style="text-align:right"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Nächste Events</div>${nextRaces.map(r=>{const rc={run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)',tri:'var(--tri)'}[r.type]||'var(--accent)';return`<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:2px"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${r.name}</div><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${rc};flex-shrink:0">${daysUntil(r.date)}d</div></div>`;}).join('')}</div>`:''}
 </div>
 
 <div class="card" style="margin-bottom:16px;border-left:4px solid ${ampel.color}">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div style="font-weight:700;font-size:15px">Diese Woche <span style="font-size:12px;font-weight:500;color:var(--text3)">KW${kw}</span></div>
-      <div style="font-size:12px;color:var(--text3);margin-top:2px">${weekActs.length} Einheiten · ${wTotal.toFixed(1)} Std · Ziel: ${targetTotalH.toFixed(1)} Std</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">${weekActs.length} Einheiten · ${fmtHHMM(wTotal)} Std · Ziel: ${fmtHHMM(targetTotalH)} Std</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;background:${ampel.bg}">
       <span style="font-size:16px">${ampel.emoji}</span>
@@ -1132,8 +1135,8 @@ function mBar(mActs,mDate){
     return '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">'+
       sports.map(s=>{
         const bw=s.t>0?Math.min(Math.round((s.h/s.t)*100),100):0;
-        const hStr=s.h>0?s.h.toFixed(1)+' Std':'–';
-        const tStr=s.t>0?'/ '+s.t.toFixed(1)+' Std Ziel':'';
+        const hStr=s.h>0?fmtHHMM(s.h)+' Std':'–';
+        const tStr=s.t>0?'/ '+fmtHHMM(s.t)+' Std Ziel':'';
         return '<div>'+
           '<div style="font-size:11px;font-weight:600;color:'+s.c+';margin-bottom:4px">'+s.l+'</div>'+
           '<div style="font-size:20px;font-weight:800;color:'+s.c+';line-height:1;margin-bottom:2px">'+hStr+'</div>'+
@@ -1165,24 +1168,37 @@ function mBar(mActs,mDate){
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px">
-  <div class="stat-card"><div class="stat-val">${baseActs.length}</div><div class="stat-label">Einheiten</div></div>
-  <div class="stat-card"><div class="stat-val">${totalH.toFixed(1)} <span style="font-size:14px;font-weight:500;color:var(--text3)">Std</span></div><div class="stat-label">Trainingszeit</div></div>
-  <div class="stat-card"><div class="stat-val">${totalKm} <span style="font-size:14px;font-weight:500;color:var(--text3)">km</span></div><div class="stat-label">Distanz</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
   <div class="stat-card">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;margin-bottom:6px">
-      <div>
-        <div style="font-size:20px;font-weight:800;color:var(--run);line-height:1">${baseActs.filter(a=>a.type==='run').length}</div>
+    <div class="stat-val">${baseActs.length}</div>
+    <div class="stat-label">Einheiten</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--run);line-height:1">${baseActs.filter(a=>a.type==='run').length}</div>
         <div style="font-size:10px;color:var(--run);font-weight:600;margin-top:2px">Lauf</div>
       </div>
-      <div>
-        <div style="font-size:20px;font-weight:800;color:var(--bike);line-height:1">${baseActs.filter(a=>a.type==='bike').length}</div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--bike);line-height:1">${baseActs.filter(a=>a.type==='bike').length}</div>
         <div style="font-size:10px;color:var(--bike);font-weight:600;margin-top:2px">Rad</div>
       </div>
-      <div>
-        <div style="font-size:20px;font-weight:800;color:var(--swim);line-height:1">${baseActs.filter(a=>a.type==='swim').length}</div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--swim);line-height:1">${baseActs.filter(a=>a.type==='swim').length}</div>
         <div style="font-size:10px;color:var(--swim);font-weight:600;margin-top:2px">Swim</div>
       </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:#9ca3af;line-height:1">${baseActs.filter(a=>a.type==='other'||a.type==='tri').length}</div>
+        <div style="font-size:10px;color:#9ca3af;font-weight:600;margin-top:2px">Sonst.</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="stat-card" style="flex:1">
+      <div class="stat-val">${fmtHHMM(totalH)} <span style="font-size:14px;font-weight:500;color:var(--text3)">Std</span></div>
+      <div class="stat-label">Trainingszeit</div>
+    </div>
+    <div class="stat-card" style="flex:1">
+      <div class="stat-val">${totalKm} <span style="font-size:14px;font-weight:500;color:var(--text3)">km</span></div>
+      <div class="stat-label">Distanz</div>
     </div>
   </div>
 </div>
@@ -1202,7 +1218,7 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 <div class="card">
   <div style="font-weight:700;font-size:15px;margin-bottom:2px">Trainingsumfang · Stunden</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${dashPeriod==='4w'?'Letzte 4 Wochen':dashPeriod==='12w'?'Letzte 12 Wochen':dashPeriod==='6m'?'Letzte 6 Monate (2-Wochen-Blöcke)':dashPeriod==='1y'?'Letztes Jahr (Monate)':isYearView?chartYear+' nach Monaten':'Gesamt'}</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${dashPeriod==='1m'?'Letzte 4 Wochen':dashPeriod==='3m'?'Letzte 12 Wochen':dashPeriod==='6m'?'Letzte 6 Monate (2-Wochen-Blöcke)':dashPeriod==='12m'?'Letztes Jahr (Monate)':isYearView?chartYear+' nach Monaten':'Gesamt'}</div>
   <div style="display:flex;gap:10px">
     <div style="display:flex;flex-direction:column;justify-content:space-between;padding-bottom:26px;flex-shrink:0;width:36px;text-align:right">
       ${[4,3,2,1,0].map(i=>`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);font-weight:600">${(maxH*i/4).toFixed(maxH<4?1:0)}h</div>`).join('')}
@@ -1227,7 +1243,7 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
 </div>
 <div class="card">
   <div style="font-weight:700;font-size:15px;margin-bottom:2px">Trainingsumfang · Kilometer</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${dashPeriod==='4w'?'Letzte 4 Wochen':dashPeriod==='12w'?'Letzte 12 Wochen':dashPeriod==='6m'?'Letzte 6 Monate (2-Wochen-Blöcke)':dashPeriod==='1y'?'Letztes Jahr (Monate)':isYearView?chartYear+' nach Monaten':'Gesamt'}</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${dashPeriod==='1m'?'Letzte 4 Wochen':dashPeriod==='3m'?'Letzte 12 Wochen':dashPeriod==='6m'?'Letzte 6 Monate (2-Wochen-Blöcke)':dashPeriod==='12m'?'Letztes Jahr (Monate)':isYearView?chartYear+' nach Monaten':'Gesamt'}</div>
   <div style="display:flex;gap:10px">
     <div style="display:flex;flex-direction:column;justify-content:space-between;padding-bottom:26px;flex-shrink:0;width:36px;text-align:right">
       ${[4,3,2,1,0].map(i=>`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);font-weight:600">${Math.round(maxKmBar*i/4)}</div>`).join('')}
@@ -1260,22 +1276,43 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
 <div class="card">
   <div style="font-weight:700;font-size:14px;margin-bottom:4px">Sportverteilung</div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Stunden · ${baseActs.length} Einheiten</div>
-  ${[{k:'run',l:'Laufen',c:'var(--run)'},{k:'bike',l:'Rad',c:'var(--bike)'},{k:'swim',l:'Schwimmen',c:'var(--swim)'},{k:'other',l:'Sonstige',c:'#9ca3af'}].map(s=>{
-    const pct=Math.round(dist[s.k]/distTotal*100);
-    const h=dist[s.k].toFixed(1);
-    return`<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-        <span style="font-weight:600;color:${s.c}">${s.l}</span>
-        <span style="font-family:'DM Mono',monospace;color:var(--text2);font-size:12px">${pct}% · ${h}h</span>
-      </div>
-      <div style="height:8px;background:var(--card2);border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${s.c};border-radius:4px"></div>
-      </div>
-    </div>`;
-  }).join('')}
+  ${(()=>{
+    const pieData=[{k:'run',l:'Laufen',c:'#10b981'},{k:'bike',l:'Rad',c:'#3b82f6'},{k:'swim',l:'Schwimmen',c:'#8b5cf6'},{k:'other',l:'Sonstige',c:'#9ca3af'}].map(s=>({...s,h:dist[s.k],pct:Math.round(dist[s.k]/distTotal*100)})).filter(s=>s.pct>0);
+    const r=60,cx=75,cy=75;
+    let angle=-Math.PI/2;
+    let arcs='';
+    pieData.forEach(s=>{
+      const a=s.h/distTotal*2*Math.PI;
+      const x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle);
+      const x2=cx+r*Math.cos(angle+a),y2=cy+r*Math.sin(angle+a);
+      const large=a>Math.PI?1:0;
+      if(a>0.01) arcs+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${s.c}" opacity="0.9"/>`;
+      angle+=a;
+    });
+    const legend=pieData.map(s=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:10px;height:10px;border-radius:2px;background:${s.c};flex-shrink:0"></div><span style="font-size:12px;font-weight:600;color:var(--text2)">${s.l}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);margin-left:auto">${s.pct}%</span></div>`).join('');
+    return`<div style="display:flex;align-items:center;gap:16px"><svg width="150" height="150" viewBox="0 0 150 150">${arcs}</svg><div style="flex:1">${legend}</div></div>`;
+  })()}
 </div>
 </div>
 
+
+<div class="card" style="margin-bottom:16px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-weight:700;font-size:15px">Kumulierte Trainingszeit im Jahresverlauf</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">Summierte Stunden pro Monat · Jahresvergleich</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="cumline-sport-btns">
+      ${['all','run','bike','swim'].map(s=>{
+        const labels={all:'Alle',run:'Laufen',bike:'Rad',swim:'Schwimmen'};
+        const colors={all:'var(--accent)',run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)'};
+        const active=dashSport===s;
+        return`<button onclick="dashSport='${s}';renderDashboard()" style="padding:4px 12px;border-radius:20px;border:1.5px solid ${active?colors[s]:'var(--border2)'};background:${active?'color-mix(in srgb,'+colors[s]+' 12%,#fff)':'#fff'};color:${active?colors[s]:'var(--text2)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${labels[s]}</button>`;
+      }).join('')}
+    </div>
+  </div>
+  <div id="cumline-chart" style="position:relative;min-height:260px"></div>
+</div>
 
 <div class="card" style="margin-bottom:16px">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
@@ -1386,24 +1423,6 @@ ${nextRace?`<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr
   })()}
 </div>
 
-<div class="card" style="margin-bottom:16px">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
-    <div>
-      <div style="font-weight:700;font-size:15px">Kumulierte Trainingszeit im Jahresverlauf</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:2px">Summierte Stunden pro Monat · Jahresvergleich</div>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap" id="cumline-sport-btns">
-      ${['all','run','bike','swim'].map(s=>{
-        const labels={all:'Alle',run:'Laufen',bike:'Rad',swim:'Schwimmen'};
-        const colors={all:'var(--accent)',run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)'};
-        const active=dashSport===s;
-        return`<button onclick="dashSport='${s}';renderDashboard()" style="padding:4px 12px;border-radius:20px;border:1.5px solid ${active?colors[s]:'var(--border2)'};background:${active?'color-mix(in srgb,'+colors[s]+' 12%,#fff)':'#fff'};color:${active?colors[s]:'var(--text2)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${labels[s]}</button>`;
-      }).join('')}
-    </div>
-  </div>
-
-  <div id="cumline-chart" style="position:relative;min-height:260px"></div>
-</div>
 
 `;
   setTimeout(buildCumChart, 20);
@@ -1724,7 +1743,7 @@ ${activities.length>0?`
 
 // ── ACTIVITIES PAGE ──
 let actFilter='all', actSearch='', actPeriod='all';
-let dashPeriod='12w', dashSport='all';
+let dashPeriod='3m', dashSport='all';
 
 function getYears(){
   const ys=new Set(activities.map(a=>(a.date||'').slice(0,4)).filter(Boolean));
@@ -2087,6 +2106,9 @@ function renderPlan(){
   <div style="font-weight:700;font-size:14px;margin-bottom:14px">Wöchentliche Zielumfänge</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
     ${[
+      {k:'targetRunH',l:'Lauf Std/Woche',c:'var(--run)',ph:'z.B. 3'},
+      {k:'targetBikeH',l:'Rad Std/Woche',c:'var(--bike)',ph:'z.B. 3'},
+      {k:'targetSwimH',l:'Schwimm Std/Woche',c:'var(--swim)',ph:'z.B. 1.5'},
       {k:'targetRunKm',l:'Lauf km/Woche',c:'var(--run)',ph:'z.B. 40'},
       {k:'targetBikeKm',l:'Rad km/Woche',c:'var(--bike)',ph:'z.B. 120'},
       {k:'targetSwimKm',l:'Schwimm km/Woche',c:'var(--swim)',ph:'z.B. 5'},
@@ -2138,7 +2160,7 @@ function removePlanTag(day,val){
 }
 function showUnsaved(show){const el=document.getElementById('plan-unsaved');if(el)el.style.display=show?'flex':'none';}
 function autosavePlanTargets(){
-  const keys=['targetRunKm','targetBikeKm','targetSwimKm','targetRunSessions','targetBikeSessions','targetSwimSessions','pctEasy','pctTempo','pctHard'];
+  const keys=['targetRunH','targetBikeH','targetSwimH','targetRunKm','targetBikeKm','targetSwimKm','targetRunSessions','targetBikeSessions','targetSwimSessions','pctEasy','pctTempo','pctHard'];
   if(!weekFrame.targets) weekFrame.targets={};
   keys.forEach(k=>{const el=document.getElementById('pt-'+k);if(el)weekFrame.targets[k]=parseFloat(el.value)||null});
   DB.set('weekFrame',weekFrame);
@@ -2146,7 +2168,7 @@ function autosavePlanTargets(){
   toast('Trainingsplan gespeichert ✓');
 }
 function savePlanInline(){
-  const keys=['targetRunKm','targetBikeKm','targetSwimKm','targetRunSessions','targetBikeSessions','targetSwimSessions','pctEasy','pctTempo','pctHard'];
+  const keys=['targetRunH','targetBikeH','targetSwimH','targetRunKm','targetBikeKm','targetSwimKm','targetRunSessions','targetBikeSessions','targetSwimSessions','pctEasy','pctTempo','pctHard'];
   if(!weekFrame.targets) weekFrame.targets={};
   keys.forEach(k=>{const el=document.getElementById('pt-'+k);if(el)weekFrame.targets[k]=parseFloat(el.value)||null});
   DB.set('weekFrame',weekFrame);
