@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744005600';
+  const BUILD='1744009200';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2562,16 +2562,16 @@ async function loadStreams(a){
       if(data&&!error) return JSON.parse(data.data);
     }catch(_){}
   }
-  // fetch from Strava
+  // fetch from Strava — token holen/refreshen
   let accessToken=stravaToken?.access_token;
-  if(!accessToken) return null;
-  // refresh if expired
-  if(settings.expiresAt&&settings.expiresAt<Math.floor(Date.now()/1000)&&settings.refreshToken&&settings.proxyUrl){
+  const needsRefresh=!accessToken||(settings.expiresAt&&settings.expiresAt<Math.floor(Date.now()/1000));
+  if(needsRefresh&&settings.refreshToken&&settings.proxyUrl){
     try{
       const r=await fetch(`${settings.proxyUrl}/api/strava?action=refresh&refresh_token=${encodeURIComponent(settings.refreshToken)}`);
       if(r.ok){const d=await r.json();if(d.access_token){accessToken=d.access_token;settings.expiresAt=d.expires_at||0;stravaToken={access_token:accessToken};DB.set('stravaToken',stravaToken);saveSettings();}}
     }catch(_){}
   }
+  if(!accessToken) return null;
   try{
     const res=await fetch(`https://www.strava.com/api/v3/activities/${a.stravaId}/streams?keys=heartrate,latlng,velocity_smooth,cadence,altitude,time&key_by_type=true`,{headers:{Authorization:`Bearer ${accessToken}`}});
     if(!res.ok) return null;
