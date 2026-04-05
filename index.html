@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744009200';
+  const BUILD='1744012800';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2101,13 +2101,13 @@ function addPlanTag(day, sel){
     weekFrame[day].push(val);
   }
   sel.value='';
-  DB.set('weekFrame',weekFrame);
+  saveWeekFrame();
   renderPlan();
   showUnsaved(false);
 }
 function removePlanTag(day,val){
   weekFrame[day]=(weekFrame[day]||[]).filter(v=>v!==val);
-  DB.set('weekFrame',weekFrame);
+  saveWeekFrame();
   renderPlan();
   showUnsaved(false);
 }
@@ -2116,7 +2116,7 @@ function autosavePlanTargets(){
   const keys=['targetRunH','targetBikeH','targetSwimH','targetRunKm','targetBikeKm','targetSwimKm','targetRunSessions','targetBikeSessions','targetSwimSessions','pctEasy','pctTempo','pctHard'];
   if(!weekFrame.targets) weekFrame.targets={};
   keys.forEach(k=>{const el=document.getElementById('pt-'+k);if(el)weekFrame.targets[k]=parseFloat(el.value)||null});
-  DB.set('weekFrame',weekFrame);
+  saveWeekFrame();
   showUnsaved(false);
   toast('Trainingsplan gespeichert ✓');
 }
@@ -2124,9 +2124,10 @@ function savePlanInline(){
   const keys=['targetRunH','targetBikeH','targetSwimH','targetRunKm','targetBikeKm','targetSwimKm','targetRunSessions','targetBikeSessions','targetSwimSessions','pctEasy','pctTempo','pctHard'];
   if(!weekFrame.targets) weekFrame.targets={};
   keys.forEach(k=>{const el=document.getElementById('pt-'+k);if(el)weekFrame.targets[k]=parseFloat(el.value)||null});
-  DB.set('weekFrame',weekFrame);
+  saveWeekFrame();
   toast('Trainingsplan gespeichert ✓');
 }
+function saveWeekFrame(){DB.set('weekFrame',weekFrame);sbSave('week_frame',weekFrame);}
 
 // ── COACH PAGE ──
 let coachLoading=false;
