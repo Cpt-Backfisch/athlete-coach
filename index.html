@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1743998400';
+  const BUILD='1744002000';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2733,8 +2733,7 @@ function openActivityDetail(id){
   // load streams async
   if(hasStrava){
     loadStreams(a).then(streams=>{
-      console.log('Streams keys:', streams?Object.keys(streams):'null');
-      const sec=document.getElementById('streams-section');
+const sec=document.getElementById('streams-section');
       if(!sec) return;
       if(!streams||Object.keys(streams).length===0){
         sec.innerHTML=`<div style="padding:12px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--text3)">Keine Strava-Rohdaten verfügbar.</div>`;
