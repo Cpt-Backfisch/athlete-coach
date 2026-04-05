@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744030800';
+  const BUILD='1775422243';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -3023,6 +3023,7 @@ async function stravaSync(){
       let accessToken=stravaToken?.access_token||'';
       let expiresAt=settings.expiresAt||0;
 
+      let coordsUpdated=0;
       while(true){
         const url=`${proxy}/api/strava?action=activities&access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(settings.refreshToken)}&expires_at=${expiresAt}&page=${page}&per_page=100`;
         const res=await fetch(url);
@@ -3043,7 +3044,13 @@ async function stravaSync(){
         const data=await res.json();
         if(!data.length) break;
         for(const act of data){
-          if(!activities.find(a=>a.stravaId===act.id)){activities.push(stravaToActivity(act));newCount++;}
+          const existing=activities.find(a=>a.stravaId===act.id);
+          if(!existing){activities.push(stravaToActivity(act));newCount++;}
+          else if(!existing.startLat&&act.start_latlng?.[0]){
+            existing.startLat=act.start_latlng[0];
+            existing.startLng=act.start_latlng[1];
+            coordsUpdated++;
+          }
         }
         if(data.length<100) break;
         page++;
@@ -3051,7 +3058,8 @@ async function stravaSync(){
       saveActivities();
       const ts=new Date().toLocaleDateString('de-DE')+' '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       DB.set('lastSync',ts);
-      toast(newCount>0?`${newCount} neue Einheiten importiert ✓`:'Bereits aktuell ✓');
+      const msg=newCount>0?`${newCount} neue Einheiten importiert ✓`:'Bereits aktuell ✓';
+      toast(coordsUpdated>0?msg+` · ${coordsUpdated} mit GPS ergänzt`:msg);
       if(newCount>0) showPage(currentPage);
     }catch(e){toast('Sync fehlgeschlagen: '+e.message,'error');}
     return;
@@ -3061,19 +3069,24 @@ async function stravaSync(){
   if(!stravaToken&&!settings.refreshToken){toast('Nicht verbunden','error');return;}
   toast('Lade Aktivitäten von Strava…');
   try{
-    let page=1,newCount=0;
+    let page=1,newCount=0,coordsUpdated=0;
     while(true){
       const res=await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=100&page=${page}`,{headers:{Authorization:`Bearer ${stravaToken.access_token}`}});
       if(res.status===401){toast('Token abgelaufen – in Einstellungen erneuern','error');stravaToken=null;DB.set('stravaToken',null);showPage('settings');return;}
       if(!res.ok){toast('Strava Fehler: '+res.status,'error');break;}
       const data=await res.json();if(!data.length)break;
-      for(const act of data){if(!activities.find(a=>a.stravaId===act.id)){activities.push(stravaToActivity(act));newCount++;}}
+      for(const act of data){
+        const existing=activities.find(a=>a.stravaId===act.id);
+        if(!existing){activities.push(stravaToActivity(act));newCount++;}
+        else if(!existing.startLat&&act.start_latlng?.[0]){existing.startLat=act.start_latlng[0];existing.startLng=act.start_latlng[1];coordsUpdated++;}
+      }
       if(data.length<100)break;page++;
     }
     saveActivities();
     const ts=new Date().toLocaleDateString('de-DE')+' '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
     DB.set('lastSync',ts);
-    toast(newCount>0?`${newCount} neue Einheiten importiert ✓`:'Bereits aktuell ✓');
+    const msg=newCount>0?`${newCount} neue Einheiten importiert ✓`:'Bereits aktuell ✓';
+    toast(coordsUpdated>0?msg+` · ${coordsUpdated} mit GPS ergänzt`:msg);
   }catch(e){toast('Sync fehlgeschlagen: '+e.message,'error');}
 }
 
