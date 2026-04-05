@@ -55,7 +55,7 @@ Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Shar
 - Vergangene Wettkämpfe mit Splits (pace für Läufe)
 - Strava CSV-Import (Schwimm-Fix: Meter nicht km)
 - **Strava OAuth + Webhook** — nach jedem Training → Claude Haiku analysiert → Telegram-Nachricht; Webhook-ID 338947 aktiv
-- **Strava Streams** — on-demand Rohdaten in Aktivitäts-Detail: HR-Kurve (rot), Pace/Speed (blau), Höhenprofil (grün), GPS-Track (HR-gefärbt); permanent gecacht in Supabase `streams`
+- **Strava Streams** — on-demand Rohdaten in Aktivitäts-Detail: Pace/Speed (blau), Kadenz (gelb, spm×2 für Laufen), Höhenprofil (grün), GPS-Track auf Leaflet/OpenStreetMap-Karte; permanent gecacht in Supabase `streams`. HR fehlt weil Strava keinen HR-Stream für Garmin-Einheiten liefert.
 - **Editierbarer Coach-Prompt** — im Menü Coach als Textarea; wird in Supabase `settings.coachPrompt` gespeichert; `api/webhook.js` liest ihn vor jeder Telegram-Nachricht
 - Read-Only Share-Link für Freunde (kein Login nötig)
 - Kommentarfunktion im Share-Link (Name + Nachricht)
@@ -78,13 +78,13 @@ Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Shar
 
 ## Feature Backlog (priorisiert)
 
-1. **Wöchentliche Coach-Zusammenfassung** — jeden Montag automatisch per Telegram (cron job in `api/cron.js` auf Vercel)
-2. **Strava Auto-Sync** — beim App-Start automatisch neue Einheiten laden (nur beim Öffnen, kein Polling)
-3. **KI-Trainingsplan** — dynamisch basierend auf Wettkampfterminen und aktueller Form
-4. **Wettkampf-Prognosen** — KI schätzt Zielzeiten pro Segment
-5. **Soziale Features** — liken/reagieren im Share-Link; Telegram-Benachrichtigung bei neuen Kommentaren
-6. **Pace-Rechner** — Zielzeit eingeben → Pace pro km
-7. **Garmin FIT-Import** — für HRV-Daten
+1. **Strava Auto-Sync** — beim App-Start automatisch neue Einheiten laden (nur beim Öffnen, kein Polling)
+2. **KI-Trainingsplan** — dynamisch basierend auf Wettkampfterminen und aktueller Form
+3. **Wettkampf-Prognosen** — KI schätzt Zielzeiten pro Segment
+4. **Soziale Features** — liken/reagieren im Share-Link; Telegram-Benachrichtigung bei neuen Kommentaren
+5. **Pace-Rechner** — Zielzeit eingeben → Pace pro km
+7. **HF-Verlauf in Einheiten** — Strava liefert keinen HR-Stream für Garmin-Einheiten (nur Ø HR). Lösung: Garmin FIT-Import oder Garmin Connect API. Garmin zählt Kadenz einseitig (×2 für spm bereits im Code).
+8. **Garmin FIT-Import** — für HRV-Daten + HR-Stream
 8. **PWA verbessern** — besseres iPhone-Erlebnis, Push Notifications
 
 ---
@@ -160,8 +160,10 @@ Immer warnen wenn Features Kosten verursachen:
 - Strava Webhook → `api/webhook.js` (Vercel) → Claude Haiku analysiert → Telegram-Nachricht
 - Webhook-Subscription ID: 338947, aktiv
 - `api/webhook.js` liest `coachPrompt` aus Supabase `settings` vor jeder Nachricht
-- Vercel Env Vars benötigt: `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_ATHLETE_REFRESH_TOKEN`, `CLAUDE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_SERVICE_KEY`
+- Wöchentliche Zusammenfassung: `api/weekly.js` (Vercel Cron `0 18 * * 0` = Sonntag 20:00 CEST)
+- Vercel Env Vars (alle in Projekt `athlete-coach-proxy-rnuy`): `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_ATHLETE_REFRESH_TOKEN`, `CLAUDE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_SERVICE_KEY`
 - Token und Chat ID nur in Supabase `settings`, nie im Code
+- Vercel hat zwei Projekte: `athlete-coach-proxy-rnuy` (aktiv) und `athlete-coach-proxy` (alt, löschen)
 
 ### Strava Streams
 - `loadStreams(a)` in `index.html`: prüft `streams` Tabelle in Supabase, fällt auf direkte Strava API zurück
