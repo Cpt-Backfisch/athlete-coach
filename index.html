@@ -2498,11 +2498,11 @@ function renderSettings(){
     <strong>Einmalig:</strong> Setze diese Werte als Env-Variablen in deinem <a href="https://vercel.com/dashboard" target="_blank" style="color:var(--accent)">Vercel Dashboard</a>:
   </div>
   <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-family:monospace;line-height:2">
-    <div>STRAVA_VERIFY_TOKEN = <strong style="color:var(--accent);user-select:all">${settings.webhookVerifyToken||'(wird beim Registrieren generiert)'}</strong></div>
-    <div>STRAVA_ATHLETE_REFRESH_TOKEN = <strong style="color:var(--accent);user-select:all">${settings.refreshToken||'–'}</strong></div>
-    <div>CLAUDE_API_KEY = <strong style="color:var(--accent);user-select:all">${settings.claudeApiKey||'–'}</strong></div>
-    <div>TELEGRAM_BOT_TOKEN = <strong style="color:var(--accent);user-select:all">${settings.telegramToken||'–'}</strong></div>
-    <div>TELEGRAM_CHAT_ID = <strong style="color:var(--accent);user-select:all">${settings.telegramChatId||'–'}</strong></div>
+    <div>STRAVA_VERIFY_TOKEN = <strong style="color:var(--accent)">${settings.webhookVerifyToken?'••••••••':'(wird beim Registrieren generiert)'}</strong></div>
+    <div>STRAVA_ATHLETE_REFRESH_TOKEN = <strong style="color:${settings.refreshToken?'#059669':'var(--text3)'}">${settings.refreshToken?'✓ gesetzt':'–'}</strong></div>
+    <div>CLAUDE_API_KEY = <strong style="color:${settings.claudeApiKey?'#059669':'var(--text3)'}">${settings.claudeApiKey?'✓ gesetzt':'–'}</strong></div>
+    <div>TELEGRAM_BOT_TOKEN = <strong style="color:${settings.telegramToken?'#059669':'var(--text3)'}">${settings.telegramToken?'✓ gesetzt':'–'}</strong></div>
+    <div>TELEGRAM_CHAT_ID = <strong style="color:${settings.telegramChatId?'#059669':'var(--text3)'}">${settings.telegramChatId?'✓ gesetzt':'–'}</strong></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     ${settings.webhookSubscriptionId
