@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744020000';
+  const BUILD='1744023600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1616,7 +1616,7 @@ function buildHFChart(){
 // ── IMPORT PAGE ──
 function renderImport(){
   const el=document.getElementById('page-content');
-  const connected=!!stravaToken;
+  const connected=!!(settings.refreshToken||stravaToken);
   const oauthConnected=connected&&!!settings.refreshToken;
   el.innerHTML=`
 <div class="section-header">
@@ -3030,7 +3030,7 @@ async function stravaSync(){
   }
 
   // Mode B: Manueller Access Token (Legacy)
-  if(!stravaToken){toast('Nicht verbunden','error');return;}
+  if(!stravaToken&&!settings.refreshToken){toast('Nicht verbunden','error');return;}
   toast('Lade Aktivitäten von Strava…');
   try{
     let page=1,newCount=0;
