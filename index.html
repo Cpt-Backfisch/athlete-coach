@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1743994800';
+  const BUILD='1743998400';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2653,36 +2653,47 @@ function renderStreamChart(container,streams,type,a){
 function renderGPSTrack(container,streams){
   if(!streams.latlng?.data?.length) return;
   const pts=streams.latlng.data;
-  const lats=pts.map(p=>p[0]),lngs=pts.map(p=>p[1]);
-  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
-  const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
-  const W=container.clientWidth||560,H=180;
-  const latRange=maxLat-minLat||0.001,lngRange=maxLng-minLng||0.001;
-  // maintain aspect ratio
-  const scale=Math.min((W-20)/lngRange,(H-20)/latRange);
-  const offX=(W-lngRange*scale)/2,offY=(H-latRange*scale)/2;
-  const xS=lng=>offX+(lng-minLng)*scale;
-  const yS=lat=>H-offY-(lat-minLat)*scale;
-  // color by HR if available
   const hr=streams.heartrate?.data;
-  const hrMin=hr?Math.min(...hr):0,hrMax=hr?Math.max(...hr):1;
-  const hrColor=(h)=>{const t=(h-hrMin)/(hrMax-hrMin||1);return`hsl(${Math.round(220-t*180)},80%,55%)`;};
-  let path='';
-  if(hr&&hr.length===pts.length){
-    for(let i=1;i<pts.length;i++){
-      path+=`<line x1="${xS(pts[i-1][1]).toFixed(1)}" y1="${yS(pts[i-1][0]).toFixed(1)}" x2="${xS(pts[i][1]).toFixed(1)}" y2="${yS(pts[i][0]).toFixed(1)}" stroke="${hrColor(hr[i])}" stroke-width="2" stroke-linecap="round"/>`;
-    }
-  }else{
-    const coords=pts.map(p=>`${xS(p[1]).toFixed(1)},${yS(p[0]).toFixed(1)}`).join(' ');
-    path=`<polyline points="${coords}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>`;
+  const mapId='map-'+Date.now();
+  container.innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600">GPS-Track</div>
+  <div id="${mapId}" style="height:280px;border-radius:10px;overflow:hidden"></div>
+  <div style="display:flex;gap:16px;margin-top:4px;font-size:10px;color:var(--text3)"><span style="color:#10b981">● Start</span><span style="color:#ef4444">● Ende</span></div>`;
+
+  function initMap(){
+    const L=window.L;
+    const map=L.map(mapId,{zoomControl:true,scrollWheelZoom:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap',maxZoom:19
+    }).addTo(map);
+
+    // Track als Polyline
+    const latlngs=pts.map(p=>[p[0],p[1]]);
+    L.polyline(latlngs,{color:'#3b82f6',weight:3,opacity:0.85}).addTo(map);
+
+    // Start/Ende Marker
+    const startIcon=L.divIcon({html:'<div style="width:10px;height:10px;border-radius:50%;background:#10b981;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>',iconSize:[10,10],iconAnchor:[5,5],className:''});
+    const endIcon=L.divIcon({html:'<div style="width:10px;height:10px;border-radius:50%;background:#ef4444;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>',iconSize:[10,10],iconAnchor:[5,5],className:''});
+    L.marker(latlngs[0],{icon:startIcon}).addTo(map);
+    L.marker(latlngs[latlngs.length-1],{icon:endIcon}).addTo(map);
+
+    map.fitBounds(L.polyline(latlngs).getBounds(),{padding:[16,16]});
   }
-  // start/end markers
-  const s=pts[0],e=pts[pts.length-1];
-  const markers=`<circle cx="${xS(s[1]).toFixed(1)}" cy="${yS(s[0]).toFixed(1)}" r="5" fill="#10b981" stroke="var(--card)" stroke-width="1.5"/>
-  <circle cx="${xS(e[1]).toFixed(1)}" cy="${yS(e[0]).toFixed(1)}" r="5" fill="#ef4444" stroke="var(--card)" stroke-width="1.5"/>`;
-  container.innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600">GPS-Track${hr?' · Farbe = Herzfrequenz':''}</div>
-  <svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;border-radius:8px;background:var(--card2)">${path}${markers}</svg>
-  <div style="display:flex;gap:16px;margin-top:4px;font-size:10px;color:var(--text3)"><span style="color:#10b981">● Start</span><span style="color:#ef4444">● Ende</span>${hr?'<span>Blau=niedrige HF, Rot=hohe HF</span>':''}</div>`;
+
+  if(window.L){
+    initMap();
+  }else{
+    // Leaflet CSS + JS dynamisch laden
+    if(!document.getElementById('leaflet-css')){
+      const css=document.createElement('link');
+      css.id='leaflet-css';css.rel='stylesheet';
+      css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+    }
+    const js=document.createElement('script');
+    js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload=initMap;
+    document.head.appendChild(js);
+  }
 }
 
 function openActivityDetail(id){
@@ -2722,6 +2733,7 @@ function openActivityDetail(id){
   // load streams async
   if(hasStrava){
     loadStreams(a).then(streams=>{
+      console.log('Streams keys:', streams?Object.keys(streams):'null');
       const sec=document.getElementById('streams-section');
       if(!sec) return;
       if(!streams||Object.keys(streams).length===0){
