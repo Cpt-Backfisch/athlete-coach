@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744002000';
+  const BUILD='1744005600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2600,6 +2600,10 @@ function renderStreamChart(container,streams,type,a){
   }else if(type==='alt'){
     if(!streams.altitude?.data?.length) return;
     vals=streams.altitude.data;label='Höhe';color='#10b981';unit=' m';
+  }else if(type==='cadence'){
+    if(!streams.cadence?.data?.length) return;
+    vals=streams.cadence.data.map(v=>a.type==='bike'||a.type==='tri'?v:v*2);
+    label=a.type==='bike'||a.type==='tri'?'Kadenz rpm':'Kadenz spm';color='#f59e0b';unit='';
   }else return;
   const timeArr=streams.time?.data||[];
   const clean=vals.map((v,i)=>({v,t:timeArr[i]||i})).filter(p=>p.v!=null&&isFinite(p.v));
@@ -2743,12 +2747,14 @@ const sec=document.getElementById('streams-section');
       const hasHR=streams.heartrate?.data?.length>0;
       const hasPace=streams.velocity_smooth?.data?.length>0;
       const hasAlt=streams.altitude?.data?.length>0;
+      const hasCadence=streams.cadence?.data?.length>0;
       const hasGPS=streams.latlng?.data?.length>0;
-      if(hasHR||hasPace||hasAlt){
+      if(hasHR||hasPace||hasAlt||hasCadence){
         const chartsDiv=document.createElement('div');
         chartsDiv.style.cssText='display:flex;flex-direction:column;gap:16px';
         if(hasHR){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'hr',a));}
         if(hasPace){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'pace',a));}
+        if(hasCadence){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'cadence',a));}
         if(hasAlt){const c=document.createElement('div');c.style.cssText='background:var(--card2);border-radius:10px;padding:12px';chartsDiv.appendChild(c);requestAnimationFrame(()=>renderStreamChart(c,streams,'alt',a));}
         sec.appendChild(chartsDiv);
       }
