@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744023600';
+  const BUILD='1744027200';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -2561,6 +2561,25 @@ function openAddModal(pre={}){
   document.body.insertAdjacentHTML('beforeend',html);
 }
 
+async function loadWeather(a){
+  if(!a.startLat||!a.startLng||!a.date) return null;
+  if(a.weather) return a.weather; // cached
+  try{
+    const hour=a.startTime?parseInt(a.startTime.split(':')[0]):8;
+    const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${a.startLat}&longitude=${a.startLng}&start_date=${a.date}&end_date=${a.date}&hourly=temperature_2m,weathercode,windspeed_10m&timezone=Europe%2FBerlin`;
+    const r=await fetch(url);if(!r.ok) return null;
+    const d=await r.json();
+    const h=d.hourly;if(!h) return null;
+    const idx=Math.min(hour,h.time.length-1);
+    const code=h.weathercode[idx];
+    const wmoEmoji=c=>{if(c===0)return'☀️';if(c<=2)return'🌤️';if(c<=3)return'☁️';if(c<=48)return'🌫️';if(c<=67)return'🌧️';if(c<=77)return'❄️';if(c<=82)return'🌦️';return'⛈️';};
+    const wmoText=c=>{if(c===0)return'Sonnig';if(c<=2)return'Heiter';if(c<=3)return'Bewölkt';if(c<=48)return'Nebel';if(c<=57)return'Nieselregen';if(c<=67)return'Regen';if(c<=77)return'Schnee';if(c<=82)return'Schauer';return'Gewitter';};
+    const w={temp:Math.round(h.temperature_2m[idx]),wind:Math.round(h.windspeed_10m[idx]),emoji:wmoEmoji(code),desc:wmoText(code)};
+    a.weather=w; saveActivities(); // cache
+    return w;
+  }catch(_){return null;}
+}
+
 async function loadStreams(a){
   if(!a.stravaId) return null;
   // check Supabase cache first
@@ -2729,6 +2748,7 @@ function openActivityDetail(id){
       ${a.elevation?`<div style="background:var(--card2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text)">${a.elevation}m</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Höhenmeter</div></div>`:''}
       ${a.intensity?`<div style="background:var(--accent-light);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--accent)">${a.intensity}/5</div><div style="font-size:11px;color:var(--accent);opacity:0.7;margin-top:2px">${intNames[a.intensity]||'Intensität'}</div></div>`:''}
     </div>
+    ${a.weather?`<div style="background:var(--card2);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:10px"><span style="font-size:22px">${a.weather.emoji}</span><span><strong style="color:var(--text)">${a.weather.temp}°C · ${a.weather.desc}</strong> · Wind ${a.weather.wind} km/h</span></div>`:`<div id="weather-section" style="margin-bottom:16px"></div>`}
     ${a.notes?`<div style="background:var(--card2);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7"><strong style="color:var(--text)">Notizen:</strong> ${a.notes}</div>`:''}
     ${hasStrava?`<div id="streams-section" style="margin-bottom:16px">
       <div id="streams-loading" style="display:flex;align-items:center;gap:8px;padding:16px;background:var(--card2);border-radius:10px;font-size:13px;color:var(--text3)">
@@ -2742,6 +2762,14 @@ function openActivityDetail(id){
   </div>`;
   d.addEventListener('click',e=>{if(e.target===d)closeModal()});
   document.body.appendChild(d);
+  // load weather async (only if not already cached)
+  if(!a.weather&&a.startLat&&a.startLng){
+    loadWeather(a).then(w=>{
+      const ws=document.getElementById('weather-section');
+      if(!ws||!w) return;
+      ws.innerHTML=`<div style="background:var(--card2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:10px"><span style="font-size:22px">${w.emoji}</span><span><strong style="color:var(--text)">${w.temp}°C · ${w.desc}</strong> · Wind ${w.wind} km/h</span></div>`;
+    });
+  }
   // load streams async
   if(hasStrava){
     loadStreams(a).then(streams=>{
@@ -3150,7 +3178,7 @@ function stravaToActivity(act){
   const isBike=(tm[act.type]||'other')==='bike';
   const rawDist=act.distance||0;
   const estDist=(isBike&&rawDist<500&&act.moving_time>0)?Math.round(act.moving_time*(30/3.6)):rawDist;
-  return{id:uid(),stravaId:act.id,source:'strava',date:act.start_date_local?.split('T')[0]||'',name:act.name||'Strava Aktivität',type:tm[act.type]||'other',distance:estDist,duration:act.moving_time||0,avgHr:act.average_heartrate||null,maxHr:act.max_heartrate||null,avgSpeed:act.average_speed||null,elevation:act.total_elevation_gain||null,intensity:null,notes:act.description||''};
+  return{id:uid(),stravaId:act.id,source:'strava',date:act.start_date_local?.split('T')[0]||'',startTime:act.start_date_local?.split('T')[1]?.substring(0,5)||'',startLat:act.start_latlng?.[0]||null,startLng:act.start_latlng?.[1]||null,name:act.name||'Strava Aktivität',type:tm[act.type]||'other',distance:estDist,duration:act.moving_time||0,avgHr:act.average_heartrate||null,maxHr:act.max_heartrate||null,avgSpeed:act.average_speed||null,elevation:act.total_elevation_gain||null,intensity:null,notes:act.description||''};
 }
 // ── STRAVA CSV IMPORT ──
 function importStravaCsv(event){
