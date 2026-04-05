@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744016400';
+  const BUILD='1744020000';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -653,6 +653,10 @@ async function onLoginSuccess(){
   if(el){el.style.display='';el.style.cssText='';}
   toast('Angemeldet ✓');
   await sbLoadAll();
+  // Migration: Radrolle-Einheiten ohne Distanz → schätzen mit 30 km/h
+  let migrated=0;
+  activities.forEach(a=>{if(a.type==='bike'&&(!a.distance||a.distance<500)&&a.duration>0){a.distance=Math.round(a.duration*(30/3.6));migrated++;}});
+  if(migrated>0) saveActivities();
   showPage('dashboard');
 }
 
@@ -3212,11 +3216,11 @@ function importStravaCsv(event){
           dist=dist;
         } else {
           dist=dist*1000; // km → meters
-          // Safety net: if result looks like a swim distance that was wrongly multiplied
-          // (e.g. 540m swim misidentified as other → 540000m), cap at realistic max
-          // A single swim session >50km is impossible
           if(dist>50000&&(rawType.includes('swim')||rawType.includes('water'))){dist=dist/1000;}
         }
+        // Radrolle: 0km → schätzen mit 30 km/h
+        const durCsv=parseInt(cols[iDur])||0;
+        if(type==='bike'&&dist<500&&durCsv>0) dist=Math.round(durCsv*(30/3.6));
 
         const dur=parseInt(cols[iDur])||0; // already in seconds
         const elev=parseFloat(cols[iElev])||null;
