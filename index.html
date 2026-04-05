@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744027200';
+  const BUILD='1744030800';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1231,7 +1231,7 @@ function mBar(mActs,mDate){
   </div>
 </div>
 
-${nextRace?`<div style="display:grid;grid-template-columns:repeat(${Math.min([...races].filter(r=>daysUntil(r.date)>0).length,6)},minmax(0,1fr));gap:12px;margin-bottom:16px">
+${nextRace?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;margin-bottom:16px">
   ${[...races].filter(r=>daysUntil(r.date)>0).sort((a,b)=>new Date(a.date)-new Date(b.date)).map(r=>{
     const rc={run:'var(--run)',bike:'var(--bike)',swim:'var(--swim)',tri:'var(--tri)'}[r.type]||'var(--accent)';
     return`<div class="stat-card" style="border-top:2px solid ${rc}">
