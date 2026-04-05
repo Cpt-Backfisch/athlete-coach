@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1744012800';
+  const BUILD='1744016400';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -1091,18 +1091,21 @@ function mBar(mActs,mDate){
   const expectedPct=weekProgress; // sollte proportional zur Woche sein
   const ratio=wPct/Math.max(expectedPct,0.1); // actual vs expected
 
-  // Ampel bestimmen
+  // Ampel: Anzahl erfüllter Sportarten
+  const tRunS=parseFloat(wtgt.targetRunSessions)||3;
+  const tBikeS=parseFloat(wtgt.targetBikeSessions)||2;
+  const tSwimS=parseFloat(wtgt.targetSwimSessions)||2;
+  const metRun=weekActs.filter(a=>a.type==='run').length>=tRunS;
+  const metBike=weekActs.filter(a=>a.type==='bike').length>=tBikeS;
+  const metSwim=weekActs.filter(a=>a.type==='swim').length>=tSwimS;
+  const metCount=[metRun,metBike,metSwim].filter(Boolean).length;
   let ampel;
-  if(wTotal===0&&dayOfWeek>=3){
-    ampel={color:'#ef4444',bg:'#fef2f2',emoji:'🔴',label:'Unterbelastet',text:'Noch keine Einheiten diese Woche — Zeit loszulegen!'};
-  } else if(ratio<0.5){
-    ampel={color:'#f97316',bg:'#fff7ed',emoji:'🟠',label:'Unter Plan',text:'Du liegst deutlich unter deinem Wochenziel.'};
-  } else if(ratio<=1.25){
-    ampel={color:'#10b981',bg:'#f0fdf4',emoji:'🟢',label:'Im grünen Bereich',text:'Gute Belastung — weiter so!'};
-  } else if(ratio<=1.6){
-    ampel={color:'#f59e0b',bg:'#fffbeb',emoji:'🟡',label:'Erhöhte Belastung',text:'Du trainierst mehr als geplant — auf Regeneration achten.'};
+  if(metCount===3){
+    ampel={color:'#10b981',bg:'#f0fdf4',emoji:'🟢',label:'Wochenziel erreicht',text:'Alle drei Sportarten erfüllt — top Woche!'};
+  } else if(metCount===2){
+    ampel={color:'#f59e0b',bg:'#fffbeb',emoji:'🟡',label:'Fast da',text:`Noch ${['Laufen','Rad','Schwimmen'][[metRun,metBike,metSwim].findIndex(v=>!v)]} offen.`};
   } else {
-    ampel={color:'#ef4444',bg:'#fef2f2',emoji:'🔴',label:'Überbelastet',text:'Deutlich über dem Wochenziel — Erholung einplanen!'};
+    ampel={color:'#ef4444',bg:'#fef2f2',emoji:'🔴',label:'Unter Plan',text:metCount===0?'Noch keine Ziele erreicht diese Woche.':'Nur eine Sportart erfüllt.'};
   }
 
   el.innerHTML=`
