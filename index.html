@@ -253,7 +253,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 <script>
 // Cache busting: check if new version available every 5 min
 (function(){
-  const BUILD='1775422243';
+  const BUILD='1744056600';
   const stored=localStorage.getItem('ac_build');
   if(stored&&stored!==BUILD){
     localStorage.setItem('ac_build',BUILD);
@@ -3039,7 +3039,7 @@ async function stravaSync(){
           saveSettings();
         }
 
-        if(res.status===401){toast('Strava-Verbindung abgelaufen — bitte erneut verbinden','error');settings.refreshToken='';saveSettings();showPage('settings');return;}
+        if(res.status===401){toast('Strava-Verbindung abgelaufen — bitte erneut verbinden','error');showPage('settings');return;}
         if(!res.ok){toast('Strava Fehler: '+res.status,'error');break;}
         const data=await res.json();
         if(!data.length) break;
