@@ -1,173 +1,140 @@
-# athlete.coach — Projektkontext für Claude Code
+# CLAUDE.md — Anweisungen für Claude Code
 
-## Wer bin ich
-Sebastian Hofherr (GitHub: `Cpt-Backfisch`), Triathlet, baue eine persönliche KI-Coach-Web-App.
-E-Mail: sebastian.hofherr@gmail.com
-
-## Sportliche Ziele 2026
-- 26.04. Halbmarathon Hamburg → 1:37
-- 01.05. Eschborn–Frankfurt Rad (105km) → Ankommen
-- 12.07. Olympischer Triathlon Hamburg → 2:20
-- 02.08. Mitteldistanz Frankfurt → 4:45
-- 25.10. Marathon Frankfurt → 3:50
+> Diese Datei wird von **Claude Code** im Terminal beim Start jeder Session gelesen.
+> Für vollständigen Projektkontext: lies zusätzlich `context.md` und `status.md`.
 
 ---
 
-## Architektur
+## Projekt in einem Satz
 
-| Komponente | Detail |
+**athlete.coach** — Sebastians persönliche Triathlon-Coach-Web-App. Single-Page Vanilla-JS-Frontend (`index.html`) auf GitHub Pages, Supabase-Backend, Vercel-Functions für Strava/Telegram/Claude-Integration.
+
+---
+
+## Goldene Regeln
+
+### 🔐 Sicherheit (höchste Priorität)
+1. **Niemals Secrets in Code, Markdown oder Commit-Messages.** Nicht als Beispiel, nicht als Platzhalter, nicht „nur kurz zum Testen”.
+2. Vor jedem Commit, der Konfigurationsdateien, `.env`-ähnliche Dateien, oder neue Strings enthält, die nach Token aussehen → **explizit warnen und Bestätigung abwarten**.
+3. Falls Sebastian aus Versehen ein Secret hineindiktiert: **stoppen, warnen, alternative vorschlagen** (Supabase `settings`-Tabelle oder Vercel Env Var).
+4. Diese Werte sind **öffentlich und sicher** im Code: Supabase URL, Supabase Publishable Key (`sb_publishable_…`), Strava Client ID `216084`, Vercel Proxy URL.
+5. Diese Werte sind **geheim** und gehören ausschließlich in Supabase `settings` oder Vercel Env Vars: Claude API Key, Strava Client Secret, Strava Refresh Token, Telegram Bot Token, Telegram Chat ID, Supabase Service Key.
+
+### 💰 Kosten
+Vor jeder Aktion oder Empfehlung, die einen kostenpflichtigen Dienst berührt (Claude API, Vercel-Upgrades, Supabase Pro, kostenpflichtige NPM-Pakete, GitHub Actions Minuten bei privaten Repos), **ungefragt** eine kurze Kostenschätzung mitliefern.
+
+### 🗣 Sprache
+Antworte auf Deutsch. UI-Texte, Code-Kommentare und Commit-Messages auf Deutsch.
+
+---
+
+## Architektur (Kurzfassung)
+
+| Schicht | Detail |
 |---|---|
-| Frontend | Single-Page `index.html` (HTML + Vanilla JS, kein Framework) |
+| Frontend | `index.html` — eine Datei, ~3500 Zeilen, Vanilla JS, kein Build-System (noch) |
 | Hosting | GitHub Pages → `https://cpt-backfisch.github.io/athlete-coach` |
-| Repo App | `github.com/Cpt-Backfisch/athlete-coach` |
-| Repo Proxy | `github.com/Cpt-Backfisch/athlete-coach-proxy` |
-| Datenbank | Supabase (`https://cpzdqgrqodvwtnqmusso.supabase.co`) |
-| Auth | Supabase Email/Password Login |
-| OAuth-Proxy | Vercel Serverless (`https://athlete-coach-proxy-rnuy.vercel.app`) |
-| KI | Claude API (Coach-Chat + Telegram-Bewertungen) |
+| App-Repo | `github.com/Cpt-Backfisch/athlete-coach` |
+| Proxy-Repo | `github.com/Cpt-Backfisch/athlete-coach-proxy` |
+| Datenbank + Auth | Supabase, RLS aktiv, Email/Password Login |
+| Serverless | Vercel Functions (`api/webhook.js`, `api/weekly.js`, `api/strava.js`) |
+| Vercel-Projekt (aktiv) | `athlete-coach-proxy-rnuy` |
+| Vercel-Projekt (alt, zu löschen) | `athlete-coach-proxy` |
+| KI | Claude API — Haiku für Push-Bewertungen, Sonnet für Chat (geplant) |
 | Notifications | Telegram Bot |
-| Datenquelle | Strava (CSV-Import + OAuth geplant) |
+
+### Supabase-Tabellen
+`activities`, `races`, `past_results`, `week_frame`, `strava_token`, `settings`, `public_shares`, `comments`, `streams` — alle mit RLS.
+
+`streams`-Schema: `{id, user_id, activity_id text, data text, created_at}`, UNIQUE(user_id, activity_id).
+
+### Vercel Env Vars (Projekt `athlete-coach-proxy-rnuy`)
+`STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_ATHLETE_REFRESH_TOKEN`, `CLAUDE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_SERVICE_KEY`.
 
 ---
 
-## Supabase Tabellen
-- `activities` — Trainingseinheiten
-- `races` — geplante Wettkämpfe
-- `past_results` — vergangene Rennergebnisse mit Splits
-- `week_frame` — Wochenrahmen / Trainingsplan
-- `strava_token` — Strava OAuth Token
-- `settings` — App-Einstellungen (Claude Key, Telegram, etc.)
-- `public_shares` — Share-Tokens für read-only Links
-- `comments` — Kommentare von Freunden über Share-Link
-- `streams` — Strava Streams-Cache (HR, GPS, Pace, Höhe) pro Aktivität; `{id, user_id, activity_id text, data text, created_at}`; UNIQUE(user_id, activity_id)
+## Aktueller Workflow (heute)
 
-Alle Tabellen haben RLS aktiviert. Share-Policies erlauben Lesezugriff wenn Share-Token vorhanden.
-
----
-
-## Implementierte Features
-- Dashboard mit Zeitraum/Sport-Filter, KPI-Karten
-- Wochenvolumen-Charts (Stunden + km) pro Sportart
-- **Belastungsampel** — Ist vs. Soll-Stunden mit Ampelfarben
-- Kumulierte Trainingszeit (Jahresvergleich SVG)
-- Wettkampf-Performance-Chart
-- Events: Countdown + Prognose
-- Vergangene Wettkämpfe mit Splits (pace für Läufe)
-- Strava CSV-Import (Schwimm-Fix: Meter nicht km)
-- **Strava OAuth + Webhook** — nach jedem Training → Claude Haiku analysiert → Telegram-Nachricht; Webhook-ID 338947 aktiv
-- **Strava Streams** — on-demand Rohdaten in Aktivitäts-Detail: Pace/Speed (blau), Kadenz (gelb, spm×2 für Laufen), Höhenprofil (grün), GPS-Track auf Leaflet/OpenStreetMap-Karte; permanent gecacht in Supabase `streams`. HR fehlt weil Strava keinen HR-Stream für Garmin-Einheiten liefert.
-- **Editierbarer Coach-Prompt** — im Menü Coach als Textarea; wird in Supabase `settings.coachPrompt` gespeichert; `api/webhook.js` liest ihn vor jeder Telegram-Nachricht
-- Read-Only Share-Link für Freunde (kein Login nötig)
-- Kommentarfunktion im Share-Link (Name + Nachricht)
-- Kommentare von Freunden sichtbar im eigenen Dashboard
-- Wochenfortschritt als Donut-Chart (Belastungsampel)
-- Sportverteilung SVG-Kuchendiagramm
-- PWA-Icon (Triathlon-Fisch, Base64 eingebettet)
-- Login-Screen mit Supabase Auth
-- Datum/Uhrzeit in Topbar
-- Responsive Layout (Mobile + Desktop)
-- Auto Cache-Busting via BUILD-Timestamp in localStorage
-
----
-
-## Offene Bugs / Priorität 1
-
-*Aktuell keine bekannten kritischen Bugs.*
-
----
-
-## Feature Backlog (priorisiert)
-
-1. **Strava Auto-Sync** — beim App-Start automatisch neue Einheiten laden (nur beim Öffnen, kein Polling)
-2. **KI-Trainingsplan** — dynamisch basierend auf Wettkampfterminen und aktueller Form
-3. **Wettkampf-Prognosen** — KI schätzt Zielzeiten pro Segment
-4. **Soziale Features** — liken/reagieren im Share-Link; Telegram-Benachrichtigung bei neuen Kommentaren
-5. **Pace-Rechner** — Zielzeit eingeben → Pace pro km
-7. **HF-Verlauf in Einheiten** — Strava liefert keinen HR-Stream für Garmin-Einheiten (nur Ø HR). Lösung: Garmin FIT-Import oder Garmin Connect API. Garmin zählt Kadenz einseitig (×2 für spm bereits im Code).
-8. **Garmin FIT-Import** — für HRV-Daten + HR-Stream
-8. **PWA verbessern** — besseres iPhone-Erlebnis, Push Notifications
-
----
-
-## Sicherheitsregeln — IMMER beachten
-
-🔐 **NIEMALS in GitHub committen:**
-- Claude API Key
-- Strava Client Secret
-- Telegram Bot Token
-- Supabase Service Role Key
-
-✅ **Diese Werte sind öffentlich/sicher im Code:**
-- Supabase URL: `https://cpzdqgrqodvwtnqmusso.supabase.co`
-- Supabase Publishable Key (beginnt mit `sb_publishable_`)
-- Strava Client ID: `216084`
-- Vercel Proxy URL: `https://athlete-coach-proxy-rnuy.vercel.app`
-
-🔒 **Diese Werte nur in App-Einstellungen (Supabase `settings` Tabelle):**
-- Claude API Key
-- Telegram Bot Token: nur in Supabase `settings` Tabelle speichern, nie in Code/CLAUDE.md!
-- Telegram Chat ID: nur in Supabase `settings` Tabelle speichern
-
----
-
-## Kosten-Hinweis
-Immer warnen wenn Features Kosten verursachen:
-- Claude API: ~0.001–0.003€ pro Coach-Nachricht
-- Supabase: kostenlos bis 500MB
-- Vercel: kostenlos bis zu bestimmten Limits
-- GitHub Pages: kostenlos
-
----
-
-## Entwicklungs-Workflow
-
-1. Änderungen in `index.html` machen
+1. Änderungen in `index.html`
 2. `git add index.html`
 3. `git commit -m "Beschreibung"`
 4. `git push`
-5. GitHub Pages deployed automatisch (~1 Minute)
-6. Cache-Busting: BUILD-Timestamp in `index.html` bei jedem Build aktualisieren (Regex: `const BUILD='(\d+)'`)
+5. GitHub Pages deployt automatisch (~1 Min)
+6. **Cache-Busting:** BUILD-Timestamp aktualisieren
+   - Regex: `const BUILD='(\d+)'`
+   - Ersetzen mit: `const BUILD='<Math.floor(Date.now()/1000)>'`
 
-**Wichtig:** Datei heißt `index.html` (nicht `training-coach-v2.html`).
+> ⚠️ **Dieser Workflow wird in Phase 0 ersetzt.** Sobald GitHub Actions CI steht, läuft Deploy nur noch über grünes CI. Siehe `status.md` → Phase 0.
 
 ---
 
-## Technische Details
+## Constraints
+
+- **Firmenrechner blockt GitHub API** → Pushes nur vom MacBook (Claude Code im Terminal) oder GitHub Desktop.
+- **Datei heißt `index.html`** (nicht `training-coach-v2.html` o.ä.)
+- **Keine npm-Build-Pipeline** im Frontend — noch nicht. Daher: keine `import`-Statements im Browser-Code, alles inline oder per `<script>`.
+
+---
+
+## Technische Details, an die man sich erinnern muss
 
 ### Datenspeicherung
-- Hybrid: localStorage als schneller Cache + Supabase als persistenter Speicher
-- `DB.get/set` → localStorage
-- `sbSave/sbLoad` → Supabase
-- Bei jedem `saveActivities()`, `saveRaces()` etc. wird beides gespeichert
-
-### Build / Cache Busting
-- Jede neue Version braucht einen neuen BUILD-Timestamp
-- Regex zum Ersetzen: `const BUILD='(\d+)'` → `const BUILD='NEUER_TIMESTAMP'`
-- Timestamp = `Math.floor(Date.now()/1000)`
+Hybrid: localStorage als schneller Cache + Supabase als persistenter Speicher.
+- `DB.get` / `DB.set` → localStorage
+- `sbSave` / `sbLoad` → Supabase
+- Bei jedem `saveActivities()`, `saveRaces()` etc. wird beides gespeichert.
 
 ### Schwimm-Distanz Fix
-- Strava CSV gibt Schwimmen in Metern, alle anderen in km
-- Im CSV-Import: `if(type==='swim')` → keine Konversion, sonst `dist*1000`
+Strava CSV gibt Schwimmen in Metern, alle anderen Sportarten in km.
+Im CSV-Import: `if (type === 'swim') { /* keine Konversion */ } else { dist *= 1000 }`.
 
 ### Share-Link System
-- Token in `public_shares` Tabelle
+- Token in `public_shares`
 - URL: `https://cpt-backfisch.github.io/athlete-coach?share=TOKEN`
-- Kein Login nötig für Freunde
-- RLS-Policy: Lesezugriff auf activities/races/past_results wenn Share-Token existiert
-- Kommentare: `comments` Tabelle, insert für alle erlaubt
+- Kein Login nötig
+- RLS-Policy erlaubt SELECT auf `activities`, `races`, `past_results` bei gültigem Share-Token
+- `comments`: INSERT für alle erlaubt
 
-### Telegram / Webhook Integration
-- Strava Webhook → `api/webhook.js` (Vercel) → Claude Haiku analysiert → Telegram-Nachricht
-- Webhook-Subscription ID: 338947, aktiv
+### Telegram / Webhook
+- Strava Webhook-Subscription-ID `338947`, aktiv
 - `api/webhook.js` liest `coachPrompt` aus Supabase `settings` vor jeder Nachricht
-- Wöchentliche Zusammenfassung: `api/weekly.js` (Vercel Cron `0 18 * * 0` = Sonntag 20:00 CEST)
-- Vercel Env Vars (alle in Projekt `athlete-coach-proxy-rnuy`): `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_ATHLETE_REFRESH_TOKEN`, `CLAUDE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_SERVICE_KEY`
-- Token und Chat ID nur in Supabase `settings`, nie im Code
-- Vercel hat zwei Projekte: `athlete-coach-proxy-rnuy` (aktiv) und `athlete-coach-proxy` (alt, löschen)
+- `api/weekly.js`: Vercel Cron `0 18 * * 0` (So 20:00 CEST)
 
 ### Strava Streams
-- `loadStreams(a)` in `index.html`: prüft `streams` Tabelle in Supabase, fällt auf direkte Strava API zurück
-- Strava Streams Endpoint: `GET https://www.strava.com/api/v3/activities/{id}/streams?keys=heartrate,latlng,velocity_smooth,cadence,altitude,time&key_by_type=true`
-- Daten werden permanent in Supabase `streams` gecacht (UPSERT)
-- `renderStreamChart(container, streams, type, a)` — type: `'hr'|'pace'|'alt'`
-- `renderGPSTrack(container, streams)` — GPS-Track als SVG, Farbe nach HR-Intensität
+- `loadStreams(a)` in `index.html`: prüft Supabase `streams`-Cache, fällt auf direkte Strava API zurück
+- Endpoint: `GET https://www.strava.com/api/v3/activities/{id}/streams?keys=heartrate,latlng,velocity_smooth,cadence,altitude,time&key_by_type=true`
+- Permanent gecacht (UPSERT)
+- `renderStreamChart(container, streams, type, a)` mit `type ∈ {'hr','pace','alt'}`
+- `renderGPSTrack(container, streams)` — SVG, Farbe nach HR-Intensität
+- ⚠️ Strava liefert keinen HR-Stream für Garmin-Einheiten (nur Ø HR). Lösung über Garmin FIT-Import (siehe Backlog).
+
+---
+
+## Was Claude Code tun darf und was nicht
+
+✅ **Darf:**
+- `index.html` und alle anderen Repo-Dateien lesen, editieren, refactoren
+- Tests schreiben und ausführen
+- Lokale Builds und Linter laufen lassen
+- Branches erstellen, Commits machen
+- Vorschläge für Architekturänderungen formulieren
+
+⚠️ **Nur nach expliziter Bestätigung:**
+- `git push` (besonders auf `main`)
+- Neue Abhängigkeiten in `package.json`
+- Änderungen an CI-Workflows
+- Dateien, die Konfiguration oder Secrets berühren könnten
+
+❌ **Nie:**
+- Secrets in Dateien schreiben
+- Force-Push auf `main`
+- Supabase-Tabellen oder RLS-Policies ohne Rückfrage löschen oder ändern
+- Dependencies installieren, die Telemetrie nach außen senden
+
+---
+
+## Verweise
+
+- `context.md` — Vision, Zielgruppe, Architektur-Grundlage (stabil)
+- `status.md` — aktueller Stand, Phasenplan, Bugs, To-dos (lebendig)
+- `index.html` — die App
