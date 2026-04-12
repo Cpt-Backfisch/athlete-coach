@@ -2,6 +2,13 @@
   "recommendations": [
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
-    "bradlc.vscode-tailwindcss"
+    "bradlc.vscode-tailwindcss",
+    "eamodio.gitlens",
+    "supabase.vscode-supabase-extension",
+    "humao.rest-client",
+    "usernamehw.errorlens",
+    "github.vscode-pull-request-github",
+    "yzhang.markdown-all-in-one",
+    "ritwickdey.liveserver"
   ]
 }
