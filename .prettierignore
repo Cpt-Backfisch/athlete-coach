@@ -1,0 +1,7 @@
+# index.html: Legacy-Single-File-App (~3500 Zeilen, kein Build-System).
+# Wird ab Phase 1 (React-Migration) von Prettier geprüft.
+# Aktuell ausgenommen, da --check sofort fehlschlagen würde.
+index.html
+
+# Dokumentation — manuell gepflegt, kein Prettier-Format-Check.
+CLAUDE.md

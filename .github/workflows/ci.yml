@@ -1,0 +1,105 @@
+# CI-Workflow für athlete-coach
+# Läuft bei jedem Push auf main und bei jedem Pull Request.
+#
+# HINWEIS lint-Job:
+#   index.html ist aktuell von ESLint und Prettier AUSGENOMMEN.
+#   Grund: Die Datei ist eine ~3500-Zeilen Legacy-Single-File-App ohne Build-System.
+#   Ein Lint/Format-Check würde sofort hunderte Findings produzieren.
+#   Echte Abdeckung kommt ab Phase 1 (React-Migration), wenn index.html in
+#   modulare Komponenten aufgeteilt und ins Build-System integriert wird.
+#   Bis dahin prüft der lint-Job nur neue .js/.css/.md-Dateien.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # lint: ESLint + Prettier-Check
+  #
+  # HINWEIS: index.html wird aktuell NICHT geprüft (siehe Kommentar oben).
+  # Echte Lint-Abdeckung folgt in Phase 1 nach React-Migration.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
+  # ---------------------------------------------------------------------------
+  # secret-scan: gitleaks prüft den gesamten Commit-Verlauf auf Secrets.
+  # Bricht den Build ab, wenn ein potenzielles Secret gefunden wird.
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # test-unit: Platzhalter — wird in Phase 0 / Tag 6–7 mit Vitest befüllt.
+  # ---------------------------------------------------------------------------
+  test-unit:
+    name: Unit Tests (Platzhalter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO (Phase 0, Tag 6–7): Vitest einrichten und echte Unit-Tests schreiben.
+      # Dieser Job läuft aktuell nur als Platzhalter durch und schlägt nicht fehl.
+      - name: Platzhalter
+        run: echo "Unit-Tests noch nicht eingerichtet – Vitest folgt in Phase 0 / Tag 6–7"
+
+  # ---------------------------------------------------------------------------
+  # test-e2e: Platzhalter — wird in Phase 0 / Tag 8–10 mit Playwright befüllt.
+  # ---------------------------------------------------------------------------
+  test-e2e:
+    name: E2E Tests (Platzhalter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO (Phase 0, Tag 8–10): Playwright einrichten und E2E-Tests schreiben.
+      # Dieser Job läuft aktuell nur als Platzhalter durch und schlägt nicht fehl.
+      - name: Platzhalter
+        run: echo "E2E-Tests noch nicht eingerichtet – Playwright folgt in Phase 0 / Tag 8–10"
+
+# =============================================================================
+# deploy-gate: Wird an Tag 11 aktiviert.
+# Bis dahin läuft der GitHub-Pages-Deploy aus main unverändert weiter.
+#
+# deploy-gate:
+#   name: Deploy Gate
+#   runs-on: ubuntu-latest
+#   needs: [lint, secret-scan, test-unit, test-e2e]
+#   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#   steps:
+#     - uses: actions/checkout@v4
+#     # TODO (Tag 11): Deploy-Logik hier einfügen.
+#     #   Der Job blockiert den Deploy, bis alle anderen Jobs grün sind.
+#     #   Voraussetzung: Vitest + Playwright laufen stabil durch.
+# =============================================================================
