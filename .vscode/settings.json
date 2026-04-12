@@ -1,0 +1,48 @@
+{
+  // --- Formatter ---
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+
+  // Sprachspezifische Formatter
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // --- Prettier ---
+  "prettier.singleQuote": true,
+  "prettier.semi": true,
+  "prettier.printWidth": 100,
+  "prettier.tabWidth": 2,
+  "prettier.trailingComma": "es5",
+
+  // --- ESLint ---
+  "eslint.enable": true,
+  "eslint.validate": ["javascript", "html"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // --- Tailwind CSS IntelliSense ---
+  "tailwindCSS.includeLanguages": {
+    "html": "html",
+    "javascript": "javascript"
+  },
+  "tailwindCSS.emmetCompletions": true,
+
+  // --- Editor Allgemein ---
+  "editor.tabSize": 2,
+  "editor.rulers": [100],
+  "editor.wordWrap": "on",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
