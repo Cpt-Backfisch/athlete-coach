@@ -22,7 +22,9 @@ jobs:
   # lint: ESLint + Prettier-Check
   #
   # HINWEIS: index.html wird aktuell NICHT geprüft (siehe Kommentar oben).
-  # Echte Lint-Abdeckung folgt in Phase 1 nach React-Migration.
+  # Solange keine .js-Dateien im Repo existieren, prüft ESLint faktisch nichts
+  # (--no-error-on-unmatched-pattern verhindert einen Fehler auf leerem Match).
+  # Echte Lint-Abdeckung kommt mit Phase 1 und der React-Migration.
   # ---------------------------------------------------------------------------
   lint:
     name: Lint & Format Check
