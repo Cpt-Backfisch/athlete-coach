@@ -63,32 +63,58 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ---------------------------------------------------------------------------
-  # test-unit: Platzhalter — wird in Phase 0 / Tag 6–7 mit Vitest befüllt.
+  # test-unit: Vitest Unit-Tests für pure Utility-Funktionen in src/utils/
   # ---------------------------------------------------------------------------
   test-unit:
-    name: Unit Tests (Platzhalter)
+    name: Unit Tests (Vitest)
     runs-on: ubuntu-latest
+    needs: [lint]
     steps:
       - uses: actions/checkout@v4
 
-      # TODO (Phase 0, Tag 6–7): Vitest einrichten und echte Unit-Tests schreiben.
-      # Dieser Job läuft aktuell nur als Platzhalter durch und schlägt nicht fehl.
-      - name: Platzhalter
-        run: echo "Unit-Tests noch nicht eingerichtet – Vitest folgt in Phase 0 / Tag 6–7"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Vitest ausführen
+        run: npm test
 
   # ---------------------------------------------------------------------------
-  # test-e2e: Platzhalter — wird in Phase 0 / Tag 8–10 mit Playwright befüllt.
+  # test-e2e: Playwright Smoke-Tests gegen die live GitHub-Pages-URL.
+  # Läuft nach den Unit-Tests, setzt kein lokales Deploy voraus.
   # ---------------------------------------------------------------------------
   test-e2e:
-    name: E2E Tests (Platzhalter)
+    name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
+    needs: [test-unit]
     steps:
       - uses: actions/checkout@v4
 
-      # TODO (Phase 0, Tag 8–10): Playwright einrichten und E2E-Tests schreiben.
-      # Dieser Job läuft aktuell nur als Platzhalter durch und schlägt nicht fehl.
-      - name: Platzhalter
-        run: echo "E2E-Tests noch nicht eingerichtet – Playwright folgt in Phase 0 / Tag 8–10"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Playwright-Browser installieren (nur Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright Smoke-Tests ausführen
+        run: npm run test:e2e
+
+      - name: Test-Report hochladen (bei Fehler)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
 # =============================================================================
 # deploy-gate: Wird an Tag 11 aktiviert.
