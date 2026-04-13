@@ -1,5 +1,6 @@
 # CI-Workflow für athlete-coach
 # Läuft bei jedem Push auf main und bei jedem Pull Request.
+# Deploy läuft ausschließlich auf main — und nur nach grünem CI.
 #
 # HINWEIS lint-Job:
 #   index.html ist aktuell von ESLint und Prettier AUSGENOMMEN.
@@ -8,6 +9,12 @@
 #   Echte Abdeckung kommt ab Phase 1 (React-Migration), wenn index.html in
 #   modulare Komponenten aufgeteilt und ins Build-System integriert wird.
 #   Bis dahin prüft der lint-Job nur neue .js/.css/.md-Dateien.
+#
+# EINMALIGE SETUP-AKTION (muss Sebastian manuell tun, einmalig):
+#   GitHub Repo → Settings → Pages → Source → "GitHub Actions" auswählen.
+#   Solange "Deploy from a branch" aktiv ist, deployt GitHub Pages weiterhin
+#   direkt aus main — parallel zu diesem Workflow. Nach dem Umstellen läuft
+#   der Deploy ausschließlich über diesen Workflow.
 
 name: CI
 
@@ -116,18 +123,46 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-# =============================================================================
-# deploy-gate: Wird an Tag 11 aktiviert.
-# Bis dahin läuft der GitHub-Pages-Deploy aus main unverändert weiter.
-#
-# deploy-gate:
-#   name: Deploy Gate
-#   runs-on: ubuntu-latest
-#   needs: [lint, secret-scan, test-unit, test-e2e]
-#   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#   steps:
-#     - uses: actions/checkout@v4
-#     # TODO (Tag 11): Deploy-Logik hier einfügen.
-#     #   Der Job blockiert den Deploy, bis alle anderen Jobs grün sind.
-#     #   Voraussetzung: Vitest + Playwright laufen stabil durch.
-# =============================================================================
+  # ---------------------------------------------------------------------------
+  # deploy-gate: Deployt index.html auf GitHub Pages — aber nur auf main
+  # und nur wenn Lint, Secret-Scan, Unit-Tests und E2E-Tests alle grün sind.
+  #
+  # Setzt BUILD-Timestamp automatisch (ersetzt den bisherigen manuellen Schritt).
+  #
+  # Voraussetzung (einmalig manuell):
+  #   GitHub Repo → Settings → Pages → Source → "GitHub Actions" auswählen.
+  # ---------------------------------------------------------------------------
+  deploy-gate:
+    name: Deploy (GitHub Pages)
+    runs-on: ubuntu-latest
+    needs: [lint, secret-scan, test-unit, test-e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: BUILD-Timestamp aktualisieren
+        run: |
+          TIMESTAMP=$(date +%s)
+          sed -i "s/const BUILD='[0-9][0-9]*/const BUILD='${TIMESTAMP}/" index.html
+          echo "BUILD-Timestamp gesetzt: ${TIMESTAMP}"
+
+      - uses: actions/configure-pages@v4
+
+      - name: Deployment-Artefakt vorbereiten
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Auf GitHub Pages deployen
+        id: deployment
+        uses: actions/deploy-pages@v4
