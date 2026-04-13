@@ -20,3 +20,7 @@ npm-debug.log*
 # Build-Ausgaben (für spätere Build-Pipeline)
 dist/
 build/
+
+# Playwright
+playwright-report/
+test-results/
