@@ -5,6 +5,11 @@
 
 ---
 
+## Pflichtlektüre zu Beginn jeder Session
+Lies immer zuerst `context.md` (Vision, Architektur) und `status.md` (aktueller Stand, offene To-dos) bevor du anfängst.
+
+---
+
 ## Projekt in einem Satz
 
 **athlete.coach** — Sebastians persönliche Triathlon-Coach-Web-App. Single-Page Vanilla-JS-Frontend (`index.html`) auf GitHub Pages, Supabase-Backend, Vercel-Functions für Strava/Telegram/Claude-Integration.
