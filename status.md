@@ -3,7 +3,7 @@
 > **Zweck dieser Datei:** Lebendiger Projektstand. Hier stehen aktueller Stand, To-dos, Phasen, Bugs.
 > Vision & Architektur-Grundlagen → siehe `context.md`.
 
-**Letztes Update:** 12.04.2026
+**Letztes Update:** 13.04.2026
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 1. Aktueller Stand in einem Satz
 
-Lokales Setup steht, CI läuft grün, Branch-Protection aktiv — das Fundament für professionelles Arbeiten ist gelegt. Nächster Schritt: echte Tests (Vitest, Playwright) und Deploy-Gate, danach React-Migration in Phase 1.
+Phase 0 vollständig abgeschlossen (13.04.2026): CI grün, echte Tests (Vitest + Playwright), Deploy-Gate aktiv — jeder Merge auf `main` läuft durch die volle Pipeline und deployt automatisch. Nächster Schritt: Design-Session und React-Migration in Phase 1.
 
 ---
 
@@ -27,7 +27,7 @@ Lokales Setup steht, CI läuft grün, Branch-Protection aktiv — das Fundament 
 
 Die Entwicklung wird in **klar abgegrenzte Phasen** zerlegt. Eine Phase ist erst „fertig", wenn ihr Definition-of-Done erfüllt ist. Erst dann beginnt die nächste.
 
-### 🛠 Phase 0 — Tooling & Fundament _(in Arbeit, Tage 1–5 abgeschlossen)_
+### ✅ Phase 0 — Tooling & Fundament _(abgeschlossen, 13.04.2026)_
 
 **Ziel:** Sebastian arbeitet mit professionellem Setup; jede Änderung wird automatisch geprüft.
 
@@ -43,27 +43,27 @@ Die Entwicklung wird in **klar abgegrenzte Phasen** zerlegt. Eine Phase ist erst
 - [x] **Secret Scanning aktiv** — GitHub Secret Protection (public Repo, automatisch) + gitleaks im CI (12.04.2026)
 - [x] **Branch-Strategie festgelegt und erzwungen:** `main` = produktiv, Feature-Branches → PR → CI grün → Merge → Auto-Deploy. Durch Branch-Protection technisch durchgesetzt (12.04.2026)
 - [x] **Frontend-Stack für Phase 1 entschieden (08.04.2026):** Vite + React + TypeScript + Tailwind + shadcn/ui. Begründung: meistverbreiteter moderner Stack → beste Claude-Code-Unterstützung in jeder Session, shadcn/ui liefert State-of-the-Art-Komponenten ohne eigene Designarbeit, statisch deploybar auf GitHub Pages, `vite-plugin-pwa` ersetzt den heutigen BUILD-Timestamp-Trick. Look-and-Feel wird in eigener Design-Session zu Beginn von Phase 1 festgelegt.
-- [ ] **Erste Test-Cases schreiben und in CI einbinden** — Vitest Unit-Tests (Tag 6–7) und Playwright Smoke-Tests (Tag 8–10), ersetzen die aktuellen Platzhalter-Jobs
-- [ ] **Professioneller Deployment-Prozess** — Deploy-Gate scharf schalten, Auto-Deploy aus CI statt direkt aus `main` (Tag 11)
+- [x] **Erste Test-Cases geschrieben und in CI eingebunden** — 17 Vitest Unit-Tests (stravaDistance + VDOT) + 5 Playwright Smoke-Tests gegen live GitHub Pages; CI-Platzhalter-Jobs durch echte Jobs ersetzt (PR #3, 13.04.2026)
+- [x] **Professioneller Deployment-Prozess** — Deploy-Gate scharf geschaltet; CI-Pipeline: Lint → Secret-Scan → Unit-Tests → E2E-Tests → Deploy; BUILD-Timestamp automatisch; GitHub Pages Source auf „GitHub Actions" umgestellt (PR #5, 13.04.2026)
 
 **DoD:** Push auf `main` triggert CI, Tests laufen grün, Deployment ist nachvollziehbar protokolliert, Frontend-Stack-Entscheidung für Phase 1 ist getroffen und dokumentiert.
 
-**DoD-Status (12.04.2026):** 2 von 4 erfüllt.
+**DoD-Status (13.04.2026):** 4 von 4 erfüllt. ✅ Phase 0 abgeschlossen.
 
 - ✅ CI läuft bei jedem Push/PR grün durch
 - ✅ Frontend-Stack-Entscheidung getroffen und dokumentiert
-- ⏳ Echte Tests fehlen noch (Tag 6–10)
-- ⏳ Deploy-Gate nicht scharf geschaltet (Tag 11)
+- ✅ Echte Tests eingerichtet und in CI eingebunden (PR #3, 13.04.2026)
+- ✅ Deploy-Gate scharf geschaltet, Auto-Deploy aus CI aktiv (PR #5, 13.04.2026)
 
 #### Detail: GitHub Actions CI
 
-Workflow-Datei `.github/workflows/ci.yml` aktuell mit diesen Jobs:
+Workflow-Datei `.github/workflows/ci.yml` mit diesen Jobs (alle aktiv):
 
-1. **Lint** — ESLint + Prettier-Check (`.js`-Dateien, `--no-error-on-unmatched-pattern` für aktuell leere Code-Basis; index.html bewusst ausgenommen bis zur React-Migration)
+1. **Lint** — ESLint + Prettier-Check (`.js`-Dateien; index.html bewusst ausgenommen bis zur React-Migration)
 2. **Secret-Scan** — `gitleaks/gitleaks-action@v2` scannt die gesamte Git-History bei jedem Push und PR
-3. **Unit-Tests** — Platzhalter-Job (wird an Tag 6–7 mit echtem Vitest ersetzt)
-4. **E2E-Tests** — Platzhalter-Job (wird an Tag 8–10 mit echtem Playwright ersetzt)
-5. **Deploy-Gate** — auskommentiertes Skelett, wird an Tag 11 aktiviert
+3. **Unit-Tests** — Vitest, 17 Tests in `tests/unit/` (`stravaDistance`, `vdot`)
+4. **E2E-Tests** — Playwright, 5 Smoke-Tests gegen live GitHub Pages
+5. **Deploy-Gate** — deployt `index.html` auf GitHub Pages; läuft nur auf `main`-Push nach grünem CI; BUILD-Timestamp wird automatisch gesetzt
 
 **Kosten:** Public Repo → GitHub Actions kostenlos und unbegrenzt. Falls das Repo später privat wird → 2000 Min/Monat frei, danach kostenpflichtig.
 
@@ -83,16 +83,13 @@ Festgelegt: **Playwright** (Smoke) + **Vitest** (Unit für rechenlastige Stellen
 
 #### Detail: Deployment-Prozess
 
-Heute: `git push` → GitHub Pages live. Funktional, aber ohne Sicherheitsnetz.
-
-**Neuer Prozess (ab Tag 11):**
+**Aktueller Prozess (seit 13.04.2026):**
 
 1. Feature-Branch → lokale Entwicklung → `npm run test` lokal grün
 2. Push zum Feature-Branch → CI läuft → PR öffnen
-3. PR-Preview-Deployment auf Vercel (optional, kostenfrei) oder GitHub Pages Preview Action
-4. CI grün + Self-Review → Merge nach `main`
-5. Auto-Deploy auf GitHub Pages über Actions (nicht mehr direkt aus `main`-Branch, sondern über Build-Step → BUILD-Timestamp wird automatisch gesetzt → Artefakt deployt)
-6. Optional: Slack/Telegram-Ping bei erfolgreichem Deploy
+3. CI grün + Self-Review → Merge nach `main`
+4. Deploy-Gate-Job deployt automatisch: setzt BUILD-Timestamp, packt `index.html` als Artefakt, deployt auf GitHub Pages über `actions/deploy-pages`
+5. Optional: Slack/Telegram-Ping bei erfolgreichem Deploy (noch nicht eingerichtet)
 
 ---
 
@@ -180,13 +177,14 @@ Falls einer auftaucht: hier eintragen mit Datum, Beschreibung, Reproschritten.
 
 ## 5. Letzte Änderungen
 
-| Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 12.04.2026 | Lokales Setup MacBook komplett: VS Code + 10 Extensions installiert, Workspace-Root korrigiert (vorher irrtümlich auf Eltern-Ordner "Mupsi Dokumente"), Warp Terminal, Homebrew, nvm, Node 20.20.2, npm 10.8.2, GitHub CLI. `.vscode/extensions.json` auf vollständige 10er-Empfehlungsliste erweitert (PR gemergt). ESLint-Lint-Job mit `--no-error-on-unmatched-pattern` stabilisiert für leere Code-Basis. Phase-0-Tage 1–5 damit durch. |
-| 12.04.2026 | PR #1 gemergt: CI-Workflow live (4 aktive Jobs, Deploy-Gate als Skelett). Branch-Protection auf `main` aktiviert (PR-Pflicht, Status-Checks, force push blockiert). GitHub Secret Protection aktiv. Tag 5 (gitleaks) damit abgeschlossen.                                                                                                                                                                                                   |
-| 08.04.2026 | Frontend-Stack für Phase 1 entschieden: Vite + React + TypeScript + Tailwind + shadcn/ui + vite-plugin-pwa + recharts + react-leaflet. Phase-1-Modularisierungs-Bullet entsprechend konkretisiert. Arbeitsweise (Sebastian = High-Level, Claude = Implementierung) explizit in Abschnitt 0 dokumentiert. `context.md`-Update als To-do in Phase 1 und Phase 2 verankert.                                                                    |
-| 08.04.2026 | Phase 0 ergänzt: explizite To-dos für `.github/workflows/ci.yml` und Frontend-Stack-Session vor Phase-1-Start. Test-Setup festgelegt: Playwright (5 Smoke) + Vitest (2 Unit).                                                                                                                                                                                                                                                               |
-| 08.04.2026 | Neue Doku-Struktur eingeführt: `context.md` (stabil) + `status.md` (lebendig) + `CLAUDE.md` (für Claude Code). Phasenplan formalisiert, Vision aktualisiert.                                                                                                                                                                                                                                                                                |
+| Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13.04.2026 | **Phase 0 abgeschlossen.** PR #3: 17 Vitest Unit-Tests (stravaDistance + VDOT) + 5 Playwright Smoke-Tests eingerichtet, CI-Platzhalter durch echte Jobs ersetzt. PR #4: `context.md` und `status.md` ins Repo gelegt, `CLAUDE.md` mit Pflichtlektüre-Hinweis ergänzt. PR #5: Deploy-Gate scharf geschaltet — CI-Pipeline Lint → Secret-Scan → Unit → E2E → Deploy, BUILD-Timestamp automatisch, GitHub Pages Source auf „GitHub Actions" umgestellt. |
+| 12.04.2026 | Lokales Setup MacBook komplett: VS Code + 10 Extensions installiert, Workspace-Root korrigiert (vorher irrtümlich auf Eltern-Ordner "Mupsi Dokumente"), Warp Terminal, Homebrew, nvm, Node 20.20.2, npm 10.8.2, GitHub CLI. `.vscode/extensions.json` auf vollständige 10er-Empfehlungsliste erweitert (PR gemergt). ESLint-Lint-Job mit `--no-error-on-unmatched-pattern` stabilisiert für leere Code-Basis. Phase-0-Tage 1–5 damit durch.          |
+| 12.04.2026 | PR #1 gemergt: CI-Workflow live (4 aktive Jobs, Deploy-Gate als Skelett). Branch-Protection auf `main` aktiviert (PR-Pflicht, Status-Checks, force push blockiert). GitHub Secret Protection aktiv. Tag 5 (gitleaks) damit abgeschlossen.                                                                                                                                                                                                            |
+| 08.04.2026 | Frontend-Stack für Phase 1 entschieden: Vite + React + TypeScript + Tailwind + shadcn/ui + vite-plugin-pwa + recharts + react-leaflet. Phase-1-Modularisierungs-Bullet entsprechend konkretisiert. Arbeitsweise (Sebastian = High-Level, Claude = Implementierung) explizit in Abschnitt 0 dokumentiert. `context.md`-Update als To-do in Phase 1 und Phase 2 verankert.                                                                             |
+| 08.04.2026 | Phase 0 ergänzt: explizite To-dos für `.github/workflows/ci.yml` und Frontend-Stack-Session vor Phase-1-Start. Test-Setup festgelegt: Playwright (5 Smoke) + Vitest (2 Unit).                                                                                                                                                                                                                                                                        |
+| 08.04.2026 | Neue Doku-Struktur eingeführt: `context.md` (stabil) + `status.md` (lebendig) + `CLAUDE.md` (für Claude Code). Phasenplan formalisiert, Vision aktualisiert.                                                                                                                                                                                                                                                                                         |
 
 ---
 
