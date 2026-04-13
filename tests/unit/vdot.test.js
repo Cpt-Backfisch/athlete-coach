@@ -45,7 +45,7 @@ describe('calcVO2maxFromRace (Jack-Daniels-VDOT)', () => {
   it('Längere Distanz bei gleichem Tempo → höherer VDOT (pctVO2-Korrekturfaktor)', () => {
     // 5km und 10km mit identischem Tempo (5:00/km) — längere Rennen
     // erfordern höheren %-Anteil des VO2max → VDOT-Schätzung steigt
-    const vdot5k  = calcVO2maxFromRace(5, 1500);  // 5km, 25:00
+    const vdot5k = calcVO2maxFromRace(5, 1500); // 5km, 25:00
     const vdot10k = calcVO2maxFromRace(10, 3000); // 10km, 50:00
     expect(vdot10k).toBeGreaterThan(vdot5k);
   });

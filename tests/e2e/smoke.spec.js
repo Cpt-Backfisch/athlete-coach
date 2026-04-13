@@ -102,10 +102,7 @@ test('Dashboard rendert nach Mock-Login', async ({ page }) => {
         updated_at: '2024-01-01T00:00:00.000Z',
       },
     };
-    localStorage.setItem(
-      'sb-cpzdqgrqodvwtnqmusso-auth-token',
-      JSON.stringify(fakeSession)
-    );
+    localStorage.setItem('sb-cpzdqgrqodvwtnqmusso-auth-token', JSON.stringify(fakeSession));
   });
 
   await mockSupabaseRest(page);
@@ -183,10 +180,9 @@ test('PWA-Manifest ist valide', async ({ page }) => {
   expect(manifestHref, '<link rel="manifest"> nicht gefunden').not.toBeNull();
 
   // Das Manifest ist als data-URI eingebettet
-  expect(
-    manifestHref,
-    'Manifest-href ist keine data:application/json URI'
-  ).toMatch(/^data:application\/json/);
+  expect(manifestHref, 'Manifest-href ist keine data:application/json URI').toMatch(
+    /^data:application\/json/
+  );
 
   // Manifest JSON dekodieren und validieren
   const manifest = await page.evaluate(() => {
@@ -209,7 +205,5 @@ test('PWA-Manifest ist valide', async ({ page }) => {
   expect(manifest).toHaveProperty('display');
 
   expect(manifest.name).toBeTruthy();
-  expect(['standalone', 'fullscreen', 'minimal-ui', 'browser']).toContain(
-    manifest.display
-  );
+  expect(['standalone', 'fullscreen', 'minimal-ui', 'browser']).toContain(manifest.display);
 });

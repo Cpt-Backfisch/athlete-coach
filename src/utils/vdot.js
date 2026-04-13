@@ -19,12 +19,9 @@
  * @returns {number} VDOT-Schätzung (auf eine Dezimalstelle gerundet)
  */
 export function calcVO2maxFromRace(distKm, timeSec) {
-  const v = (distKm * 1000 / timeSec) * 60; // Geschwindigkeit in m/min
-  const t = timeSec / 60;                    // Rennzeit in Minuten
-  const pctVO2 =
-    0.8 +
-    0.1894393 * Math.exp(-0.012778 * t) +
-    0.2989558 * Math.exp(-0.1932605 * t);
-  const vo2 = -4.60 + 0.182258 * v + 0.000104 * v * v;
+  const v = ((distKm * 1000) / timeSec) * 60; // Geschwindigkeit in m/min
+  const t = timeSec / 60; // Rennzeit in Minuten
+  const pctVO2 = 0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t);
+  const vo2 = -4.6 + 0.182258 * v + 0.000104 * v * v;
   return Math.round((vo2 / pctVO2) * 10) / 10;
 }
