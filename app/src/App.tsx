@@ -1,4 +1,4 @@
-import './App.css'
+import './App.css';
 
 function App() {
   return (
@@ -6,7 +6,7 @@ function App() {
       <h1>athlete.coach</h1>
       <p>React-Migration Schritt 1 — Skelett steht</p>
     </main>
-  )
+  );
 }
 
-export default App
+export default App;
