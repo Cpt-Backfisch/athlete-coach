@@ -63,7 +63,7 @@ athlete.coach soll werden:
 
 ## 4. Was es heute schon kann
 
-Dashboard mit KPI-Karten, Zeitraum/Sport-Filtern, Wochenvolumen-Charts, Belastungsampel, Jahres-Trainingszeit-Vergleich, VO2max/VDOT-Schätzung, Wettkampf-Performance-Chart, HRV-Zonenverteilung. Events mit Countdown und Prognose, vergangene Wettkämpfe mit Splits. Strava CSV-Import (mit Schwimm-Meter-Fix), Strava OAuth + Webhook, Strava Streams (Pace, Kadenz, Höhe, GPS-Track auf Leaflet-Karte, in Supabase gecacht). Editierbarer Coach-Prompt. Read-Only Share-Link für Freunde inkl. Kommentarfunktion. PWA-Icon, Responsive Layout, Auto Cache-Busting via BUILD-Timestamp.
+Dashboard mit KPI-Karten, Zeitraum/Sport-Filtern, Wochenvolumen-Charts, Belastungsampel, Jahres-Trainingszeit-Vergleich, VO2max/VDOT-Schätzung, Wettkampf-Performance-Chart, HF-Zonenverteilung (5 Zonen nach max HR). Events mit Countdown und Prognose, vergangene Wettkämpfe mit Splits. Strava CSV-Import (mit Schwimm-Meter-Fix), Strava OAuth + Webhook, Strava Streams (Pace, Kadenz, Höhe, GPS-Track auf Leaflet-Karte, in Supabase gecacht). Editierbarer Coach-Prompt. Read-Only Share-Link für Freunde inkl. Kommentarfunktion. PWA-Icon, Responsive Layout, Auto Cache-Busting via BUILD-Timestamp.
 
 > ⚠️ **Architektonische Schuld:** Das gesamte Frontend liegt in _einer_ `index.html` mit ~3500 Zeilen. Das ist der zentrale Grund für Phase 1 der Roadmap (siehe `status.md`).
 
