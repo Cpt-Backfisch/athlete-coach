@@ -71,6 +71,18 @@ Antworte auf Deutsch. UI-Texte, Code-Kommentare und Commit-Messages auf Deutsch.
 
 > ⚠️ **Dieser Workflow wird in Phase 0 ersetzt.** Sobald GitHub Actions CI steht, läuft Deploy nur noch über grünes CI. Siehe `status.md` → Phase 0.
 
+### Pre-Push-Checks (Pflicht vor jedem `git push`)
+
+Vor jedem Push lokal ausführen und erst pushen, wenn alles grün ist:
+
+1. `npm run format:check` — Prettier-Formatierung prüfen
+2. `npm run lint` — ESLint
+3. `npm run test` — falls im geänderten Bereich Tests existieren
+
+Ist ein Check rot: lokal fixen (`npm run format` für Formatierung, ESLint auto-fix, Tests anpassen), committen, dann pushen. Spart CI-Minuten und verhindert rote PRs.
+
+**Ausnahme:** Wenn die CI-Konfiguration selbst geändert wird und der lokale Check noch den alten Stand nutzt, im PR-Body kurz erwähnen.
+
 ---
 
 ## Constraints
