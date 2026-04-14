@@ -1,0 +1,19 @@
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 0.5rem;
+}
+
+.placeholder h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.placeholder p {
+  font-size: 0.9rem;
+  color: #888;
+  margin: 0;
+}
