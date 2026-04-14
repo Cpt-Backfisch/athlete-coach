@@ -30,12 +30,12 @@ Zwei getrennte Farbkategorien, die sich **nie vermischen**:
 
 ### 2.1 Sportart-Farben (kategorial)
 
-| Sportart | Dark-Mode | Light-Mode | Notiz |
-|---|---|---|---|
-| Laufen | `#8E6FE0` Purple | `#5B3DB8` Deep Purple | Assoziation: Geschmeidigkeit, Rhythmus |
-| Schwimmen | `#3359C4` Electric Blue | `#2A47A0` Deep Blue | Assoziation: Wasser |
-| Rad | `#FF7A1A` Orange | `#D25F0F` Burnt Orange | Assoziation: Energie, Wärme |
-| Sonstiges | `#B54A2E` Rost | `#8A3721` Dark Rust | Kraft, Core, alles, was nicht Kern-Triathlon ist |
+| Sportart  | Dark-Mode               | Light-Mode             | Notiz                                            |
+| --------- | ----------------------- | ---------------------- | ------------------------------------------------ |
+| Laufen    | `#8E6FE0` Purple        | `#5B3DB8` Deep Purple  | Assoziation: Geschmeidigkeit, Rhythmus           |
+| Schwimmen | `#3359C4` Electric Blue | `#2A47A0` Deep Blue    | Assoziation: Wasser                              |
+| Rad       | `#FF7A1A` Orange        | `#D25F0F` Burnt Orange | Assoziation: Energie, Wärme                      |
+| Sonstiges | `#B54A2E` Rost          | `#8A3721` Dark Rust    | Kraft, Core, alles, was nicht Kern-Triathlon ist |
 
 **Regel:** Im Light-Mode werden die Farben leicht abgedunkelt und gesättigter, damit sie auf hellem Grund nicht flimmern. Diese Anpassung ist automatisch über CSS-Variablen — Claude Code definiert beide Sets und shadcn schaltet je nach Modus.
 
@@ -45,25 +45,25 @@ Zwei getrennte Farbkategorien, die sich **nie vermischen**:
 
 Getrenntes System für Zustände wie „Form", „Belastung", „Warnung":
 
-| Status | Dark-Mode | Light-Mode | Bedeutung |
-|---|---|---|---|
-| Positiv / frisch | `#66d9a8` | `#0F6E56` | Gute Form, Bereitschaft, Erfolg |
-| Achtung | `#F5B800` | `#A37300` | Hohe Belastung, Vorsicht |
-| Warnung / rot | `#E24B4A` | `#A32D2D` | Überlastung, Fehler, Abbruch |
+| Status           | Dark-Mode | Light-Mode | Bedeutung                       |
+| ---------------- | --------- | ---------- | ------------------------------- |
+| Positiv / frisch | `#66d9a8` | `#0F6E56`  | Gute Form, Bereitschaft, Erfolg |
+| Achtung          | `#F5B800` | `#A37300`  | Hohe Belastung, Vorsicht        |
+| Warnung / rot    | `#E24B4A` | `#A32D2D`  | Überlastung, Fehler, Abbruch    |
 
 **Regel:** Status-Farben dürfen nie mit Sportart-Farben verwechselt werden. Ein grüner Text = immer ein Zustand, nie eine Sportart.
 
 ### 2.3 Hintergrund & Text
 
-| Rolle | Dark-Mode | Light-Mode |
-|---|---|---|
+| Rolle                          | Dark-Mode                   | Light-Mode          |
+| ------------------------------ | --------------------------- | ------------------- |
 | Haupt-Hintergrund (Background) | `#141416` warmes Dunkelgrau | `#FAFAF8` Off-White |
-| Surface (Karten, Header) | `#1A1A1D` | `#FFFFFF` |
-| Text primär | `#F5F5F7` | `#0A0A0B` |
-| Text sekundär (Labels, Meta) | `#8F8F95` | `#737378` |
-| Text tertiär (Hints) | `#6A6A70` | `#A8A8AE` |
-| Border subtil | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.06)` |
-| Border deutlich | `rgba(255,255,255,0.12)` | `rgba(0,0,0,0.12)` |
+| Surface (Karten, Header)       | `#1A1A1D`                   | `#FFFFFF`           |
+| Text primär                    | `#F5F5F7`                   | `#0A0A0B`           |
+| Text sekundär (Labels, Meta)   | `#8F8F95`                   | `#737378`           |
+| Text tertiär (Hints)           | `#6A6A70`                   | `#A8A8AE`           |
+| Border subtil                  | `rgba(255,255,255,0.06)`    | `rgba(0,0,0,0.06)`  |
+| Border deutlich                | `rgba(255,255,255,0.12)`    | `rgba(0,0,0,0.12)`  |
 
 **Reinweiß und Reinschwarz bewusst vermieden** — das warme Grau bzw. Off-White wirkt weicher fürs Auge und moderner.
 
@@ -96,16 +96,16 @@ Getrenntes System für Zustände wie „Form", „Belastung", „Warnung":
 
 Basis für `tailwind.config.ts`:
 
-| Rolle | Größe | Weight | Line-Height | Letter-Spacing |
-|---|---|---|---|---|
-| Display (Hero-Zahl) | 48px | 600 | 1.0 | -0.02em |
-| H1 (Seiten-Titel) | 28px | 600 | 1.1 | -0.02em |
-| H2 (Sektion-Titel) | 20px | 600 | 1.2 | -0.01em |
-| H3 (Card-Titel) | 15px | 600 | 1.3 | 0 |
-| KPI-Wert | 26px | 600 | 1.0 | -0.02em |
-| Body | 14px | 500 | 1.5 | 0 |
-| Label / Caption | 12px | 500 | 1.4 | 0 |
-| Eyebrow (Uppercase-Label) | 10px | 500 | 1.2 | 0.08em (Tracking) |
+| Rolle                     | Größe | Weight | Line-Height | Letter-Spacing    |
+| ------------------------- | ----- | ------ | ----------- | ----------------- |
+| Display (Hero-Zahl)       | 48px  | 600    | 1.0         | -0.02em           |
+| H1 (Seiten-Titel)         | 28px  | 600    | 1.1         | -0.02em           |
+| H2 (Sektion-Titel)        | 20px  | 600    | 1.2         | -0.01em           |
+| H3 (Card-Titel)           | 15px  | 600    | 1.3         | 0                 |
+| KPI-Wert                  | 26px  | 600    | 1.0         | -0.02em           |
+| Body                      | 14px  | 500    | 1.5         | 0                 |
+| Label / Caption           | 12px  | 500    | 1.4         | 0                 |
+| Eyebrow (Uppercase-Label) | 10px  | 500    | 1.2         | 0.08em (Tracking) |
 
 ### 3.4 Zahlen-Regeln
 
@@ -126,6 +126,7 @@ Basis für `tailwind.config.ts`:
 ### 4.1 Spacing-Skala
 
 Tailwind-Default-Skala (4px-Basis) nutzen:
+
 - `gap-2` = 8px (enge Listen)
 - `gap-3` = 12px (Standard-Elemente innerhalb eines Blocks)
 - `gap-4` = 16px (Standard Zellen-Abstand)
@@ -136,13 +137,13 @@ Tailwind-Default-Skala (4px-Basis) nutzen:
 
 **Richtung: weich, aber nicht kindlich.**
 
-| Rolle | Radius | Variable |
-|---|---|---|
-| Kleine Elemente (Input, Button) | 8px | `--radius-sm` |
-| Karten, Surfaces, Modals | 12px | `--radius` (Default) |
-| Hero-Elemente (große Banner) | 16px | `--radius-lg` |
-| Pills (Tags, Chips, Badges) | 999px (voll rund) | `--radius-full` |
-| Avatare | 50 % (voll rund) | — |
+| Rolle                           | Radius            | Variable             |
+| ------------------------------- | ----------------- | -------------------- |
+| Kleine Elemente (Input, Button) | 8px               | `--radius-sm`        |
+| Karten, Surfaces, Modals        | 12px              | `--radius` (Default) |
+| Hero-Elemente (große Banner)    | 16px              | `--radius-lg`        |
+| Pills (Tags, Chips, Badges)     | 999px (voll rund) | `--radius-full`      |
+| Avatare                         | 50 % (voll rund)  | —                    |
 
 **Regel:** Pills/Chips haben immer `radius-full`, egal wie weich der Rest der App ist. Das ist Konvention und macht sie sofort als „Tag" lesbar.
 
@@ -194,6 +195,7 @@ Wenn Aktivitäten oder Kategorien angezeigt werden:
 - **Logo-Slot links vom Text bereits im Header-Komponenten-Markup vorgesehen**, aber aktuell leer (kein Platzhalter-Kasten sichtbar). Sobald ein echtes Logo existiert, wird es dort eingefügt — ohne dass die Header-Struktur geändert werden muss.
 
 **Empfohlene Logo-Spezifikation (Backlog):**
+
 - Quadratisch, funktioniert auf 24×24px
 - Einfarbig oder maximal zwei Farben
 - Gut lesbar auf `#141416` und `#FAFAF8`
@@ -207,18 +209,21 @@ Wenn Aktivitäten oder Kategorien angezeigt werden:
 - Eine gemeinsame `<Navigation>`-Komponente rendert je nach Breakpoint anders.
 
 **Sidebar (Desktop ≥ 768px):**
+
 - Breite: 240px
 - Position: links, sticky, scrollt nicht mit Content
 - Inhalt: Wort-Marke oben, Navigations-Items, User-Avatar unten
 - Aktiver Item-Zustand: leicht gefüllter Hintergrund in Purple (rgba-basiert), Text in Akzent-Purple, Weight 600
 
 **Bottom-Nav (Mobile < 768px):**
+
 - Position: fixed bottom, volle Breite
 - Respektiert iOS Safe Area (`env(safe-area-inset-bottom)`)
 - Max. 5 Items mit Icon + Label
 - Aktiver Item-Zustand: Icon + Label in Purple, inaktiv in Sekundär-Farbe
 
 **Haupt-Navigationspunkte (Phase 1):**
+
 1. Home / Dashboard
 2. Training / Aktivitäten
 3. Events / Wettkämpfe
@@ -264,16 +269,16 @@ Wenn Claude Code das shadcn-Theme konfiguriert, diese Werte als `cssVars` in `ta
 ```css
 @layer base {
   :root {
-    --background: 60 11% 98%;    /* #FAFAF8 */
-    --foreground: 240 6% 4%;     /* #0A0A0B */
+    --background: 60 11% 98%; /* #FAFAF8 */
+    --foreground: 240 6% 4%; /* #0A0A0B */
     --card: 0 0% 100%;
     --card-foreground: 240 6% 4%;
-    --primary: 258 54% 48%;      /* Purple Light #5B3DB8 */
+    --primary: 258 54% 48%; /* Purple Light #5B3DB8 */
     --primary-foreground: 0 0% 100%;
     --secondary: 60 8% 94%;
     --muted: 60 8% 94%;
     --muted-foreground: 240 3% 44%;
-    --accent: 24 86% 44%;        /* Orange Light #D25F0F */
+    --accent: 24 86% 44%; /* Orange Light #D25F0F */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 58% 41%;
     --border: 240 6% 0% / 0.06;
@@ -283,16 +288,16 @@ Wenn Claude Code das shadcn-Theme konfiguriert, diese Werte als `cssVars` in `ta
   }
 
   .dark {
-    --background: 240 5% 9%;     /* #141416 */
-    --foreground: 240 7% 97%;    /* #F5F5F7 */
-    --card: 240 6% 11%;          /* #1A1A1D */
+    --background: 240 5% 9%; /* #141416 */
+    --foreground: 240 7% 97%; /* #F5F5F7 */
+    --card: 240 6% 11%; /* #1A1A1D */
     --card-foreground: 240 7% 97%;
-    --primary: 258 62% 66%;      /* Purple Dark #8E6FE0 */
+    --primary: 258 62% 66%; /* Purple Dark #8E6FE0 */
     --primary-foreground: 240 5% 9%;
     --secondary: 240 6% 15%;
     --muted: 240 6% 15%;
     --muted-foreground: 240 4% 58%;
-    --accent: 24 100% 55%;       /* Orange Dark #FF7A1A */
+    --accent: 24 100% 55%; /* Orange Dark #FF7A1A */
     --accent-foreground: 240 5% 9%;
     --destructive: 0 71% 59%;
     --border: 0 0% 100% / 0.06;
@@ -307,23 +312,23 @@ Wenn Claude Code das shadcn-Theme konfiguriert, diese Werte als `cssVars` in `ta
 ```css
 @layer base {
   :root {
-    --sport-run: #5B3DB8;
-    --sport-swim: #2A47A0;
-    --sport-bike: #D25F0F;
-    --sport-other: #8A3721;
-    --status-fresh: #0F6E56;
-    --status-caution: #A37300;
-    --status-overload: #A32D2D;
+    --sport-run: #5b3db8;
+    --sport-swim: #2a47a0;
+    --sport-bike: #d25f0f;
+    --sport-other: #8a3721;
+    --status-fresh: #0f6e56;
+    --status-caution: #a37300;
+    --status-overload: #a32d2d;
   }
 
   .dark {
-    --sport-run: #8E6FE0;
-    --sport-swim: #3359C4;
-    --sport-bike: #FF7A1A;
-    --sport-other: #B54A2E;
+    --sport-run: #8e6fe0;
+    --sport-swim: #3359c4;
+    --sport-bike: #ff7a1a;
+    --sport-other: #b54a2e;
     --status-fresh: #66d9a8;
-    --status-caution: #F5B800;
-    --status-overload: #E24B4A;
+    --status-caution: #f5b800;
+    --status-overload: #e24b4a;
   }
 }
 ```
