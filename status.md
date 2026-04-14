@@ -3,7 +3,7 @@
 > **Zweck dieser Datei:** Lebendiger Projektstand. Hier stehen aktueller Stand, To-dos, Phasen, Bugs.
 > Vision & Architektur-Grundlagen → siehe `context.md`.
 
-**Letztes Update:** 14.04.2026
+**Letztes Update:** 14.04.2026 (Schritt 2)
 
 ---
 
@@ -91,6 +91,17 @@ Festgelegt: **Playwright** (Smoke) + **Vitest** (Unit für rechenlastige Stellen
 4. Deploy-Gate-Job deployt automatisch: setzt BUILD-Timestamp, packt `index.html` als Artefakt, deployt auf GitHub Pages über `actions/deploy-pages`
 5. Optional: Slack/Telegram-Ping bei erfolgreichem Deploy (noch nicht eingerichtet)
 
+**Dualer Deploy (seit 14.04.2026, Migrations-Schritt 2):**
+
+Seit PR #11 baut und deployt die CI-Pipeline beide Apps parallel in einem gemeinsamen `_site/`-Artefakt:
+
+- `index.html` (alte App) → `_site/` → `https://cpt-backfisch.github.io/athlete-coach/`
+- `app/dist/` (neue React-App) → `_site/app/` → `https://cpt-backfisch.github.io/athlete-coach/app/`
+
+Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run build`) und lädt `app/dist/` als Artefakt hoch. Der `deploy-gate`-Job lädt dieses Artefakt herunter und kombiniert beide Apps in `_site/`.
+
+**Warum `base: '/athlete-coach/app/'` in `app/vite.config.ts` nötig ist:** Vite referenziert Assets standardmäßig mit absolutem Pfad (`/assets/…`). Da die neue App nicht im Root, sondern unter `/athlete-coach/app/` liegt, würden Asset-URLs ohne diesen Wert auf 404 laufen. Mit `base` gesetzt zeigen alle generierten `<script>`- und `<link>`-Tags auf den richtigen Subpfad.
+
 ---
 
 ### 🧱 Phase 1 — Solo-App, lesende Freunde
@@ -99,7 +110,7 @@ Festgelegt: **Playwright** (Smoke) + **Vitest** (Unit für rechenlastige Stellen
 
 - [x] **Design-Session zu Phase-1-Start** (13.04.2026) — Look-and-Feel festgelegt: "offen & selbstbewusst" (Linear/Superhuman-Vibe), Dark-Mode default (#141416) + Light-Mode (#FAFAF8) mit Auto-Switch, vier Sportart-Farben (Laufen Purple #8E6FE0, Schwimmen Electric Blue #3359C4, Rad Orange #FF7A1A, Sonstiges Rost #B54A2E), Status-Farben separat (Grün/Gelb/Rot), Schrift Geist Sans Weight 500/600, Border-Radius 12px, Hybrid-Navigation (Sidebar Desktop / Bottom-Nav Mobile). Wort-Marke Variante B (Schriftzug mit Purple-Akzent-Punkt), Logo-Slot im Header vorgesehen für späteres Logo-Design. Vollständig dokumentiert in `design.md`.
 - [x] **Migrations-Schritt 1: Vite-Skelett in `app/`** (14.04.2026) — PR #7. Leeres Vite+React+TS-Projekt in `app/`, alte `index.html` unangetastet. Versionen: Node 20.20.2, Vite 8.0.4, React 19.2.4, TS 6.0.2.
-- [ ] **Migrations-Schritt 2: CI erweitern, `/app/` deployen** — Muster 1 (pures Ausführen). CI-Workflow baut zusätzlich `app/` mit `npm run build` und deployt `app/dist/` nach `/app/` auf GitHub Pages. Ergebnis: neue App live unter `https://cpt-backfisch.github.io/athlete-coach/app/`. Schutz: alte App-Deploy-Pfad auf `/` bleibt unverändert. Deployment-Doku in `status.md` §Deployment-Prozess ergänzen.
+- [x] **Migrations-Schritt 2: CI erweitern, `/app/` deployen** (14.04.2026) — PR #10 (Vite `base`-Pfad) + PR #11 (CI dual deploy). CI baut `app/` via Job `build-app` und kombiniert beide Apps in `_site/`. Neue App live unter `https://cpt-backfisch.github.io/athlete-coach/app/`.
 - [ ] **Migrations-Schritt 3: Feature-Parity-Checkliste erstellen** — Muster 1. Claude Code liest `index.html` und erstellt `feature-parity.md` mit allen Features als Checkliste. Sebastian markiert pro Eintrag „muss / kann weg / Phase 2". Dieser Schritt ist bewusst _vor_ der React-Implementierung, damit wir wissen, wohin wir laufen.
 - [ ] **Migrations-Schritt 4: Tailwind + Design-Tokens** — Muster 2 (Entscheidung: welche Token-Namen, CSS-Variablen-Schema). Tailwind im `app/`-Projekt installieren, `tailwind.config.ts` aus `design.md` ableiten (Farben, Typo, Radius, Spacing, Dark-Mode-Strategie via `class`-Toggle). Dark/Light-Toggle-Komponente + OS-Auto-Switch. Hello-Seite auf Design-Tokens migrieren als Sichtprobe.
 - [ ] **Migrations-Schritt 5: shadcn/ui + Basis-Komponenten** — Muster 2 (Entscheidung: welche Komponenten initial). `npx shadcn@latest init`, dann Button, Card, Dialog, Tabs, Toast, Input. Keine Feature-Komponenten, nur Basis. Demo-Seite, die alle sechs Komponenten einmal rendert, als Sichtprüfung.
@@ -182,6 +193,7 @@ Falls einer auftaucht: hier eintragen mit Datum, Beschreibung, Reproschritten.
 
 | Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14.04.2026 | **Migrations-Schritt 2 abgeschlossen:** CI baut und deployt parallel alte `index.html` auf `/` und neue React-App auf `/app/`. Erste Live-URL der neuen App: https://cpt-backfisch.github.io/athlete-coach/app/ (PR #10: Vite `base`-Pfad; PR #11: CI dual deploy).                                                                                                                                                                                                                                                                |
 | 14.04.2026 | Phase-1-Migrations-Fahrplan formalisiert (Session mit Claude Opus): 12 granulare Schritte, Strangler-Fig-Strategie, Parallelbetrieb alte App auf `/` und neue App auf `/app/`. Migrations-Schritt 1 (Vite-Skelett) abgeschlossen (PR #7). Migrations-Schritt „Pre-Push-Regel in CLAUDE.md" ergänzt (PR danach). Risiken & Rollback dokumentiert: Feature-Parity-Checkliste, Storage-Key-Isolation für Supabase-Auth, Git-Tag `v1-legacy-last` vor Umschalt-Tag, Revert-Strategie pro PR.                                           |
 | 13.04.2026 | **Phase 1 gestartet.** Design-Session in Claude App (Opus) abgeschlossen. Entscheidungen: Design-Sprache "offen & selbstbewusst", Dark-first (#141416) mit Light-Toggle (#FAFAF8) und OS-Auto-Switch, vier Sportart-Farben + separates Status-Farb-System, Geist Sans als Schrift, Radius 12px, Hybrid-Navigation. Ergebnis als `design.md` ins Repo-Root committet — dient als Single Source of Truth für shadcn/ui-Theme-Config in der bevorstehenden React-Migration. Logo-Design als Backlog-Item für nach Phase 1 vorgemerkt. |
 | 13.04.2026 | **Phase 0 abgeschlossen.** PR #3: 17 Vitest Unit-Tests (stravaDistance + VDOT) + 5 Playwright Smoke-Tests eingerichtet, CI-Platzhalter durch echte Jobs ersetzt. PR #4: `context.md` und `status.md` ins Repo gelegt, `CLAUDE.md` mit Pflichtlektüre-Hinweis ergänzt. PR #5: Deploy-Gate scharf geschaltet — CI-Pipeline Lint → Secret-Scan → Unit → E2E → Deploy, BUILD-Timestamp automatisch, GitHub Pages Source auf „GitHub Actions" umgestellt.                                                                               |
