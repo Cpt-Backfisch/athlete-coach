@@ -1,189 +1,264 @@
-# Feature-Parity-Checkliste — athlete.coach Legacy App
+# Feature-Parity-Checkliste — athlete.coach Phase-1-Migration
 
-> **Zweck:** Vollständige Bestandsaufnahme aller Features der alten `index.html`.
-> Grundlage für Migrations-Schritte 7–10 der Phase-1-React-Migration.
+> **Zweck:** Vollständige, priorisierte Feature-Liste als Grundlage für Migrations-Schritte 7–10.
+> Erstellt aus der Legacy-App-Analyse (PR #12) und der Opus-Priorisierungs-Session vom 15.04.2026.
 >
-> **Prioritäten** werden von Sebastian gesetzt. Bis dahin steht alles auf `[Priorität: ?]`.
+> **Legende Priorität:**
 >
-> **Legende:**
+> | Wert       | Bedeutung                                                    |
+> | ---------- | ------------------------------------------------------------ |
+> | `muss`     | Feature wird in Phase 1 implementiert                        |
+> | `kann weg` | Feature entfällt bewusst in der neuen App                    |
+> | `Phase 2`  | Feature kommt erst in Phase 2 (Multi-User) oder separatem PR |
+> | `später`   | Entscheidung noch offen, nicht Teil dieser Migration         |
 >
-> | Wert       | Bedeutung                                                       |
-> | ---------- | --------------------------------------------------------------- |
-> | `muss`     | Feature muss 1:1 in die neue App übernommen werden              |
-> | `kann weg` | Feature ist nicht mehr nötig / wird bewusst weggelassen         |
-> | `Phase 2`  | Feature kommt erst in Phase 2 (Multi-User) oder später          |
-> | `?`        | Noch nicht entschieden (Default-Wert bis Sebastian priorisiert) |
+> **Tier-Einteilung (nur für `muss`-Features):**
 >
-> **Format:** `- [ ] **Feature-Name** — Beschreibung · [Priorität: ?]`
+> | Tier | Bedeutung                                               |
+> | ---- | ------------------------------------------------------- |
+> | T1   | MVP — launch-kritisch, ohne ist die App nicht produktiv |
+> | T2   | Polish — wertsteigernd, nicht launchblockierend         |
+> | T3   | Advanced — anspruchsvoll, kann nach Launch nachkommen   |
+>
+> **Format:** `- [ ] **Feature-Name** — Beschreibung · [Priorität: muss · T1] · [Begründung: kurz, max 1 Satz]`
 
 ---
 
 ## 1. Authentifizierung & Sessions
 
-- [ ] **Supabase-Setup-Screen** — Erster-Start-Dialog zum Eintragen von Supabase URL und Anon Key, bevor der Rest der App startet. Erscheint wenn keine Supabase-Konfiguration vorhanden. · [Priorität: ?]
-- [ ] **Email/Password-Login** — Login-Formular mit E-Mail, Passwort und Fehleranzeige via Supabase Auth. · [Priorität: ?]
-- [ ] **Email/Password-Signup** — Registrierung neuer Accounts direkt aus dem Login-Screen. · [Priorität: ?]
-- [ ] **Session-Wiederherstellung beim App-Start** — Supabase-Session wird automatisch beim Laden wiederhergestellt; kein erneutes Login nötig solange Session gültig. · [Priorität: ?]
-- [ ] **Logout** — Abmelden via Supabase `signOut`, anschließend Weiterleitung zum Login-Screen. · [Priorität: ?]
+- [ ] **1.1 Supabase-Setup-Screen** — Erster-Start-Dialog für Supabase URL + Anon Key. · [Priorität: kann weg] · [Begründung: App ist Single-Tenant, Supabase wird hartcodiert]
+- [ ] **1.2 Email/Password-Login** — Login-Formular mit E-Mail und Passwort via Supabase Auth. · [Priorität: muss · T1] · [Begründung: Pflicht für Datenzugriff]
+- [ ] **1.3 Email/Password-Signup** — Registrierung neuer Accounts aus dem Login-Screen. · [Priorität: Phase 2] · [Begründung: In Phase 1 nur Sebastian, Freunde via Share-Link]
+- [ ] **1.4 Session-Wiederherstellung** — Supabase-Session beim App-Start automatisch wiederherstellen. · [Priorität: muss · T1] · [Begründung: UX-Pflicht für Mobile-Nutzung]
+- [ ] **1.5 Logout** — Abmelden via Supabase `signOut`, Weiterleitung zum Login-Screen. · [Priorität: muss · T1] · [Begründung: Standard-Anforderung]
+- [ ] **1.6 Password-Reset (Supabase Email-Flow)** _(neu)_ — E-Mail-basierter Passwort-Reset über Supabase. · [Priorität: muss · T1] · [Begründung: Recovery ohne Reset wäre fatal]
 
 ---
 
-## 2. Navigation & globales Layout
+## 2. Navigation & Layout
 
-- [ ] **Topbar-Navigation mit 7 Seiten** — Horizontale Leiste mit Buttons für Dashboard, Coach, Einheiten, Events, Trainingsplan, Import, Einstellungen. Active-State wird hervorgehoben. · [Priorität: ?]
-- [ ] **Kompakt-Modus (Nav-Label-Toggle)** — Button „⇔ Kompakt" klappt die Nav-Labels ein; nur Icons bleiben sichtbar. Zustand wird gespeichert. · [Priorität: ?]
-- [ ] **Responsive Navigation** — Auf kleinen Screens (≤ 480 px) werden Nav-Labels automatisch ausgeblendet, nur Icons. · [Priorität: ?]
-- [ ] **Aktivitäten-Badge in Topbar** — Pill mit Gesamtanzahl der Einheiten, aktualisiert sich nach jedem Import/Löschen. · [Priorität: ?]
-- [ ] **Live-Datum in Topbar** — Aktuelles Datum und Uhrzeit werden in der Topbar angezeigt und jede Minute aktualisiert. · [Priorität: ?]
-- [ ] **Toast-Notifications** — Einblendbare Status-Meldungen (Erfolg grün / Fehler orange), verschwinden automatisch nach 3 Sekunden. · [Priorität: ?]
+- [ ] **2.1 Hauptnavigation Sidebar Desktop / Bottom-Nav Mobile** — Hybrid-Navigation: Sidebar auf Desktop, Bottom-Bar auf Mobile (umformuliert von Topbar). · [Priorität: muss · T1] · [Begründung: Grundgerüst]
+- [ ] **2.2 Kompakt-Modus Nav-Toggle** — Button zum Ein-/Ausklappen der Nav-Labels. · [Priorität: kann weg] · [Begründung: Mobile-first löst das automatisch]
+- [ ] **2.3 Responsive Navigation Bottom-Bar Mobile** — Bottom-Navigation für kleine Screens. · [Priorität: muss · T1] · [Begründung: iPhone ist Hauptgerät]
+- [ ] **2.4 Aktivitäten-Badge in Topbar** — Pill mit Gesamtanzahl der Einheiten. · [Priorität: kann weg] · [Begründung: Info auf Aktivitäten-Seite reicht]
+- [ ] **2.5 Live-Datum in Topbar** — Aktuelles Datum und Uhrzeit in der Topbar. · [Priorität: kann weg] · [Begründung: iPhone zeigt Datum nativ]
+- [ ] **2.6 Toast-Notifications** — Einblendbare Status-Meldungen (Erfolg/Fehler), verschwinden nach 3 Sekunden. · [Priorität: muss · T1] · [Begründung: Pflicht für Feedback]
 
 ---
 
 ## 3. Dashboard
 
-- [ ] **Zeitraum-Filter** — Chips: 4W, 12W, 6M, 1J, Jahreszahl (z. B. „2026"), Alles. Steuert alle Dashboard-Charts und KPI-Karten. · [Priorität: ?]
-- [ ] **Sportart-Filter** — Chips: Alle, Laufen, Rad, Schwimmen. Steuert Wochenvolumen-Chart und KPI-Karten. · [Priorität: ?]
-- [ ] **Wochenvolumen-Balkendiagramm** — SVG-Chart: summierte Trainingszeit in Stunden pro Woche/Monat (granularitätsabhängig), farbcodiert nach Sportart, mit interaktivem Tooltip beim Hover. · [Priorität: ?]
-- [ ] **Wochen-Trainingsvolumen-Karten (KPIs)** — Drei Karten Laufen / Rad / Schwimmen mit akkumulierter Distanz und Zeit im gewählten Zeitraum. · [Priorität: ?]
-- [ ] **Belastungsampel** — Karte oben im Dashboard: zeigt grün/gelb/rot basierend darauf, ob die Wochenziel-Sportarten (aus Trainingsplan) bereits erfüllt sind. Text erklärt, welche Sportart noch fehlt. · [Priorität: ?]
-- [ ] **Wochenfortschritts-Kreisring** — SVG-Kreis: zeigt prozentualen Fortschritt der laufenden Woche (geleistete Stunden vs. Wochenziel), Farbe entspricht Ampel-Status. · [Priorität: ?]
-- [ ] **Nächste Events (bis zu 3)** — Kompakte Kacheln mit Countdown-Tagen, Sportart-Badge und Zielzeit für die nächsten anstehenden Wettkämpfe. · [Priorität: ?]
-- [ ] **Wettkampf-Performance-Chart** — SVG-Linien-/Punktchart: Wettkampfzeiten vergangener Rennen als Zeitverlauf, nach Sportart gefärbt. · [Priorität: ?]
-- [ ] **Kumulierte Jahres-Trainingszeit** — SVG-Chart: Kumulierte Trainingsstunden je Monat, Jahresvergleich mehrerer Jahre als überlagerte Linien, Sport-Filter-Buttons, SVG-Tooltip mit Datum und Stunden. · [Priorität: ?]
-- [ ] **HF-Zonenverteilung** — Balkendiagramm: Prozentualer Anteil der Einheiten in 5 Herzfrequenz-Zonen (Basis: max HR aus Strava-Aktivitäten). · [Priorität: ?]
-- [ ] **VO2max/VDOT-Schätzung** — Zeigt geschätzten VO2max-Wert nach Jack-Daniels-Formel; wird aus Wettkampfergebnissen oder Trainingsdaten mit hohem Tempo abgeleitet. · [Priorität: ?]
-- [ ] **Kommentare auf dem Dashboard (Share-View)** — Unterhalb der Wettkampf-Performance-Chart werden in der Share-View neue Kommentare anderer angezeigt. · [Priorität: ?]
+- [ ] **3.1 Zeitraum-Filter (1W, 4W, 12W, 6M, 1J, Jahr, Alles)** — Chips steuern alle Dashboard-Charts und KPI-Karten. · [Priorität: muss · T1] · [Begründung: Kerninteraktion]
+- [ ] **3.2 Sportart-Filter inkl. „Sonstiges"** — Chips: Alle, Laufen, Rad, Schwimmen, Sonstiges. · [Priorität: muss · T1] · [Begründung: Triathlon-Mix erfordert Trennung]
+- [ ] **3.3 Wochenvolumen-Balkendiagramm** — SVG-Chart: Trainingsstunden pro Woche/Monat, farbcodiert nach Sportart, mit Tooltip. · [Priorität: muss · T1] · [Begründung: Hauptchart]
+- [ ] **3.4 Wochen-Trainingsvolumen-KPI-Karten (Lauf/Rad/Schwimm)** — Drei Karten mit akkumulierter Distanz und Zeit im gewählten Zeitraum. · [Priorität: muss · T1] · [Begründung: täglicher Blick]
+- [ ] **3.5 Belastungsampel** — Grün/Gelb/Rot basierend auf Wochenziel-Sportarten; Text erklärt fehlende Sportart. · [Priorität: muss · T1] · [Begründung: direktes Feedback]
+- [ ] **3.6 Wochenfortschritts-Kreisring** — SVG-Kreis: Fortschritt der laufenden Woche (geleistete vs. Ziel-Stunden). · [Priorität: muss · T2] · [Begründung: visuelle Ergänzung zur Ampel]
+- [ ] **3.7 Anstehende Events (adaptive Darstellung je nach Anzahl)** — Bevorstehende Wettkämpfe mit Countdown-Tagen; Darstellung passt sich an Anzahl an. · [Priorität: muss · T1] · [Begründung: Saison-kritisch]
+- [ ] **3.8 Wettkampf-Performance-Chart** — SVG: Wettkampfzeiten vergangener Rennen als Zeitverlauf, nach Sportart gefärbt. · [Priorität: muss · T2] · [Begründung: Motivationsanker]
+- [ ] **3.9 Kumulierte Jahres-Trainingszeit** — SVG-Chart: kumulierte Stunden je Monat, Jahresvergleich als überlagerte Linien, Tooltip. · [Priorität: muss · T2] · [Begründung: Endurance-Vergleich]
+- [ ] **3.10 HF-Zonenverteilung** _(braucht Stream-Auswertung)_ — Balkendiagramm: Anteil der Einheiten in 5 HF-Zonen (nach max HR). · [Priorität: muss · T2] · [Begründung: Trainingssteuerung]
+- [ ] **3.11 VO2max/VDOT-Schätzung** — VO2max nach Jack-Daniels-Formel aus Wettkampfergebnissen oder Trainingsdaten. · [Priorität: muss · T2] · [Begründung: Zielzeit-Kalibrierung]
+- [ ] **3.12 Kommentare auf Dashboard (Share-View)** — Kommentare von Freunden werden unterhalb des Dashboards in der Share-View angezeigt. · [Priorität: muss · T1] · [Begründung: Kern Phase-1-Vision]
+- [ ] **3.13 Likes/Emoji-Reaktionen auf Kommentare** _(neu)_ — Freunde können auf Einheiten oder Kommentare mit Emoji reagieren. · [Priorität: muss · T2] · [Begründung: soziale Komponente]
+- [ ] **3.14 Telegram-Ping bei neuem Kommentar/Like (Spam-Schutz serverseitig)** _(neu)_ — Benachrichtigung an Sebastian bei neuer Interaktion; Spam-Schutz verhindert Flood. · [Priorität: muss · T2] · [Begründung: Erinnerung an Interaktion]
+- [ ] **3.15 Streak-Counter** _(neu)_ — Zeigt aktuelle Trainings-Streak in Tagen oder Wochen. · [Priorität: muss · T2] · [Begründung: Motivationsanker]
+- [ ] **3.16 Training Load TSS/TRIMP** _(neu)_ — Berechnung von Trainingsbelastung via TSS oder TRIMP als Metrik. · [Priorität: muss · T3] · [Begründung: State-of-the-Art Belastungsmetric]
+- [ ] **3.17 ACWR Workload Ratio** _(neu, baut auf 3.16)_ — Acute/Chronic Workload Ratio als Verletzungsrisiko-Indikator. · [Priorität: muss · T3] · [Begründung: Verletzungsrisiko]
+- [ ] **3.18 Race-Day-View** _(neu)_ — Am Wettkampftag spezielle Dashboard-Sicht mit relevantem Content (Wetter, Zielzeit, Checkliste). · [Priorität: muss · T2] · [Begründung: Produkt-Highlight]
 
 ---
 
 ## 4. Aktivitäten — Liste
 
-- [ ] **Aktivitätsliste mit Zeitraum-Filter** — Chips: 1M, 3M, 6M, 1J, Alles. Filtert die sichtbaren Einheiten. · [Priorität: ?]
-- [ ] **Aktivitätsliste mit Sportart-Filter** — Chips: Alle, Laufen, Rad, Schwimmen, Triathlon, Sonstige. · [Priorität: ?]
-- [ ] **Aktivitätsliste mit Textsuche** — Freitextsuche in Aktivitätsnamen, Echtzeit-Filterung während der Eingabe. · [Priorität: ?]
-- [ ] **Aktivitätsliste sortiert nach Datum** — Immer neueste Einheit zuerst. · [Priorität: ?]
-- [ ] **Aktivitäten-Anzahl-Anzeige** — Zeigt Anzahl der gefilterten Einheiten neben den Filterchips. · [Priorität: ?]
-- [ ] **Aktivitätszeile** — Zeigt: Sportart-Farbpunkt, Name, Datum, Distanz (formatiert km/m), Dauer (h:mm), Pace (sportartspezifisch: /km, /100m, km/h), Ø Herzfrequenz, Intensitäts-Dots (5-Punkte). · [Priorität: ?]
-- [ ] **Letzte 5 Einheiten im Import-Screen** — Kurze „Zuletzt importiert"-Liste auf der Import-Seite als schneller Überblick. · [Priorität: ?]
+- [ ] **4.1 Zeitraum-Filter (4W, 12W, 6M, 1J, Jahr, Alles)** — Chips filtern die Aktivitätsliste; kein 1W da Dashboard das übernimmt. · [Priorität: muss · T1] · [Begründung: konsistent zu Dashboard]
+- [ ] **4.2 Sportart-Filter** — Chips: Alle, Laufen, Rad, Schwimmen, Triathlon, Sonstige. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **4.3 Textsuche** — Freitextsuche in Aktivitätsnamen, Echtzeit-Filterung. · [Priorität: muss · T2] · [Begründung: schnelles Finden]
+- [ ] **4.4 Sortierung nach Datum (neueste zuerst)** — Feste Sortierung; kein Toggle. · [Priorität: muss · T1] · [Begründung: Standard-Erwartung]
+- [ ] **4.5 Aktivitäten-Anzahl-Anzeige neben Filtern** — Zeigt Anzahl der gefilterten Einheiten. · [Priorität: muss · T2] · [Begründung: null Aufwand]
+- [ ] **4.6 Aktivitätszeile (+ Strava-Icon, + Kommentar-Zähler)** — Zeile mit Sportart-Dot, Name, Datum, Distanz, Dauer, Pace, HF, Intensitäts-Dots; Strava-Icon bei verknüpften Einheiten; Kommentar-Zähler bei Share-Kommentaren. · [Priorität: muss · T1] · [Begründung: Liste ist Kern]
+- [ ] **4.7 „Letzte 5 Einheiten" im Import-Screen** — Kurze Zuletzt-importiert-Liste. · [Priorität: kann weg] · [Begründung: redundant]
 
 ---
 
 ## 5. Aktivitäten — Erfassen & Bearbeiten
 
-- [ ] **Aktivität manuell hinzufügen** — Modal mit Feldern: Datum, Sportart (Auswahl), Name, Distanz (m), Dauer (min), Ø Herzfrequenz, Höhenmeter, Intensität (1–5 mit Label), Notizen. · [Priorität: ?]
-- [ ] **Aktivität bearbeiten** — Gleiche Felder wie beim Hinzufügen; vorhandene Werte vorausgefüllt. · [Priorität: ?]
-- [ ] **Aktivität löschen** — Löschen mit Bestätigungs-Toast aus der Aktivitätsliste heraus. · [Priorität: ?]
-- [ ] **Sportart-spezifische Pace-Formatierung** — Laufen: min/km; Schwimmen: min:sec/100m; Rad/Triathlon: km/h. · [Priorität: ?]
-- [ ] **Intensitäts-Dots-Visualisierung** — 5 gefüllte/leere Punkte als kompaktes visuelles Intensitäts-Label in Listen und Detail. · [Priorität: ?]
+- [ ] **5.1 Manuell hinzufügen (Notizen sichtbar in Share-View)** — Modal: Datum, Sport, Name, Distanz, Dauer, HF, Höhenmeter, Intensität 1–5, Notizen. · [Priorität: muss · T1] · [Begründung: für Trainings ohne Strava]
+- [ ] **5.2 Bearbeiten (voll editierbar, lokale Änderungen überschreiben Strava)** — Alle Felder editierbar; lokale Änderungen bleiben bei nächstem Strava-Sync erhalten. · [Priorität: muss · T1] · [Begründung: Strava-Daten oft fehlerhaft]
+- [ ] **5.3 Löschen mit Bestätigung** — Löschen aus der Liste mit Bestätigungs-Dialog. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **5.4 Sportart-spezifische Pace-Formatierung** — Laufen: min/km; Schwimmen: min:sec/100m; Rad/Tri: km/h. · [Priorität: muss · T1] · [Begründung: absolute Pflicht für Triathlet]
+- [ ] **5.5 Intensitäts-Dots-Visualisierung** — 5 gefüllte/leere Punkte als kompaktes Intensitäts-Label. · [Priorität: muss · T1] · [Begründung: clean]
+- [ ] **5.6 Notizen als Markdown** _(neu)_ — Notizen in Aktivitäten werden als Markdown gerendert. · [Priorität: Phase 2] · [Begründung: nice-to-have]
+- [ ] **5.7 Schwimm-Eingabe als Bahnen × Beckenlänge** _(später entscheiden)_ — Eingabehilfe für Bahn-Schwimmen statt Meter. · [Priorität: später] · [Begründung: wartet auf Sebastians Entscheidung]
 
 ---
 
 ## 6. Aktivitäten — Detail-Ansicht
 
-- [ ] **Aktivitäts-Detail-Screen** — Eigene Vollseiten-Ansicht (kein Modal): Header mit Name, Datum, Sportart-Badge; Metadaten-Kacheln. · [Priorität: ?]
-- [ ] **Metadaten-Kacheln** — Kacheln für Distanz, Gesamtdauer, Pace, Ø Herzfrequenz, Intensität, Höhenmeter. Nur sichtbar wenn Wert vorhanden. · [Priorität: ?]
-- [ ] **Wetter-Widget** — Zeigt historische Wetterdaten zum Aktivitätszeitpunkt (Temperatur, Beschreibung, Wind via Open-Meteo API); wird asynchron nachgeladen und in der Aktivität gecacht. Nur wenn GPS-Koordinaten vorhanden. · [Priorität: ?]
-- [ ] **Strava-Stream: Herzfrequenz-Chart** — SVG-Linienchart: Herzfrequenz über Zeit, wenn Strava HR-Stream vorhanden. · [Priorität: ?]
-- [ ] **Strava-Stream: Pace-Chart** — SVG-Linienchart: Pace (velocity_smooth) über Zeit. · [Priorität: ?]
-- [ ] **Strava-Stream: Kadenz-Chart** — SVG-Linienchart: Trittfrequenz (rpm für Rad, spm × 2 für Laufen), wenn vorhanden. · [Priorität: ?]
-- [ ] **Strava-Stream: Höhenprofil-Chart** — SVG-Linienchart: Höhe in Metern über Zeit/Distanz, wenn vorhanden. · [Priorität: ?]
-- [ ] **GPS-Track auf Leaflet-Karte** — Interaktive Karte (Leaflet + OSM, dynamisch geladen); Route als Linie, farbkodiert nach Herzfrequenz-Intensität; zoomt automatisch auf Bounding Box. · [Priorität: ?]
-- [ ] **Strava-Streams gecacht in Supabase** — Nach erstem Laden werden Streams in der `streams`-Tabelle gespeichert (UPSERT); bei erneutem Öffnen kein API-Call nötig. · [Priorität: ?]
+- [ ] **6.1 Detail-Screen Vollseite** — Eigene Vollseiten-Ansicht; kein Modal. · [Priorität: muss · T1] · [Begründung: Grundgerüst]
+- [ ] **6.2 Metadaten-Kacheln** — Kacheln für Distanz, Dauer, Pace, Ø HF, Intensität, Höhenmeter; nur sichtbar wenn Wert vorhanden. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **6.3 Wetter-Widget (Open-Meteo historisch)** — Temperatur, Beschreibung, Wind zum Aktivitätszeitpunkt; asynchron geladen und gecacht; nur mit GPS-Koordinaten. · [Priorität: muss · T2] · [Begründung: kostenlos, im Nachgang interessant]
+- [ ] **6.4 Strava-Stream: Herzfrequenz-Chart** — SVG-Linienchart: HF über Zeit. · [Priorität: muss · T1] · [Begründung: Kernwert]
+- [ ] **6.5 Strava-Stream: Pace-Chart** — SVG-Linienchart: Pace (velocity_smooth) über Zeit. · [Priorität: muss · T1] · [Begründung: Kernwert]
+- [ ] **6.6 Strava-Stream: Kadenz-Chart** — SVG-Linienchart: rpm (Rad) / spm×2 (Laufen). · [Priorität: muss · T2] · [Begründung: Laufökonomie]
+- [ ] **6.7 Strava-Stream: Höhenprofil-Chart** — SVG-Linienchart: Höhe in Metern über Zeit. · [Priorität: muss · T2] · [Begründung: Rad/Trail wichtig]
+- [ ] **6.8 GPS-Track auf Leaflet (HF-farbcodiert)** — Interaktive Karte; Route farbcodiert nach HF-Intensität; zoomt auf Bounding Box. · [Priorität: muss · T2] · [Begründung: Signature-Feature]
+- [ ] **6.9 Streams in Supabase cachen (UPSERT)** — Nach erstem Laden werden Streams in `streams`-Tabelle gespeichert; kein API-Call bei erneutem Öffnen. · [Priorität: muss · T1] · [Begründung: spart API-Calls]
+- [ ] **6.10 Lap-Splits-Anzeige** _(neu)_ — Tabelle mit automatischen oder manuellen Lap-Splits aus Strava. · [Priorität: muss · T2] · [Begründung: Intervallanalyse]
+- [ ] **6.11 Synchronisiertes Multi-Chart (Serien ein-/ausblendbar)** _(neu)_ — Alle Stream-Charts auf gemeinsamer Zeitachse; Serien per Toggle ein-/ausblendbar. · [Priorität: muss · T3] · [Begründung: starkes Analyse-Tool]
+- [ ] **6.12 Strava-Segmente** _(neu)_ — Zeigt Strava-Segment-Ergebnisse auf der Detail-Seite. · [Priorität: muss · T3] · [Begründung: Strava-Strecken-Spaß]
+- [ ] **6.13 Streckenvergleich (selbe Route über Zeit)** _(neu)_ — Vergleich mehrerer Aktivitäten auf derselben Strecke. · [Priorität: Phase 2] · [Begründung: komplexer Algorithmus]
 
 ---
 
 ## 7. Events (Wettkämpfe & Ergebnisse)
 
-- [ ] **Anstehende Wettkämpfe mit Countdown** — Liste bevorstehender Rennen: Datum-Block, Name, Ort, Ziel, Countdown in Tagen und Wochen. · [Priorität: ?]
-- [ ] **Wettkampf-Zielprognose** — Schätzt erreichbare Zeit basierend auf Lauf-Pace der letzten 8 Wochen und Wettkampf-Distanz; wird neben dem Ziel angezeigt. · [Priorität: ?]
-- [ ] **Wettkampf anlegen** — Modal: Name, Datum, Sportart, Ort, Zieltyp (Zeit h:mm:ss / Top-X-Prozent / Freitext), Notizen. · [Priorität: ?]
-- [ ] **Wettkampf bearbeiten** — Gleiche Felder wie beim Anlegen, vorausgefüllt. · [Priorität: ?]
-- [ ] **Wettkampf löschen** — Löschen aus der Events-Liste. · [Priorität: ?]
-- [ ] **Vergangene Wettkampf-Ergebnisse erfassen** — Modal: Datum, Sportart, Name, Ort, Zielzeit, tatsächliche Zeit, Notizen/Splits. Getrennt von den „anstehenden" Races. · [Priorität: ?]
-- [ ] **Vergangene Ergebnisse bearbeiten/löschen** — Bearbeitung und Löschen aus der kombinierten Verlaufs-Liste. · [Priorität: ?]
-- [ ] **Kombinierte Verlaufs-Liste** — Vergangene Wettkämpfe (aus `races`) und vergangene Ergebnisse (aus `past_results`) zusammen sortiert nach Datum. · [Priorität: ?]
+- [ ] **7.1 Anstehende Wettkämpfe mit Countdown** — Liste bevorstehender Rennen: Datum-Block, Name, Ort, Ziel, Countdown in Tagen und Wochen. · [Priorität: muss · T1] · [Begründung: täglicher Blick]
+- [ ] **7.2 Wettkampf-Zielprognose** — Schätzung erreichbarer Zeit aus Lauf-Pace der letzten 8 Wochen und Wettkampf-Distanz. · [Priorität: muss · T2] · [Begründung: motivierender Realitäts-Check]
+- [ ] **7.3 Wettkampf anlegen (+ Event-Link URL, + optionale Startzeit)** — Modal: Name, Datum, Sport, Ort, Zieltyp (Zeit/Top-X%/Freitext), optionale Startzeit, Event-Link-URL, Notizen. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **7.4 Wettkampf bearbeiten** — Alle Felder editierbar, vorausgefüllt. · [Priorität: muss · T1] · [Begründung: Zielzeiten ändern sich]
+- [ ] **7.5 Wettkampf löschen** — Löschen aus der Events-Liste. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **7.6 Vergangene Ergebnisse erfassen** — Modal: Datum, Sport, Name, Ort, Zielzeit, tatsächliche Zeit, Notizen/Splits. · [Priorität: muss · T1] · [Begründung: für Performance-Historie]
+- [ ] **7.7 Ergebnisse bearbeiten/löschen** — Bearbeiten und Löschen aus der kombinierten Verlaufs-Liste. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **7.8 Kombinierte Verlaufs-Liste** — Vergangene Rennen und Ergebnisse zusammen nach Datum sortiert. · [Priorität: muss · T1] · [Begründung: Performance-Historie]
+- [ ] **7.9 Tapering-Hinweis (automatisch T-X Tage vor Event)** _(neu)_ — Hinweis auf Tapering-Phase erscheint automatisch wenn Event in definierten Tagen. · [Priorität: muss · T2] · [Begründung: hoher Nutzwert]
+- [ ] **7.10 Rennbericht/Post-Race-Reflexion (strukturiert, fließt in Coach-Kontext)** _(neu)_ — Strukturiertes Formular nach einem Rennen; Inhalt fließt in Coach-Kontext. · [Priorität: muss · T2] · [Begründung: Saisonanalyse Gold wert]
+- [ ] **7.11 Wettkampf-Wetter-Vorschau (10 Tage vor Event, Open-Meteo)** _(neu)_ — Wetter-Vorschau für den Wettkampfort; aktiv in den letzten 10 Tagen vor dem Rennen. · [Priorität: muss · T2] · [Begründung: kostenlos]
+- [ ] **7.12 Strukturierte Triathlon-Splits (Schwimm/T1/Rad/T2/Lauf/Gesamt)** _(neu)_ — Eingabe und Anzeige von Triathlon-Segment-Zeiten. · [Priorität: muss · T2] · [Begründung: bessere Auswertung]
 
 ---
 
 ## 8. Trainingsplan
 
-- [ ] **Wochenrahmen-Grid-Anzeige** — 7-Tage-Raster (Mo–So) mit Sport-Tags pro Tag (z. B. `run-easy`, `bike-long`, `rest`, `strength`). Anzeige auf der Events-Seite und im Plan. · [Priorität: ?]
-- [ ] **Wochenrahmen bearbeiten** — Modal oder Inline: Tags per Klick hinzufügen und entfernen, Sport-Auswahl aus Vorschlägen. · [Priorität: ?]
-- [ ] **Wochenziele setzen** — Numerische Zielfelder: Laufen (km, Sessions), Rad (km, Sessions), Schwimmen (m, Sessions), Gesamt-Stunden. Basis für Belastungsampel. · [Priorität: ?]
-- [ ] **Unsaved-Changes-Indikator** — Visueller Hinweis (oranger Punkt + Text „Ungespeicherte Änderungen") solange Änderungen noch nicht gespeichert sind. · [Priorität: ?]
-- [ ] **Trainingsplan speichern** — Lokales Speichern + Sync nach Supabase (`week_frame`-Tabelle). · [Priorität: ?]
+- [ ] **8.1 Wochenrahmen-Grid (7-Tage-Raster)** — Mo–So-Raster mit Sport-Tags pro Tag; füttert Belastungsampel. · [Priorität: muss · T1] · [Begründung: füttert Belastungsampel]
+- [ ] **8.2 Wochenrahmen bearbeiten** — Tags per Klick hinzufügen und entfernen. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **8.3 Wochenziele setzen** — Numerische Zielfelder: km/Sessions pro Sport, Gesamt-Stunden; Basis für Ampel. · [Priorität: muss · T1] · [Begründung: Basis für Ampel + Heatmap]
+- [ ] **8.4 Unsaved-Changes-Indikator** — Visueller Hinweis bei ungespeicherten Änderungen. · [Priorität: kann weg] · [Begründung: Auto-Save löst das]
+- [ ] **8.5 Trainingsplan speichern als Auto-Save** — Speichert automatisch nach jeder Änderung lokal + Supabase. · [Priorität: muss · T1] · [Begründung: UX-Standard]
+- [ ] **8.6 Periodisierung nach Saisonzielen** _(neu, konzeptionell komplex, eigene Design-Session nötig)_ — Trainingsplan-Periodisierung über mehrere Wochen/Phasen basierend auf Saisonzielen. · [Priorität: muss · T3] · [Begründung: anspruchsvoll wegen überlappender Phasen]
+- [ ] **8.7 Jahres-Zielerreichungs-Heatmap** _(neu, braucht Überarbeitung Ampel-/Ziel-Logik)_ — Kalender-Heatmap der Trainingszielerreichung über das Jahr. · [Priorität: muss · T2] · [Begründung: starkes Visual]
 
 ---
 
-## 9. Coach / KI-Chat
+## 9. Coach / KI
 
-- [ ] **Coach-Chat-Interface** — Chat-Bubble-Verlauf mit User- und Bot-Nachrichten unterschiedlich gestylt (rechts/links, unterschiedliche Hintergrundfarben). · [Priorität: ?]
-- [ ] **Claude-API-Direktverbindung via Proxy** — Nachrichten werden über den konfigurierten Vercel-Proxy an Claude Sonnet geschickt. · [Priorität: ?]
-- [ ] **Kontext-aware Coach-Nachrichten** — Jede Nachricht enthält als Systemkontext: letzte 8 Wochen Training (Einheiten, Volumen), nächste Wettkämpfe, aktuelle Wochensummen. · [Priorität: ?]
-- [ ] **Schnellfragen-Chips (Quick-Reply)** — Vordefinierte Frage-Buttons unter dem Eingabefeld, die mit einem Klick gesendet werden (z. B. „Wie sieht mein Training aus?"). · [Priorität: ?]
-- [ ] **Coach-Nachrichtenhistorie** — Gesprächsverlauf wird in localStorage gespeichert und beim nächsten Öffnen wiederhergestellt. · [Priorität: ?]
-- [ ] **Coach-Chat löschen** — Button zum Leeren der Gesprächshistorie. · [Priorität: ?]
-- [ ] **Editierbarer System-Prompt** — Textarea in Coach-Seite: Anpassbarer Coach-Prompt, der an Claude und den Telegram-Webhook geschickt wird. Wird in Supabase `settings` gespeichert. · [Priorität: ?]
-- [ ] **Telegram-Push-Bewertung nach neuer Einheit** — Nach jeder neuen Strava-Einheit wird automatisch eine kurze KI-Bewertung (Claude Haiku) via Telegram Bot gesendet. · [Priorität: ?]
-- [ ] **Telegram-Verbindung testen** — Button zum Senden einer Test-Nachricht an den konfigurierten Telegram-Bot. · [Priorität: ?]
-- [ ] **Typing-Indicator** — „Coach denkt nach…"-Anzeige mit Bot-Avatar während die KI antwortet. · [Priorität: ?]
+- [ ] **9.1 Coach-Chat-Interface (Web-Bubbles)** — Chat-Bubble-Interface im Browser. · [Priorität: kann weg] · [Begründung: Telegram-only Strategie]
+- [ ] **9.2 Claude-API via Vercel-Proxy** — Alle Claude-Calls über konfigurierten Vercel-Proxy; kein API Key im Frontend. · [Priorität: muss · T1] · [Begründung: hält API Key sicher]
+- [ ] **9.3 Kontext-aware Coach-Nachrichten (8 Wochen, Events, Wochensummen)** — Systemkontext enthält letzte 8 Wochen Training, nächste Wettkämpfe, aktuelle Wochensummen. · [Priorität: muss · T1] · [Begründung: Kern]
+- [ ] **9.4 Schnellfragen-Chips als Telegram-Bot-Keyboard (nicht Web)** — Vordefinierte Fragen als Telegram Inline-Keyboard-Buttons. · [Priorität: muss · T2] · [Begründung: Quick-Access]
+- [ ] **9.5 Coach-Historie in localStorage** — Gesprächsverlauf in localStorage. · [Priorität: kann weg] · [Begründung: wird durch Supabase coach_messages ersetzt]
+- [ ] **9.6 Coach-Chat löschen / Historie leeren** — Reset der Coach-Gesprächshistorie. · [Priorität: muss · T2] · [Begründung: Reset-Möglichkeit]
+- [ ] **9.7 Editierbarer System-Prompt** — Textarea für anpassbaren Coach-Prompt; gespeichert in Supabase `settings`. · [Priorität: muss · T1] · [Begründung: Sebastian tunet aktiv]
+- [ ] **9.8 Telegram-Push-Bewertung nach neuer Einheit (Haiku)** ⚠️ **aktuell defekt — Bug fixen** — Automatische KI-Kurzbewertung via Telegram nach jeder neuen Strava-Einheit. · [Priorität: muss · T1] · [Begründung: täglich genutzt]
+- [ ] **9.9 Telegram-Verbindung testen** — Testnachricht an konfigurierten Bot senden. · [Priorität: muss · T1] · [Begründung: Token/Chat-ID-Validierung]
+- [ ] **9.10 Typing-Indicator** — „Coach denkt nach…"-Anzeige. · [Priorität: kann weg] · [Begründung: entfällt mit Telegram-only, Bot zeigt typing nativ]
+- [ ] **9.11 Bidirektionaler Telegram-Coach (Sonnet, Webhook mit Secret-Token-Verifizierung)** _(neu)_ — Echter Chat via Telegram: Webhook mit Secret-Token-Verifizierung, voller Kontext pro Message, Sonnet. · [Priorität: muss · T1] · [Begründung: Kern Phase-1-Vision]
+- [ ] **9.12 Read-only Web-Ansicht der Coach-Historie** _(neu)_ — Lesbare Darstellung der Coach-Gesprächshistorie in der Web-App für Laptop-Nachschlagen. · [Priorität: muss · T2] · [Begründung: Laptop-Nachschlagen]
+- [ ] **9.13 Wöchentlicher Telegram-Review (Mo–So korrekte Wochen-Logik!)** _(neu)_ ⚠️ **Bug in Wochen-Logik fixen** — Automatischer Wochenzusammenfassungs-Push; Woche muss ISO 8601 (Mo–So) sein. · [Priorität: muss · T1] · [Begründung: existiert produktiv]
 
 ---
 
 ## 10. Import
 
-- [ ] **Strava CSV-Archiv-Import** — Drag-and-Drop-Zone + File-Picker für Strava-Aktivitäten-CSV; verarbeitet alle Zeilen, dedupliziert nach Namen+Datum, konvertiert Schwimmdistanzen korrekt von Metern (kein ×1000). · [Priorität: ?]
-- [ ] **Strava API Sync (manuell)** — Button „Jetzt synchronisieren": lädt alle Aktivitäten aus Strava API (paginiert, bis keine mehr kommen), fügt neue hinzu, überspringt Duplikate. · [Priorität: ?]
-- [ ] **Strava OAuth (App-Flow)** — Vollständiger OAuth2-Redirect-Flow über Vercel-Proxy; speichert Refresh Token für automatische Token-Erneuerung. · [Priorität: ?]
-- [ ] **Strava manueller Access-Token** — Fallback: Access Token direkt einfügen (läuft alle 6h ab); nützlich ohne OAuth-Setup. · [Priorität: ?]
-- [ ] **Strava Token erneuern** — Button „Token erneuern": tauscht Refresh Token gegen neuen Access Token via Vercel-Proxy. · [Priorität: ?]
-- [ ] **Strava Trennen** — Entfernt gespeicherten Refresh Token und Access Token. · [Priorität: ?]
-- [ ] **Strava Virtual-Ride-Distanz-Reparatur** — Sonderfunktion: korrigiert fehlerhafte Distanzwerte bei Rollentrainer-Einheiten (Strava liefert manchmal falsche Werte). · [Priorität: ?]
-- [ ] **GPX-Import** — Einzelne oder mehrere GPX-Dateien einlesen; parst Track-Punkte, berechnet Distanz und Dauer, legt neue Aktivität an. · [Priorität: ?]
-- [ ] **JSON-Import (Einzeldatei oder Array)** — Importiert eine JSON-Datei mit einer oder mehreren normalisierten Aktivitäten. · [Priorität: ?]
-- [ ] **Daten-Export (JSON)** — Exportiert alle Aktivitäten, Wettkämpfe, Wochenrahmen und Profilname als JSON-Datei (Download). · [Priorität: ?]
-- [ ] **Backup-Import** — Importiert eine zuvor exportierte JSON-Backup-Datei; überschreibt activities, races, weekFrame. · [Priorität: ?]
-- [ ] **Demo-Daten laden** — Lädt ein vordefiniertes Set von Beispieldaten für Tests und Demos. · [Priorität: ?]
-- [ ] **Alle Daten löschen** — Löscht alle Aktivitäten und Wettkämpfe lokal und in Supabase; braucht expliziten Klick. · [Priorität: ?]
+- [ ] **10.1 Strava CSV-Archiv-Import (Schwimm-Meter-Fix, Dedup)** — Datei-Drop-Zone für Strava-Aktivitäten-CSV; Schwimm-Distanz in Metern (kein ×1000); Deduplizierung nach Name+Datum. · [Priorität: muss · T1] · [Begründung: Initial-Befüllung + Nachzug]
+- [ ] **10.2 Strava API Sync manuell** — Button „Jetzt synchronisieren". · [Priorität: kann weg] · [Begründung: durch 10.14 Auto-Sync ersetzt]
+- [ ] **10.3 Strava OAuth via Vercel-Proxy** — Vollständiger OAuth2-Flow über Vercel-Proxy; speichert Refresh Token. · [Priorität: muss · T1] · [Begründung: Grundvoraussetzung]
+- [ ] **10.4 Strava manueller Access-Token** — Fallback: Access Token direkt einfügen. · [Priorität: kann weg] · [Begründung: Sicherheitsrisiko]
+- [ ] **10.5 Strava Token erneuern Button** — Manuelles Token-Refresh. · [Priorität: kann weg] · [Begründung: soll automatisch im Hintergrund passieren]
+- [ ] **10.6 Strava Trennen** — Entfernt Refresh Token und Access Token. · [Priorität: muss · T1] · [Begründung: Pflicht für Debug/Account-Wechsel]
+- [ ] **10.7 Strava Virtual-Ride-Distanz-Reparatur (Rollentrainer-Fix)** — Korrigiert fehlerhafte Distanzwerte bei Rollentrainer-Einheiten. · [Priorität: muss · T2] · [Begründung: Winter-Sessions relevant]
+- [ ] **10.8 GPX-Import** — Einzelne oder mehrere GPX-Dateien; parst Track-Punkte. · [Priorität: kann weg] · [Begründung: Strava deckt alles ab]
+- [ ] **10.9 JSON-Import** — Importiert JSON-Datei mit einer oder mehreren normalisierten Aktivitäten. · [Priorität: kann weg] · [Begründung: Entwickler-Feature, nie produktiv]
+- [ ] **10.10 Komplett-Export & -Import (Aktivitäten + Wettkämpfe + Settings ohne Secrets, JSON, bidirektional)** _(verschmolzen aus Export-JSON + Backup-Import + Einstellungs-Export)_ — Vollständiger Daten-Export und -Import als JSON; Settings ohne Secrets. · [Priorität: muss · T2] · [Begründung: Datensouveränität]
+- [ ] **10.12 Demo-Daten laden** — Lädt vordefiniertes Testdaten-Set. · [Priorität: kann weg] · [Begründung: Entwickler-Feature]
+- [ ] **10.13 Alle Daten löschen** — Löscht alle Daten lokal und in Supabase. · [Priorität: Phase 2] · [Begründung: DSGVO-relevant ab Multi-User]
+- [ ] **10.14 Strava Auto-Sync beim App-Start (nur wenn letzter Sync >60 Min her)** _(neu)_ — Automatischer Sync beim Öffnen der App; überspringt wenn Sync <60 Min zurückliegt. · [Priorität: muss · T1] · [Begründung: ersetzt manuellen Button]
+- [ ] **10.15 Strava Re-Sync einzelner Aktivität (Button auf Activity-Detail)** _(neu)_ — Einzelne Aktivität aus Strava neu laden und überschreiben. · [Priorität: muss · T2] · [Begründung: nachträgliche Strava-Korrekturen]
+- [ ] **10.16 Backfill-Bereich (gezieltes Nachladen Zeiträume von Strava)** _(neu)_ — Interface zum gezielten Nachladen eines Zeitraums von Strava. · [Priorität: muss · T2] · [Begründung: Historie-Lücken füllen]
+- [ ] **10.17 Import-Historie/Log** _(neu)_ — Protokoll der letzten Import-Vorgänge mit Zeitstempel und Ergebnis. · [Priorität: muss · T2] · [Begründung: Transparenz]
 
 ---
 
 ## 11. Einstellungen
 
-- [ ] **Supabase URL + Anon Key konfigurieren** — Felder zum Ändern der Supabase-Verbindung, auch nach dem initialen Setup. · [Priorität: ?]
-- [ ] **Benutzername (Anzeigename)** — Freitext-Feld für den eigenen Namen, wird im Coach-Kontext und Export verwendet. · [Priorität: ?]
-- [ ] **Claude API Key konfigurieren** — Passwort-Feld (masked); Key wird lokal gespeichert und für direkte Coach-API-Calls genutzt. · [Priorität: ?]
-- [ ] **Vercel Proxy URL konfigurieren** — URL des Vercel-Proxy für Claude-API und Strava-OAuth. · [Priorität: ?]
-- [ ] **Strava Client ID konfigurieren** — Numerisches Feld für die eigene Strava-App-Client-ID (für OAuth-Flow). · [Priorität: ?]
-- [ ] **Strava OAuth-Status-Anzeige** — Grüner/grauer Status-Badge „verbunden / nicht verbunden" mit OAuth-Status. · [Priorität: ?]
-- [ ] **Strava Webhook registrieren** — Registriert einen neuen Strava-Webhook via Vercel-Proxy; speichert Subscription ID. · [Priorität: ?]
-- [ ] **Strava Webhook löschen** — Löscht bestehende Webhook-Subscription via Vercel-Proxy. · [Priorität: ?]
-- [ ] **Strava Webhook-Status prüfen** — Prüft aktive Subscriptions bei Strava und zeigt Subscription ID an. · [Priorität: ?]
-- [ ] **Telegram Bot Token konfigurieren** — Passwort-Feld für den Telegram Bot Token. · [Priorität: ?]
-- [ ] **Telegram Chat ID konfigurieren** — Feld für die Telegram Chat ID. · [Priorität: ?]
-- [ ] **Telegram-Status-Anzeige** — Grüner/grauer Status-Badge ob Telegram konfiguriert ist. · [Priorität: ?]
-- [ ] **Share-Link generieren** — Erstellt einen zufälligen Token, speichert ihn in Supabase `public_shares`, kopiert den vollständigen Link in die Zwischenablage. · [Priorität: ?]
-- [ ] **Share-Link anzeigen** — Readonly-Input-Feld mit vollständiger URL; Klick selektiert den Text. · [Priorität: ?]
-- [ ] **Share-Link löschen** — Entfernt den Share-Token aus Supabase; Link wird ungültig. · [Priorität: ?]
+- [ ] **11.1 Supabase URL + Anon Key konfigurieren** — Felder zum Ändern der Supabase-Verbindung. · [Priorität: kann weg] · [Begründung: wird hartcodiert]
+- [ ] **11.2 Benutzername (Anzeigename)** — Freitext für den eigenen Namen; wird im Coach-Kontext genutzt. · [Priorität: muss · T1] · [Begründung: wird im Coach-Kontext genutzt]
+- [ ] **11.3 Claude API Key konfigurieren** — Passwort-Feld für Claude API Key. · [Priorität: kann weg] · [Begründung: wandert in Vercel Env Vars]
+- [ ] **11.4 Vercel Proxy URL konfigurieren** — URL des Vercel-Proxy. · [Priorität: kann weg] · [Begründung: hartcodiert]
+- [ ] **11.5 Strava Client ID konfigurieren** — Numerisches Feld für Strava-App-Client-ID. · [Priorität: kann weg] · [Begründung: hartcodiert (216084)]
+- [ ] **11.6 Strava OAuth-Status-Anzeige** — Status-Badge „verbunden / nicht verbunden". · [Priorität: muss · T1] · [Begründung: Verbindungs-Status sichtbar]
+- [ ] **11.7 Strava Webhook registrieren** — Registriert Strava-Webhook via Vercel-Proxy; speichert Subscription ID. · [Priorität: muss · T1] · [Begründung: ohne Webhook keine Auto-Bewertungen]
+- [ ] **11.8 Strava Webhook löschen** — Löscht bestehende Webhook-Subscription. · [Priorität: muss · T2] · [Begründung: für Debug/Re-Registrierung]
+- [ ] **11.9 Strava Webhook-Status prüfen** — Prüft aktive Subscriptions; zeigt Subscription ID an. · [Priorität: muss · T2] · [Begründung: Statusanzeige]
+- [ ] **11.10 Telegram Bot Token** — Passwort-Feld für Telegram Bot Token. · [Priorität: kann weg] · [Begründung: wandert in Vercel Env Vars]
+- [ ] **11.11 Telegram Chat ID** — Feld für Telegram Chat ID. · [Priorität: kann weg] · [Begründung: wandert in Vercel Env Vars]
+- [ ] **11.12 Telegram-Status-Anzeige** — Status-Badge ob Telegram konfiguriert. · [Priorität: muss · T1] · [Begründung: Status sichtbar (kein Secret)]
+- [ ] **11.13 Share-Link generieren** — Erstellt zufälligen Token, speichert in Supabase `public_shares`, kopiert URL in Clipboard. · [Priorität: muss · T1] · [Begründung: Kernfeature Phase 1]
+- [ ] **11.14 Share-Link anzeigen + Copy-Funktion** — Readonly-Input mit vollständiger URL; Klick kopiert. · [Priorität: muss · T1] · [Begründung: Pflicht]
+- [ ] **11.15 Share-Link löschen** — Entfernt Share-Token aus Supabase; Link wird ungültig. · [Priorität: muss · T1] · [Begründung: Revoke-Möglichkeit]
+- [ ] **11.16 Coach-Prompt-Editor mit Versions-Historie (10 Versionen, rollback-fähig)** _(neu)_ — Prompt-Editor mit Historisierung; bis zu 10 Versionen rollback-fähig. · [Priorität: muss · T2] · [Begründung: Prompt-Tuning ist Sebastians Hebel]
+- [ ] **11.18 Theme-Wahl (Light / Dark / System)** _(neu)_ — Umschalten zwischen Light, Dark und System-Präferenz. · [Priorität: muss · T2] · [Begründung: User-Kontrolle]
+- [ ] **11.19 Account-Verwaltung: Passwort ändern + Email ändern + Account löschen** _(neu)_ — Self-Service-Verwaltung via Supabase. · [Priorität: muss · T1] · [Begründung: Self-Service-Standard]
+- [ ] **11.20 Webhook-Health-Dashboard (letzte erfolgreiche Zustellung + 7-Tage-Statistik)** _(neu)_ — Übersicht: wann zuletzt erfolgreich Webhook zugestellt + 7-Tage-Erfolgsrate. · [Priorität: muss · T1] · [Begründung: sieht Ausfälle proaktiv]
 
 ---
 
 ## 12. Share-View & Kommentare
 
-- [ ] **Share-View (Read-Only-Modus)** — Beim Öffnen mit `?share=TOKEN` im URL wird die App ohne Login geladen; Daten des verlinkten Nutzers werden aus Supabase gelesen. · [Priorität: ?]
-- [ ] **Read-Only-Banner** — Farbiges Banner oben im Share-View: „Du schaust Sebastians Trainingslog — nur lesend". Navigation ist ausgeblendet. · [Priorität: ?]
-- [ ] **Dashboard vollständig in Share-View** — Alle Dashboard-Charts und KPIs (Wochenvolumen, Events, Performance-Chart, etc.) sind in der Share-View sichtbar. · [Priorität: ?]
-- [ ] **Kommentar schreiben (ohne Login)** — Formular unterhalb des Dashboards in der Share-View: Name + Nachricht, absenden ohne Authentifizierung. · [Priorität: ?]
-- [ ] **Kommentare laden und anzeigen** — Kommentare werden aus Supabase `comments`-Tabelle geladen und chronologisch (neueste zuerst) angezeigt. · [Priorität: ?]
-- [ ] **Kommentar löschen (Owner)** — Eingeloggter Owner kann Kommentare aus dem Dashboard-Kommentar-Bereich löschen. · [Priorität: ?]
+- [ ] **12.1 Share-View Read-Only-Modus (`?share=TOKEN` ohne Login)** — App öffnet ohne Login; Daten des verlinkten Nutzers werden aus Supabase gelesen. · [Priorität: muss · T1] · [Begründung: Fundament]
+- [ ] **12.2 Read-Only-Banner** — Banner: „Du schaust Sebastians Trainingslog — nur lesend"; Navigation ausgeblendet. · [Priorität: muss · T1] · [Begründung: UX-Pflicht]
+- [ ] **12.3 Dashboard vollständig in Share-View** — Alle Charts und KPIs des Dashboards sichtbar in der Share-View. · [Priorität: muss · T1] · [Begründung: Wert für Freunde]
+- [ ] **12.4 Kommentar schreiben ohne Login (Name + Nachricht + Datum-Anzeige)** — Kommentarformular ohne Authentifizierung; Datum wird angezeigt. · [Priorität: muss · T1] · [Begründung: Kern]
+- [ ] **12.5 Kommentare laden und anzeigen** — Kommentare aus Supabase `comments`; neueste zuerst. · [Priorität: muss · T1] · [Begründung: gehört zu 12.4]
+- [ ] **12.6 Kommentar löschen (Owner)** ⚠️ **Bug fixen** — Eingeloggter Owner kann Kommentare löschen; aktuell defekt in Legacy. · [Priorität: muss · T1] · [Begründung: defekt in Legacy]
+- [ ] **12.7 Share-View-Besucher-Tracking (anonyme Zählung)** _(neu)_ — Anonyme Zählung der Share-View-Aufrufe ohne Personendaten. · [Priorität: muss · T2] · [Begründung: Interesse-Indikator]
+- [ ] **12.8 Notfall-Kill-Switch: alle Share-Links sofort widerrufen** _(neu)_ — Ein Button widerruft alle aktiven Share-Links sofort. · [Priorität: muss · T1] · [Begründung: Sicherheits-Nettohaken]
 
 ---
 
 ## 13. Datenpersistenz & Infrastruktur
 
-- [ ] **localStorage-Cache** — Alle Kerndaten (activities, races, weekFrame, settings, stravaToken, coachMessages) werden in `localStorage` mit Prefix `ac_` gespiegelt; App startet sofort aus Cache. · [Priorität: ?]
-- [ ] **Hybrid-Sync (localStorage + Supabase)** — Bei jedem Speichervorgang wird sowohl localStorage als auch Supabase (UPSERT mit `user_id`) aktualisiert. Beim Start: Supabase-Daten werden geladen und Cache überschrieben. · [Priorität: ?]
-- [ ] **BUILD-Timestamp-basiertes Cache-Busting** — Konstante `BUILD` im JS-Code wird bei jedem Deploy durch einen Unix-Timestamp ersetzt (automatisch via CI); erzwingt Cache-Invalidierung im Browser. · [Priorität: ?]
-- [ ] **PWA-App-Icon** — Apple-Touch-Icon als inline base64 PNG im `<head>`; ermöglicht „Zum Home-Bildschirm hinzufügen" auf iOS. · [Priorität: ?]
-- [ ] **Theme-Color Meta-Tag** — `<meta name="theme-color">` setzt Browser-Chrome-Farbe (#6c5ce7). · [Priorität: ?]
-- [ ] **Responsive Layout (Mobile / Desktop)** — Einspaltig auf Mobile, breitere Darstellung auf Desktop; Breakpoints bei 480 px und 768 px. · [Priorität: ?]
+- [ ] **13.1 localStorage-Cache** — Spiegeln aller Kerndaten in localStorage. · [Priorität: kann weg] · [Begründung: wird durch TanStack Query ersetzt]
+- [ ] **13.2 Hybrid-Sync localStorage + Supabase** — Bei jedem Speichervorgang beide Schichten aktualisieren. · [Priorität: kann weg] · [Begründung: Komplexitäts-Hotspot, raus]
+- [ ] **13.3 BUILD-Timestamp Cache-Busting** — Unix-Timestamp im JS-Code für Cache-Invalidierung. · [Priorität: kann weg] · [Begründung: vite-plugin-pwa macht es richtig]
+- [ ] **13.4 PWA-App-Icon (über vite-plugin-pwa)** _(Logo-Design noch ausstehend)_ — PWA-Icon für iPhone Home-Bildschirm via vite-plugin-pwa. · [Priorität: muss · T1] · [Begründung: iPhone Home-Bildschirm]
+- [ ] **13.5 Theme-Color Meta-Tag** — `<meta name="theme-color">` für Browser-Chrome-Farbe. · [Priorität: muss · T1] · [Begründung: schöne PWA-Integration]
+- [ ] **13.6 Responsive Layout** — Mobile-first mit Tailwind; Breakpoints für Desktop. · [Priorität: muss · T1] · [Begründung: Tailwind Mobile-first]
+- [ ] **13.7 Offline-Fähigkeit (PWA Service Worker, read-only)** _(neu)_ — Service Worker cached die App-Shell; Daten read-only offline verfügbar. · [Priorität: muss · T2] · [Begründung: Training unterwegs]
+- [ ] **13.8 Error Boundary mit Faultier 🦥** _(neu)_ — Freundlicher Fehler-Screen: „Uff, ich habe die Balance verloren. Einmal durchatmen: [Neu laden]". · [Priorität: muss · T2] · [Begründung: freundliche Fehler-UX]
+- [ ] **13.9 Performance-Monitoring (Vercel Speed Insights)** _(neu)_ — Vercel Speed Insights einbinden; kostenlos im Hobby-Plan. · [Priorität: muss · T2] · [Begründung: Production-Insights]
+- [ ] **13.10 Loading-Skeletons (shadcn Skeleton-Komponenten)** _(neu)_ — Skeleton-Platzhalter während Daten geladen werden. · [Priorität: muss · T2] · [Begründung: UX-Uplift]
+- [ ] **13.11 Version-Anzeige im Footer (dezent, Hover zeigt Build-Info)** _(neu)_ — Dezente Versions-Anzeige (grau, Opacity ~0.4); Hover zeigt Build-Details. · [Priorität: muss · T2] · [Begründung: Debug-Hilfe ohne UI-Störung]
+- [ ] **13.12 Strava-Rate-Limit-Handler (Queue + Retry-Logik serverseitig)** _(neu)_ — Rate-Limit-Handling in der Vercel Function: Queue + exponentielles Retry. · [Priorität: muss · T1] · [Begründung: sonst Backfill unzuverlässig]
+
+---
+
+## Migrations-Tracking
+
+> Diese Datei ist **Living Doc** während der Migration. Jede umgesetzte Feature-Implementierung
+> hakt die Checkbox ab. Status pro Tier wird beim Mergen eines Feature-PRs hochgezählt.
+> Im PR-Body des Feature-PRs auf die zugehörige Feature-ID referenzieren (z. B. „Implementiert: 3.5, 3.6").
+
+| Tier                     | Erledigt | Gesamt |
+| ------------------------ | -------- | ------ |
+| **T1 (MVP)**             | 0        | 47     |
+| **T2 (Polish)**          | 0        | 34     |
+| **T3 (Advanced)**        | 0        | 5      |
+| **Phase 2**              | —        | 4      |
+| **kann weg**             | —        | 24     |
+| **später**               | —        | 1      |
+| **Gesamt (alle Felder)** | —        | 115    |
+
+> **Hinweis:** 6 Einträge wurden verschmolzen oder entfallen (10.10 + 10.11 + 11.17 → 10.10;
+> 10.11 und 11.17 existieren nicht mehr als separate Zeilen), daher 115 statt 121 Zeilen.
+
+---
+
+## Bug-Backlog
+
+> Diese Bugs sind unabhängig von der Migration zu behandeln — entweder in der alten App fixen
+> oder spätestens bei Übernahme in die neue App adressieren.
+
+- ⚠️ **Bug 9.8** — **Telegram-Push-Bewertung nach neuer Einheit funktioniert nicht.** Vermuteter Bereich: Webhook-Subscription abgelaufen, Strava-Token abgelaufen oder Vercel-Function-Fehler. Vor oder spätestens bei Migration diagnostizieren und fixen.
+- ⚠️ **Bug 9.13** — **Wöchentlicher Telegram-Review nutzt falsche Wochen-Logik.** Korrekte Logik: Woche = Montag bis Sonntag (ISO 8601), nicht beliebiges 7-Tages-Fenster. Fix bei Migration in neue App.
+- ⚠️ **Bug 12.6** — **Kommentar-Löschen durch Owner funktioniert nicht.** Vermuteter Bereich: RLS-Policy oder Owner-Check in Supabase. Fix bei Migration in neue App.
