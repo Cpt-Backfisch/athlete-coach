@@ -3,7 +3,7 @@
 > **Zweck dieser Datei:** Lebendiger Projektstand. Hier stehen aktueller Stand, To-dos, Phasen, Bugs.
 > Vision & Architektur-Grundlagen → siehe `context.md`.
 
-**Letztes Update:** 14.04.2026
+**Letztes Update:** 18.04.2026
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 1. Aktueller Stand in einem Satz
 
-Phase 1 gestartet (13.04.2026): Design-Session durchgeführt, `design.md` im Repo als Single Source of Truth für Look-and-Feel (Farben, Typografie, Spacing, Navigation). Nächster Schritt: React-Migration mit Claude Code.
+Feature-Parity-Priorisierung abgeschlossen (115 Features, davon 47 T1-MVP), Migrations-Sequenz steht (13 Schritte + 2 Bug-Sessions). Nächster Schritt: Auth-Implementation (Sequenz-Schritt 1).
 
 ---
 
@@ -112,15 +112,16 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - [x] **Migrations-Schritt 1: Vite-Skelett in `app/`** (14.04.2026) — PR #7. Leeres Vite+React+TS-Projekt in `app/`, alte `index.html` unangetastet. Versionen: Node 20.20.2, Vite 8.0.4, React 19.2.4, TS 6.0.2.
 - [x] **Migrations-Schritt 2: CI erweitern, `/app/` deployen** (14.04.2026) — PR #10 (Vite `base`-Pfad) + PR #11 (CI dual deploy). CI baut `app/` via Job `build-app` und kombiniert beide Apps in `_site/`. Neue App live unter `https://cpt-backfisch.github.io/athlete-coach/app/`.
 - [x] **Migrations-Schritt 3: Feature-Parity-Checkliste erstellen** (14.04.2026) — PR #12. `feature-parity.md` angelegt: 67 Features in 13 Gruppen. Alle auf `[Priorität: ?]` — Sebastian priorisiert in separater Session.
-- [ ] **Migrations-Schritt 4: Tailwind + Design-Tokens** — Muster 2 (Entscheidung: welche Token-Namen, CSS-Variablen-Schema). Tailwind im `app/`-Projekt installieren, `tailwind.config.ts` aus `design.md` ableiten (Farben, Typo, Radius, Spacing, Dark-Mode-Strategie via `class`-Toggle). Dark/Light-Toggle-Komponente + OS-Auto-Switch. Hello-Seite auf Design-Tokens migrieren als Sichtprobe.
-- [ ] **Migrations-Schritt 5: shadcn/ui + Basis-Komponenten** — Muster 2 (Entscheidung: welche Komponenten initial). `npx shadcn@latest init`, dann Button, Card, Dialog, Tabs, Toast, Input. Keine Feature-Komponenten, nur Basis. Demo-Seite, die alle sechs Komponenten einmal rendert, als Sichtprüfung.
-- [ ] **Migrations-Schritt 6: React Router + Grundlayout** — Muster 2 (Entscheidung: URL-Struktur + Ordner-Struktur in `src/`). Routes-Skelett mit leeren Platzhalter-Seiten. Header mit Wortmarke „athlete.coach.", Hybrid-Navigation (Sidebar Desktop / Bottom-Nav Mobile), Logo-Slot leer. Kein Inhalt in den Seiten.
-- [ ] **Migrations-Schritt 7: Supabase-Client + Auth (read-only)** — Muster 2 (Entscheidung: Storage-Key-Strategie, State-Library für Auth). `@supabase/supabase-js` anbinden mit eigenem Storage-Key (`athlete-coach-v2-auth`) zur Isolation von der alten App. Login-Screen. Auth-Context. Noch keine Schreibrechte nutzen. Env-Vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` — beide sind laut `context.md` §5 öffentlich und dürfen ins Repo `.env.example`, echte Werte aus `.env.local` (in `.gitignore`).
-- [ ] **Migrations-Schritt 8: Dashboard** — Muster 2 (Entscheidung: Reihenfolge KPIs/Charts, Data-Fetching-Pattern). KPI-Karten, Zeitraum/Sport-Filter, Wochenvolumen-Chart, Jahres-Trainingszeit. Hier kommt die größte Feature-Parity-Arbeit. **⚠️ Dieser Schritt ist der kritische** — wenn er gut wird, ist der Rest Routine.
-- [ ] **Migrations-Schritt 9: Activity-Detail + Wettkämpfe** — Muster 2 (Reihenfolge: erst Activity-Detail mit Streams + Karte, dann Wettkämpfe). Zwei Sub-PRs, damit der Schritt nicht zu groß wird.
-- [ ] **Migrations-Schritt 10: Share-View + Kommentare** — Muster 1 (meistens Ausführen, Logik ist aus alter App übertragbar). Share-Token-basierter Read-only-Zugang wie heute, Kommentare.
-- [ ] **Migrations-Schritt 11 (Umschalt-Tag): Redirect / Root-Swap** — Muster 2 (Entscheidung: Meta-Redirect vs. Root-Swap). Vor Swap: Git-Tag `v1-legacy-last` setzen. `index.html` entweder durch Redirect auf `/app/` ersetzen, oder React-Build in Root packen. Danach: Feature-Parity-Checkliste abgehakt, eine Woche parallel genutzt, dann Umschalt. Bei Problemen: Revert des Umschalt-Commits → Zustand wie vorher.
-- [ ] **Migrations-Schritt 12 (Aufräumen): alte Tests anpassen, alte `index.html` archivieren** — Muster 1. Playwright-Tests auf neue App umziehen. Alte `index.html` in `legacy/` verschieben (oder komplett entfernen, entscheidet Sebastian am Umschalt-Tag).
+- [x] **Doku-Korrektur `context.md` §4** (14.04.2026) — „HRV-Zonenverteilung" → „HF-Zonenverteilung (5 Zonen nach max HR)". (PR #13)
+- [x] **Migrations-Schritt 3b: Feature-Parity-Priorisierung abgeschlossen** (18.04.2026) — PR #14. 115 Features in 13 Gruppen, Tier-Einteilung T1 (47 MVP) / T2 (34 Polish) / T3 (5 Advanced). Neue Features identifiziert: Streak-Counter, TSS/TRIMP, ACWR, Race-Day-View u.a. Secrets (Claude API Key, Telegram Token/Chat ID) werden aus Frontend entfernt → nur noch Vercel Env Vars. Coach-Chat wird Telegram-only (kein Web-Chat mehr).
+- [x] **Migrations-Sequenz erstellt** (18.04.2026) — PR #15. `migration-sequence.md`: 13 Schritte in 5 Schichten, 2 Bug-Sessions als Zwischenschritte. Geschätzte Dauer T1-MVP: 21–31 Arbeitstage. Ziel: Umschalt-Tag August/September 2026.
+- [ ] **Migrations-Schritt 4 (= Sequenz-Schritt 1): Auth** — Supabase Login, Session-Wiederherstellung, Logout, Password-Reset.
+
+**Beide Apps parallel live:**
+
+- <https://cpt-backfisch.github.io/athlete-coach/> (alte App, produktiv)
+- <https://cpt-backfisch.github.io/athlete-coach/app/> (neue App, aktuell Skelett)
+
 - [ ] **State-of-the-art UI/UX**
   - Mobile-first Layout, getestet primär in Safari iOS und Safari macOS (keine native App, reine Web-App)
   - Touch-Targets ≥ 44px, iOS Safe Areas (`env(safe-area-inset-*)`), korrektes PWA-Verhalten beim „Zum Home-Bildschirm hinzufügen"
@@ -137,7 +138,6 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - [ ] **Sozial-Features für Freunde im Share-Link**
   - Likes/Reaktionen
   - Telegram-Notification an Sebastian bei neuen Kommentaren/Likes
-  - „Zugangslink mit Ablaufdatum"
 - [ ] **Strava Auto-Sync** beim App-Start (kein Polling, nur on-open)
 - [ ] **`context.md` aktualisieren am Ende von Phase 1** — siehe Abschnitt 6 unten. Zu diesem Zeitpunkt haben sich Architektur (React-Stack), Tabellen (`coach_messages`), Vercel-Functions (`api/telegram.js`) und der Status der Single-File-Schuld geändert. **Trigger: bevor Phase 1 als „done" markiert wird.**
 
@@ -186,6 +186,7 @@ Falls einer auftaucht: hier eintragen mit Datum, Beschreibung, Reproschritten.
 
 - **Eigene Domain in Phase 2?** Kosten & Aufwand vs. Nutzen
 - **Vercel-Aufräumen:** altes Projekt `athlete-coach-proxy` löschen, sobald sicher keine Referenzen mehr dranhängen
+- **Logo-Design für PWA-Icon:** Ausstehend, blockiert Sequenz-Schritt 13 (PWA-Finalisierung). Nicht dringend.
 
 ---
 
@@ -193,6 +194,8 @@ Falls einer auftaucht: hier eintragen mit Datum, Beschreibung, Reproschritten.
 
 | Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 18.04.2026 | Migrations-Sequenz erstellt (`migration-sequence.md`): 13 Schritte in 5 Schichten, 2 Bug-Sessions als Zwischenschritte. Geschätzte Dauer T1-MVP: 21–31 Arbeitstage. Umschalt-Tag-Ziel: August/September 2026. (PR #15)                                                                                                                                                                                                                                                                                                             |
+| 18.04.2026 | Feature-Parity-Priorisierung: 115 Features in 13 Gruppen priorisiert (47 T1, 34 T2, 5 T3, 4 Phase 2, 24 kann weg). Neue Features: Streak-Counter, TSS/TRIMP, ACWR, Race-Day-View, Tapering-Hinweis, Rennbericht, Triathlon-Splits, Besucher-Tracking, u.a. Secrets (Claude API Key, Telegram Token/Chat ID) werden aus Frontend entfernt → nur noch Vercel Env Vars. Coach-Chat wird Telegram-only (kein Web-Chat mehr). (PR #14)                                                                                                  |
 | 14.04.2026 | Doku-Korrektur in `context.md` §4 basierend auf Feature-Parity-Review (PR #12): „HRV-Zonenverteilung" → „HF-Zonenverteilung (5 Zonen nach max HR)" — kein echter HRV-Import vorhanden. Belastungsampel war bereits korrekt enthalten. (PR #13)                                                                                                                                                                                                                                                                                     |
 | 14.04.2026 | **Migrations-Schritt 3 abgeschlossen:** `feature-parity.md` angelegt — 67 Features der alten App in 13 Gruppen als Checkliste. Alle Einträge auf `[Priorität: ?]`. Priorisierung durch Sebastian steht noch aus. (PR #12)                                                                                                                                                                                                                                                                                                          |
 | 14.04.2026 | **Migrations-Schritt 2 abgeschlossen:** CI baut und deployt parallel alte `index.html` auf `/` und neue React-App auf `/app/`. Erste Live-URL der neuen App: https://cpt-backfisch.github.io/athlete-coach/app/ (PR #10: Vite `base`-Pfad; PR #11: CI dual deploy).                                                                                                                                                                                                                                                                |
