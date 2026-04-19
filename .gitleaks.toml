@@ -1,0 +1,5 @@
+[allowlist]
+  description = "Supabase Publishable Key ist kein Secret und darf im Frontend-Code stehen"
+  paths = [
+    '''app/src/lib/supabase\.ts'''
+  ]
