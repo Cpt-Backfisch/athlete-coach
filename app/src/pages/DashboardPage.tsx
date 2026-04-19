@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FilterChips } from '@/components/FilterChips';
 import { KpiCard } from '@/components/KpiCard';
 import { LoadLight } from '@/components/LoadLight';
 import { VolumeBarChart } from '@/components/VolumeBarChart';
+import { CountdownBadge } from '@/components/CountdownBadge';
 import { useActivities } from '@/hooks/useActivities';
 import { fetchWeekPlan, EMPTY_WEEK_GOALS } from '@/lib/weekFrame';
+import { fetchUpcomingRaces } from '@/lib/events';
 import {
   getWeeklyVolumeData,
   getKpiData,
@@ -12,9 +15,11 @@ import {
   filterByTimeRange,
   filterBySport,
 } from '@/lib/utils/dashboardStats';
+import { SPORT_COLORS } from '@/lib/theme';
 import type { TimeRange } from '@/lib/utils/dateFilter';
 import type { WeekGoals } from '@/lib/weekFrame';
 import type { SportType } from '@/lib/activities';
+import type { Race } from '@/lib/events';
 
 // ── Filter-Optionen (Dashboard hat zusätzlich 1W) ─────────────────────────
 
@@ -47,10 +52,12 @@ export function DashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('12W');
   const [sportFilter, setSportFilter] = useState('all');
   const [weekGoals, setWeekGoals] = useState<WeekGoals>(EMPTY_WEEK_GOALS);
+  const [naechsteRaces, setNaechsteRaces] = useState<Race[]>([]);
 
-  // Wochenziele laden (für Belastungsampel)
+  // Wochenziele + anstehende Wettkämpfe laden
   useEffect(() => {
     fetchWeekPlan().then((plan) => setWeekGoals(plan.goals));
+    fetchUpcomingRaces().then((races) => setNaechsteRaces(races.slice(0, 3)));
   }, []);
 
   // Gefilterte Aktivitäten
@@ -156,12 +163,56 @@ export function DashboardPage() {
         <VolumeBarChart data={weeklyVolumeData} sport={sportFilter} />
       </section>
 
-      {/* Zeile 6: Anstehende Events (Platzhalter) */}
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-          Nächste Wettkämpfe
-        </h2>
-        <p className="text-sm text-muted-foreground">Wettkämpfe werden in Schritt 9 eingebunden.</p>
+      {/* Zeile 6: Anstehende Wettkämpfe */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Nächste Wettkämpfe
+          </h2>
+          <Link to="/events" className="text-xs text-muted-foreground hover:text-foreground">
+            Alle Wettkämpfe →
+          </Link>
+        </div>
+
+        {naechsteRaces.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Keine anstehenden Wettkämpfe.{' '}
+            <Link to="/events" className="underline underline-offset-2">
+              Hinzufügen →
+            </Link>
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {naechsteRaces.map((race) => {
+              const farbe =
+                race.sport_type === 'triathlon'
+                  ? '#8E6FE0'
+                  : (SPORT_COLORS[race.sport_type as keyof typeof SPORT_COLORS]?.dark ?? '#888');
+              return (
+                <div
+                  key={race.id}
+                  className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-white/5 border border-border"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: farbe }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{race.name}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      {new Date(race.date).toLocaleDateString('de-DE', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                  <CountdownBadge date={race.date} />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );
