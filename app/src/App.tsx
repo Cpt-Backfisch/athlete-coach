@@ -7,6 +7,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { ImportPage } from '@/pages/ImportPage';
 import { ActivitiesPage } from '@/pages/ActivitiesPage';
 import { ActivityDetailPage } from '@/pages/ActivityDetailPage';
+import { TrainingPage } from '@/pages/TrainingPage';
 
 // ── Platzhalter-Seiten (werden in späteren Schritten ersetzt) ──────────────
 
@@ -36,7 +37,7 @@ function App() {
           <Route path="/activities" element={<ActivitiesPage />} />
           <Route path="/activities/:id" element={<ActivityDetailPage />} />
           <Route path="/events" element={<Placeholder title="Events" />} />
-          <Route path="/training" element={<Placeholder title="Trainingsplan" />} />
+          <Route path="/training" element={<TrainingPage />} />
           <Route path="/coach" element={<Placeholder title="Coach" />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/settings" element={<Placeholder title="Einstellungen" />} />
