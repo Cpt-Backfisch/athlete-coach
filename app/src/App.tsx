@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/LoginPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
+import { ImportPage } from '@/pages/ImportPage';
 
 // ── Platzhalter-Seiten (werden in späteren Schritten ersetzt) ──────────────
 
@@ -34,7 +35,7 @@ function App() {
           <Route path="/events" element={<Placeholder title="Events" />} />
           <Route path="/training" element={<Placeholder title="Trainingsplan" />} />
           <Route path="/coach" element={<Placeholder title="Coach" />} />
-          <Route path="/import" element={<Placeholder title="Import" />} />
+          <Route path="/import" element={<ImportPage />} />
           <Route path="/settings" element={<Placeholder title="Einstellungen" />} />
         </Route>
       </Route>
