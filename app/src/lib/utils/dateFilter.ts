@@ -1,6 +1,6 @@
 import type { Activity } from '../activities';
 
-export type TimeRange = '4W' | '12W' | '6M' | '1J' | '2025' | '2026' | 'all';
+export type TimeRange = '1W' | '4W' | '12W' | '6M' | '1J' | '2025' | '2026' | 'all';
 
 // Gibt den frühesten Datumspunkt für den gewählten Zeitraum zurück.
 export function getTimeRangeStart(range: TimeRange): Date | null {
@@ -8,6 +8,8 @@ export function getTimeRangeStart(range: TimeRange): Date | null {
   heute.setHours(0, 0, 0, 0);
 
   switch (range) {
+    case '1W':
+      return new Date(heute.getTime() - 7 * 24 * 60 * 60 * 1000);
     case '4W':
       return new Date(heute.getTime() - 28 * 24 * 60 * 60 * 1000);
     case '12W':

@@ -8,6 +8,7 @@ import { ImportPage } from '@/pages/ImportPage';
 import { ActivitiesPage } from '@/pages/ActivitiesPage';
 import { ActivityDetailPage } from '@/pages/ActivityDetailPage';
 import { TrainingPage } from '@/pages/TrainingPage';
+import { DashboardPage } from '@/pages/DashboardPage';
 
 // ── Platzhalter-Seiten (werden in späteren Schritten ersetzt) ──────────────
 
@@ -33,7 +34,7 @@ function App() {
       {/* Geschützte Routen mit App-Shell (Sidebar / BottomNav) */}
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Placeholder title="Dashboard" />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
           <Route path="/activities/:id" element={<ActivityDetailPage />} />
           <Route path="/events" element={<Placeholder title="Events" />} />
