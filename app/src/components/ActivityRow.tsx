@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { IntensityDots } from './IntensityDots';
 import { formatDistance, formatDuration, formatPace } from '@/lib/utils/pace';
 import { SPORT_COLORS } from '@/lib/theme';
@@ -16,6 +17,7 @@ function formatDatum(iso: string): string {
 }
 
 export function ActivityRow({ activity: a, onEdit, onDelete }: ActivityRowProps) {
+  const navigate = useNavigate();
   const sportFarbe = SPORT_COLORS[a.sport_type as keyof typeof SPORT_COLORS]?.dark ?? '#888';
 
   return (
@@ -30,8 +32,13 @@ export function ActivityRow({ activity: a, onEdit, onDelete }: ActivityRowProps)
         style={{ backgroundColor: sportFarbe }}
       />
 
-      {/* 2. Name */}
-      <span className="font-medium truncate">{a.name}</span>
+      {/* 2. Name — klickbar → Detailansicht */}
+      <button
+        onClick={() => navigate(`/activities/${a.id}`)}
+        className="font-medium truncate text-left hover:underline hover:text-foreground transition-colors"
+      >
+        {a.name}
+      </button>
 
       {/* 3. Datum — auf Mobile versteckt */}
       <span className="hidden md:block text-sm text-muted-foreground tabular-nums">
