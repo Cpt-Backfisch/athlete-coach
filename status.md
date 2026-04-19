@@ -3,7 +3,7 @@
 > **Zweck dieser Datei:** Lebendiger Projektstand. Hier stehen aktueller Stand, To-dos, Phasen, Bugs.
 > Vision & Architektur-Grundlagen → siehe `context.md`.
 
-**Letztes Update:** 18.04.2026
+**Letztes Update:** 19.04.2026
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 1. Aktueller Stand in einem Satz
 
-Feature-Parity-Priorisierung abgeschlossen (115 Features, davon 47 T1-MVP), Migrations-Sequenz steht (13 Schritte + 2 Bug-Sessions). Nächster Schritt: Auth-Implementation (Sequenz-Schritt 1).
+T1 MVP der React-Migration ist feature-complete (19.04.2026). Alle 12 Schritte implementiert und gemergt. App läuft unter https://cpt-backfisch.github.io/athlete-coach/app/ — Deploy-Gate aktiv. Offener Bug: Strava OAuth schlägt fehl (Verbindung fehlgeschlagen nach Redirect).
 
 ---
 
@@ -115,7 +115,7 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - [x] **Doku-Korrektur `context.md` §4** (14.04.2026) — „HRV-Zonenverteilung" → „HF-Zonenverteilung (5 Zonen nach max HR)". (PR #13)
 - [x] **Migrations-Schritt 3b: Feature-Parity-Priorisierung abgeschlossen** (18.04.2026) — PR #14. 115 Features in 13 Gruppen, Tier-Einteilung T1 (47 MVP) / T2 (34 Polish) / T3 (5 Advanced). Neue Features identifiziert: Streak-Counter, TSS/TRIMP, ACWR, Race-Day-View u.a. Secrets (Claude API Key, Telegram Token/Chat ID) werden aus Frontend entfernt → nur noch Vercel Env Vars. Coach-Chat wird Telegram-only (kein Web-Chat mehr).
 - [x] **Migrations-Sequenz erstellt** (18.04.2026) — PR #15. `migration-sequence.md`: 13 Schritte in 5 Schichten, 2 Bug-Sessions als Zwischenschritte. Geschätzte Dauer T1-MVP: 21–31 Arbeitstage. Ziel: Umschalt-Tag August/September 2026.
-- [ ] **Migrations-Schritt 4 (= Sequenz-Schritt 1): Auth** — Supabase Login, Session-Wiederherstellung, Logout, Password-Reset.
+- [x] **Frontend auf Vite + React + TypeScript + Tailwind + shadcn/ui migrieren** (19.04.2026) — Alle 12 Migrations-Schritte implementiert und gemergt. T1 MVP feature-complete. PRs #16–#29.
 
 **Beide Apps parallel live:**
 
@@ -176,9 +176,9 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 
 ## 3. Bekannte Bugs
 
-_Keine kritischen Bugs aktuell._
-
-Falls einer auftaucht: hier eintragen mit Datum, Beschreibung, Reproschritten.
+| Datum      | Bug                                                                             | Bereich                                                                                        | Status |
+| ---------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------ |
+| 19.04.2026 | Strava OAuth schlägt fehl — nach Redirect erscheint „Verbindung fehlgeschlagen" | `app/src/lib/stravaOAuth.ts` → `handleOAuthCallback()`, evtl. URL-Hash-Parsing oder Proxy-Call | Offen  |
 
 ---
 
@@ -194,6 +194,7 @@ Falls einer auftaucht: hier eintragen mit Datum, Beschreibung, Reproschritten.
 
 | Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 19.04.2026 | T1 MVP React-Migration abgeschlossen. Alle 12 Schritte (Auth, Layout, Strava, CRUD, Listen, Detail, Trainingsplan, Dashboard, Events, Coach+Telegram, Einstellungen, Share-View) gemergt. Deploy-Gate aktiv, App live unter /athlete-coach/app/. Strava OAuth Bug offen.                                                                                                                                                                                                                                                           |
 | 18.04.2026 | Migrations-Sequenz erstellt (`migration-sequence.md`): 13 Schritte in 5 Schichten, 2 Bug-Sessions als Zwischenschritte. Geschätzte Dauer T1-MVP: 21–31 Arbeitstage. Umschalt-Tag-Ziel: August/September 2026. (PR #15)                                                                                                                                                                                                                                                                                                             |
 | 18.04.2026 | Feature-Parity-Priorisierung: 115 Features in 13 Gruppen priorisiert (47 T1, 34 T2, 5 T3, 4 Phase 2, 24 kann weg). Neue Features: Streak-Counter, TSS/TRIMP, ACWR, Race-Day-View, Tapering-Hinweis, Rennbericht, Triathlon-Splits, Besucher-Tracking, u.a. Secrets (Claude API Key, Telegram Token/Chat ID) werden aus Frontend entfernt → nur noch Vercel Env Vars. Coach-Chat wird Telegram-only (kein Web-Chat mehr). (PR #14)                                                                                                  |
 | 14.04.2026 | Doku-Korrektur in `context.md` §4 basierend auf Feature-Parity-Review (PR #12): „HRV-Zonenverteilung" → „HF-Zonenverteilung (5 Zonen nach max HR)" — kein echter HRV-Import vorhanden. Belastungsampel war bereits korrekt enthalten. (PR #13)                                                                                                                                                                                                                                                                                     |
