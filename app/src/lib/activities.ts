@@ -68,6 +68,13 @@ export async function updateActivity(id: string, input: Partial<ActivityInput>):
   return data as Activity;
 }
 
+export async function fetchActivityById(id: string): Promise<Activity | null> {
+  const { data, error } = await supabase.from('activities').select('*').eq('id', id).maybeSingle();
+
+  if (error || !data) return null;
+  return data as Activity;
+}
+
 export async function deleteActivity(id: string): Promise<void> {
   const {
     data: { user },
