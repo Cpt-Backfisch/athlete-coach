@@ -7,8 +7,10 @@ const VERCEL_PROXY_URL = 'https://athlete-coach-proxy-rnuy.vercel.app';
 
 // Leitet den User zur Strava-OAuth-Seite weiter.
 // redirect_uri zeigt auf /#/import — wichtig für den HashRouter.
+// import.meta.env.BASE_URL wird von Vite auf '/athlete-coach/app/' gesetzt (GitHub Pages).
 export function initiateStravaOAuth(): void {
-  const redirectUri = `${window.location.origin}/#/import`;
+  const base = import.meta.env.BASE_URL ?? '/';
+  const redirectUri = `${window.location.origin}${base}#/import`;
 
   const params = new URLSearchParams({
     client_id: STRAVA_CLIENT_ID,
