@@ -10,6 +10,7 @@ import { ActivityDetailPage } from '@/pages/ActivityDetailPage';
 import { TrainingPage } from '@/pages/TrainingPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { EventsPage } from '@/pages/EventsPage';
+import { CoachPage } from '@/pages/CoachPage';
 
 // ── Platzhalter-Seiten (werden in späteren Schritten ersetzt) ──────────────
 
@@ -40,7 +41,7 @@ function App() {
           <Route path="/activities/:id" element={<ActivityDetailPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/training" element={<TrainingPage />} />
-          <Route path="/coach" element={<Placeholder title="Coach" />} />
+          <Route path="/coach" element={<CoachPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/settings" element={<Placeholder title="Einstellungen" />} />
         </Route>
