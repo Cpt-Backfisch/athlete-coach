@@ -11,16 +11,7 @@ import { TrainingPage } from '@/pages/TrainingPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { EventsPage } from '@/pages/EventsPage';
 import { CoachPage } from '@/pages/CoachPage';
-
-// ── Platzhalter-Seiten (werden in späteren Schritten ersetzt) ──────────────
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
-      {title} — kommt in einem späteren Schritt
-    </div>
-  );
-}
+import { SettingsPage } from '@/pages/SettingsPage';
 
 // ── App ────────────────────────────────────────────────────────────────────
 
@@ -43,7 +34,7 @@ function App() {
           <Route path="/training" element={<TrainingPage />} />
           <Route path="/coach" element={<CoachPage />} />
           <Route path="/import" element={<ImportPage />} />
-          <Route path="/settings" element={<Placeholder title="Einstellungen" />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
     </Routes>
