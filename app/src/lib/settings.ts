@@ -73,6 +73,15 @@ export async function deleteShareToken(): Promise<void> {
   await supabase.from('public_shares').delete().eq('user_id', user.id);
 }
 
+// Kill-Switch: alle Share-Links des Users auf einmal löschen
+export async function revokeAllShareLinks(): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kein eingeloggter User');
+  await supabase.from('public_shares').delete().eq('user_id', user.id);
+}
+
 export function getShareUrl(token: string): string {
   return `${window.location.origin}/#/share?token=${token}`;
 }

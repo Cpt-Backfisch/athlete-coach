@@ -5,9 +5,11 @@ import { KpiCard } from '@/components/KpiCard';
 import { LoadLight } from '@/components/LoadLight';
 import { VolumeBarChart } from '@/components/VolumeBarChart';
 import { CountdownBadge } from '@/components/CountdownBadge';
+import { CommentSection } from '@/components/CommentSection';
 import { useActivities } from '@/hooks/useActivities';
 import { fetchWeekPlan, EMPTY_WEEK_GOALS } from '@/lib/weekFrame';
 import { fetchUpcomingRaces } from '@/lib/events';
+import { getShareToken } from '@/lib/settings';
 import {
   getWeeklyVolumeData,
   getKpiData,
@@ -53,11 +55,13 @@ export function DashboardPage() {
   const [sportFilter, setSportFilter] = useState('all');
   const [weekGoals, setWeekGoals] = useState<WeekGoals>(EMPTY_WEEK_GOALS);
   const [naechsteRaces, setNaechsteRaces] = useState<Race[]>([]);
+  const [shareToken, setShareToken] = useState<string | null>(null);
 
-  // Wochenziele + anstehende Wettkämpfe laden
+  // Wochenziele + anstehende Wettkämpfe + Share-Token laden
   useEffect(() => {
     fetchWeekPlan().then((plan) => setWeekGoals(plan.goals));
     fetchUpcomingRaces().then((races) => setNaechsteRaces(races.slice(0, 3)));
+    getShareToken().then(setShareToken);
   }, []);
 
   // Gefilterte Aktivitäten
@@ -214,6 +218,24 @@ export function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Kommentare (Owner-Ansicht) */}
+      {shareToken ? (
+        <CommentSection shareToken={shareToken} isOwner={true} />
+      ) : (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Kommentare
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Erstelle einen{' '}
+            <Link to="/settings" className="underline underline-offset-2">
+              Share-Link in den Einstellungen
+            </Link>
+            , um Kommentare zu aktivieren.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

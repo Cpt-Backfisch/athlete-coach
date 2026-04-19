@@ -34,6 +34,18 @@ export async function fetchActivities(): Promise<Activity[]> {
   return (data ?? []) as Activity[];
 }
 
+// Aktivitäten eines anderen Users laden (Share-View, kein Auth nötig — RLS Share-Policy)
+export async function fetchActivitiesByUserId(userId: string): Promise<Activity[]> {
+  const { data, error } = await supabase
+    .from('activities')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+
+  if (error) throw new Error(`Aktivitäten laden fehlgeschlagen: ${error.message}`);
+  return (data ?? []) as Activity[];
+}
+
 export async function createActivity(input: ActivityInput): Promise<Activity> {
   const {
     data: { user },

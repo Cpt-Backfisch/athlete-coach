@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ShareProvider } from '@/contexts/ShareContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/LoginPage';
@@ -12,6 +13,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { EventsPage } from '@/pages/EventsPage';
 import { CoachPage } from '@/pages/CoachPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { SharePage } from '@/pages/SharePage';
 
 // ── App ────────────────────────────────────────────────────────────────────
 
@@ -20,9 +22,10 @@ import { SettingsPage } from '@/pages/SettingsPage';
 function App() {
   return (
     <Routes>
-      {/* Öffentliche Routen (kein Layout) */}
+      {/* Öffentliche Routen (kein Layout, kein Login) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/share" element={<SharePage />} />
 
       {/* Geschützte Routen mit App-Shell (Sidebar / BottomNav) */}
       <Route element={<ProtectedRoute />}>
@@ -47,7 +50,9 @@ export function AppWithProviders() {
   return (
     <AuthProvider>
       <HashRouter>
-        <App />
+        <ShareProvider>
+          <App />
+        </ShareProvider>
       </HashRouter>
     </AuthProvider>
   );

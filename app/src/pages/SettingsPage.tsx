@@ -16,6 +16,7 @@ import {
   createShareToken,
   deleteShareToken,
   getShareUrl,
+  revokeAllShareLinks,
   registerStravaWebhook,
   getWebhookStatus,
 } from '@/lib/settings';
@@ -42,6 +43,7 @@ export function SettingsPage() {
   // Share-Link
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareLaed, setShareLaed] = useState(false);
+  const [widerrufenOffen, setWiderrufenOffen] = useState(false);
 
   // Account
   const [neueEmail, setNeueEmail] = useState('');
@@ -145,6 +147,20 @@ export function SettingsPage() {
       await deleteShareToken();
       setShareToken(null);
       toast.success('Link gelöscht');
+    } catch (e) {
+      toast.error(`Fehler: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setShareLaed(false);
+    }
+  }
+
+  async function handleAlleWiderrufen() {
+    setShareLaed(true);
+    try {
+      await revokeAllShareLinks();
+      setShareToken(null);
+      setWiderrufenOffen(false);
+      toast.success('Alle Links widerrufen');
     } catch (e) {
       toast.error(`Fehler: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -323,20 +339,92 @@ export function SettingsPage() {
                 <Copy size={14} />
               </Button>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleShareLoeschen}
-              disabled={shareLaed}
-              className="text-destructive hover:text-destructive"
-            >
-              Link löschen
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleShareLoeschen}
+                disabled={shareLaed}
+                className="text-destructive hover:text-destructive"
+              >
+                Link löschen
+              </Button>
+              {!widerrufenOffen ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setWiderrufenOffen(true)}
+                  disabled={shareLaed}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Alle Links widerrufen
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-destructive">
+                    Wirklich alle Links ungültig machen?
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleAlleWiderrufen}
+                    disabled={shareLaed}
+                  >
+                    Ja, widerrufen
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setWiderrufenOffen(false)}
+                    disabled={shareLaed}
+                  >
+                    Abbrechen
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <Button size="sm" onClick={handleShareErstellen} disabled={shareLaed}>
-            {shareLaed ? 'Erstellen…' : 'Share-Link erstellen'}
-          </Button>
+          <div className="space-y-3">
+            <Button size="sm" onClick={handleShareErstellen} disabled={shareLaed}>
+              {shareLaed ? 'Erstellen…' : 'Share-Link erstellen'}
+            </Button>
+            {!widerrufenOffen ? (
+              <div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setWiderrufenOffen(true)}
+                  disabled={shareLaed}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Alle Links widerrufen
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-destructive">
+                  Wirklich alle Links ungültig machen?
+                </span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleAlleWiderrufen}
+                  disabled={shareLaed}
+                >
+                  Ja, widerrufen
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setWiderrufenOffen(false)}
+                  disabled={shareLaed}
+                >
+                  Abbrechen
+                </Button>
+              </div>
+            )}
+          </div>
         )}
         <p className="text-xs text-muted-foreground pt-1">
           Freunde können mit diesem Link dein Training lesen und kommentieren.
