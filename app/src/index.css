@@ -127,4 +127,32 @@
   html {
     @apply font-sans;
   }
+  /* Tabular-Nums für alle Trainingsdaten-Elemente */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Design-Token: Sportart-Farben + Radien */
+:root {
+  --color-sport-run: #8e6fe0;
+  --color-sport-swim: #3359c4;
+  --color-sport-bike: #ff7a1a;
+  --color-sport-misc: #b54a2e;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+}
+
+/* Dark-Mode Hintergrund */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #141416;
+  }
+}
+
+/* Light-Mode Hintergrund */
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #fafaf8;
+  }
 }

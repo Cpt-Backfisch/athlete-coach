@@ -1,29 +1,16 @@
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/LoginPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 
-// ── Dashboard-Platzhalter (wird in Schritt 8 ersetzt) ──────────────────────
+// ── Platzhalter-Seiten (werden in späteren Schritten ersetzt) ──────────────
 
-function DashboardPlaceholder() {
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-
-  async function handleSignOut() {
-    await signOut();
-    navigate('/login');
-  }
-
+function Placeholder({ title }: { title: string }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <p className="text-muted-foreground">Dashboard kommt in Schritt 8.</p>
-      <button
-        onClick={handleSignOut}
-        className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
-      >
-        Abmelden
-      </button>
+    <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
+      {title} — kommt in einem späteren Schritt
     </div>
   );
 }
@@ -32,27 +19,24 @@ function DashboardPlaceholder() {
 
 // HashRouter ist nötig, weil GitHub Pages kein server-seitiges Routing unterstützt.
 // Alle Routen laufen unter /athlete-coach/app/#/<route>.
-export default function App() {
-  const { isLoading } = useAuth();
-
-  // Während die Session geprüft wird → keine Routes rendern (verhindert Redirect-Flackern)
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Laden…
-      </div>
-    );
-  }
-
+function App() {
   return (
     <Routes>
-      {/* Öffentliche Routen */}
+      {/* Öffentliche Routen (kein Layout) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Geschützte Routen */}
+      {/* Geschützte Routen mit App-Shell (Sidebar / BottomNav) */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<DashboardPlaceholder />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<Placeholder title="Dashboard" />} />
+          <Route path="/activities" element={<Placeholder title="Einheiten" />} />
+          <Route path="/events" element={<Placeholder title="Events" />} />
+          <Route path="/training" element={<Placeholder title="Trainingsplan" />} />
+          <Route path="/coach" element={<Placeholder title="Coach" />} />
+          <Route path="/import" element={<Placeholder title="Import" />} />
+          <Route path="/settings" element={<Placeholder title="Einstellungen" />} />
+        </Route>
       </Route>
     </Routes>
   );
@@ -69,3 +53,5 @@ export function AppWithProviders() {
     </AuthProvider>
   );
 }
+
+export default App;
