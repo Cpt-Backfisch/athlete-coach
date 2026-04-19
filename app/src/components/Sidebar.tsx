@@ -23,7 +23,11 @@ const NAV_LINKS = [
   { to: '/settings', label: 'Einstellungen', Icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isSyncing?: boolean;
+}
+
+export function Sidebar({ isSyncing = false }: SidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -63,6 +67,11 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Sync-Indikator — nur sichtbar wenn Auto-Sync läuft */}
+      {isSyncing && (
+        <p className="px-5 py-2 text-xs text-muted-foreground animate-pulse">Synchronisiere…</p>
+      )}
 
       {/* Benutzer-Bereich unten */}
       <div className="px-4 py-4 border-t border-border">
