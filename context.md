@@ -38,20 +38,20 @@ athlete.coach soll werden:
 
 ## 3. Architektur (Stand heute)
 
-| Schicht            | Technologie                                                        | URL / Repo                                      |
-| ------------------ | ------------------------------------------------------------------ | ----------------------------------------------- |
-| Frontend           | Single-Page `index.html`, Vanilla JS, kein Framework               | `github.com/Cpt-Backfisch/athlete-coach`        |
-| Hosting            | GitHub Pages                                                       | `https://cpt-backfisch.github.io/athlete-coach` |
-| Datenbank + Auth   | Supabase (Email/Password, RLS aktiv)                               | `https://cpzdqgrqodvwtnqmusso.supabase.co`      |
-| Serverless Backend | Vercel Functions                                                   | `https://athlete-coach-proxy-rnuy.vercel.app`   |
-| Proxy-Repo         | GitHub                                                             | `github.com/Cpt-Backfisch/athlete-coach-proxy`  |
-| Trainingsdaten     | Strava OAuth + Webhook + Streams API                               | —                                               |
-| KI                 | Anthropic Claude API (Haiku für Auto-Bewertungen, Sonnet für Chat) | —                                               |
-| Notifications      | Telegram Bot                                                       | —                                               |
+| Schicht            | Technologie                                                                                                                                                                                                                                       | URL / Repo                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Frontend           | Vite + React + TypeScript + Tailwind CSS + shadcn/ui — gebaut über GitHub Actions, deployed auf GitHub Pages unter `/athlete-coach/app/`. Legacy `index.html` weiterhin unter `/athlete-coach/` (wird nach Feature-Parity-Verifikation abgelöst). | `github.com/Cpt-Backfisch/athlete-coach`        |
+| Hosting            | GitHub Pages                                                                                                                                                                                                                                      | `https://cpt-backfisch.github.io/athlete-coach` |
+| Datenbank + Auth   | Supabase (Email/Password, RLS aktiv)                                                                                                                                                                                                              | `https://cpzdqgrqodvwtnqmusso.supabase.co`      |
+| Serverless Backend | Vercel Functions                                                                                                                                                                                                                                  | `https://athlete-coach-proxy-rnuy.vercel.app`   |
+| Proxy-Repo         | GitHub                                                                                                                                                                                                                                            | `github.com/Cpt-Backfisch/athlete-coach-proxy`  |
+| Trainingsdaten     | Strava OAuth + Webhook + Streams API                                                                                                                                                                                                              | —                                               |
+| KI                 | Anthropic Claude API (Haiku für Auto-Bewertungen, Sonnet für Chat)                                                                                                                                                                                | —                                               |
+| Notifications      | Telegram Bot                                                                                                                                                                                                                                      | —                                               |
 
 ### Supabase-Tabellen
 
-`activities`, `races`, `past_results`, `week_frame`, `strava_token`, `settings`, `public_shares`, `comments`, `streams` — alle mit RLS. Share-Policies erlauben Lesezugriff bei gültigem Share-Token.
+`activities`, `races`, `past_results`, `week_frame`, `strava_token`, `settings`, `public_shares`, `comments`, `streams` — alle mit RLS. Share-Policies erlauben Lesezugriff bei gültigem Share-Token. `coach_messages` noch nicht angelegt (bidirektionaler Chat nutzt aktuell keinen DB-Verlauf).
 
 ### Vercel-Functions
 
@@ -66,6 +66,8 @@ athlete.coach soll werden:
 Dashboard mit KPI-Karten, Zeitraum/Sport-Filtern, Wochenvolumen-Charts, Belastungsampel, Jahres-Trainingszeit-Vergleich, VO2max/VDOT-Schätzung, Wettkampf-Performance-Chart, HF-Zonenverteilung (5 Zonen nach max HR). Events mit Countdown und Prognose, vergangene Wettkämpfe mit Splits. Strava CSV-Import (mit Schwimm-Meter-Fix), Strava OAuth + Webhook, Strava Streams (Pace, Kadenz, Höhe, GPS-Track auf Leaflet-Karte, in Supabase gecacht). Editierbarer Coach-Prompt. Read-Only Share-Link für Freunde inkl. Kommentarfunktion. PWA-Icon, Responsive Layout, Auto Cache-Busting via BUILD-Timestamp.
 
 > ⚠️ **Architektonische Schuld:** Das gesamte Frontend liegt in _einer_ `index.html` mit ~3500 Zeilen. Das ist der zentrale Grund für Phase 1 der Roadmap (siehe `status.md`).
+
+⚠️ Die React-Migration (Phase 1) ist feature-complete. Die neue App läuft unter `/athlete-coach/app/`. Die Single-File-Schuld (`index.html`) ist damit aufgelöst — Legacy-App bleibt bis zur Verifikation parallel aktiv.
 
 ---
 
