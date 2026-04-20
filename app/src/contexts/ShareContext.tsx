@@ -39,13 +39,13 @@ export function ShareProvider({ children }: { children: React.ReactNode }) {
   const [isShareMode, setIsShareMode] = useState(false);
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Startwert: true wenn ein Token in der URL steht (dann muss geladen werden), sonst false
+  const [isLoading, setIsLoading] = useState(() => extractShareToken() !== null);
 
   useEffect(() => {
     const token = extractShareToken();
 
     if (!token) {
-      setIsLoading(false);
       return;
     }
 

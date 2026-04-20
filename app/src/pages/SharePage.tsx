@@ -106,6 +106,27 @@ export function SharePage() {
     });
   }, [shareLoading, ownerUserId]);
 
+  // ── Gefilterte Aktivitäten + Chart-Daten ─────────────────────────────────
+  // Hooks müssen vor frühen Returns stehen (Rules of Hooks)
+
+  const gefiltert = useMemo(() => {
+    let liste = filterByTimeRange(activities, timeRange);
+    liste = filterBySport(liste, sportFilter);
+    return liste;
+  }, [activities, timeRange, sportFilter]);
+
+  const weeklyVolumeData = useMemo(
+    () => getWeeklyVolumeData(gefiltert, timeRange),
+    [gefiltert, timeRange]
+  );
+
+  const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
+
+  const sichtbareKpiKarten = useMemo(() => {
+    if (sportFilter !== 'all') return [sportFilter as SportType];
+    return SPORT_REIHENFOLGE.filter((s) => kpiData[s].sessions > 0);
+  }, [kpiData, sportFilter]);
+
   // ── Ungültiger Link ──────────────────────────────────────────────────────
 
   if (shareLoading) {
@@ -128,26 +149,6 @@ export function SharePage() {
       </div>
     );
   }
-
-  // ── Gefilterte Aktivitäten + Chart-Daten ─────────────────────────────────
-
-  const gefiltert = useMemo(() => {
-    let liste = filterByTimeRange(activities, timeRange);
-    liste = filterBySport(liste, sportFilter);
-    return liste;
-  }, [activities, timeRange, sportFilter]);
-
-  const weeklyVolumeData = useMemo(
-    () => getWeeklyVolumeData(gefiltert, timeRange),
-    [gefiltert, timeRange]
-  );
-
-  const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
-
-  const sichtbareKpiKarten = useMemo(() => {
-    if (sportFilter !== 'all') return [sportFilter as SportType];
-    return SPORT_REIHENFOLGE.filter((s) => kpiData[s].sessions > 0);
-  }, [kpiData, sportFilter]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
