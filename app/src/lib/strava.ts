@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { supabase } from './supabase';
+import { getSetting, setSetting } from './settings';
 
 const VERCEL_PROXY_URL = 'https://athlete-coach-proxy-rnuy.vercel.app';
 
@@ -34,12 +35,13 @@ function normalizeSportType(raw: string): 'run' | 'bike' | 'swim' | 'misc' {
 // ── Token-Verwaltung ───────────────────────────────────────────────────────
 
 export async function getStoredToken(): Promise<StravaToken | null> {
-  const { data, error } = await supabase
-    .from('strava_token')
-    .select('access_token, refresh_token, expires_at')
-    .maybeSingle();
+  const { data, error } = await supabase.from('strava_token').select('data').maybeSingle();
   if (error || !data) return null;
-  return data as StravaToken;
+  try {
+    return JSON.parse((data as { data: string }).data) as StravaToken;
+  } catch {
+    return null;
+  }
 }
 
 export async function saveToken(token: StravaToken): Promise<void> {
@@ -48,15 +50,9 @@ export async function saveToken(token: StravaToken): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Kein eingeloggter User');
 
-  const { error } = await supabase.from('strava_token').upsert(
-    {
-      user_id: user.id,
-      access_token: token.access_token,
-      refresh_token: token.refresh_token,
-      expires_at: token.expires_at,
-    },
-    { onConflict: 'user_id' }
-  );
+  const { error } = await supabase
+    .from('strava_token')
+    .upsert({ user_id: user.id, data: JSON.stringify(token) }, { onConflict: 'user_id' });
   if (error) throw new Error(`Token speichern fehlgeschlagen: ${error.message}`);
 }
 
@@ -178,35 +174,19 @@ export async function syncAllActivities(): Promise<SyncResult> {
 // ── Letzter Sync-Zeitpunkt ─────────────────────────────────────────────────
 
 export async function getLastSyncTime(): Promise<Date | null> {
-  const { data, error } = await supabase
-    .from('settings')
-    .select('value')
-    .eq('key', 'strava_last_sync')
-    .maybeSingle();
-  if (error || !data) return null;
-  return new Date(data.value as string);
+  const val = await getSetting('strava_last_sync');
+  if (!val) return null;
+  return new Date(val);
 }
 
 export async function updateLastSyncTime(): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-
-  await supabase.from('settings').upsert(
-    {
-      user_id: user.id,
-      key: 'strava_last_sync',
-      value: new Date().toISOString(),
-    },
-    { onConflict: 'user_id,key' }
-  );
+  await setSetting('strava_last_sync', new Date().toISOString());
 }
 
 // ── Verbindungsstatus ──────────────────────────────────────────────────────
 
 export async function isStravaConnected(): Promise<boolean> {
-  const { data, error } = await supabase.from('strava_token').select('access_token').maybeSingle();
+  const { data, error } = await supabase.from('strava_token').select('data').maybeSingle();
   return !error && !!data;
 }
 

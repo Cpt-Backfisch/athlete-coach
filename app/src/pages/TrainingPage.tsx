@@ -38,8 +38,6 @@ export function TrainingPage() {
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-    // plan und isDirty als Dependencies — bewusst vollständig
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan, isDirty]);
 
   async function speichern(aktuell: WeekPlan) {
