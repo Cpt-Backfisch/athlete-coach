@@ -23,33 +23,17 @@ export function initiateStravaOAuth(): void {
 }
 
 // Tauscht den OAuth-Code gegen Access- und Refresh-Token über den Vercel-Proxy.
-// TODO (Fix-PR): Debug-Logs entfernen
 export async function handleOAuthCallback(code: string): Promise<void> {
-  console.log('[strava-oauth] URL beim Callback:', window.location.href);
-  console.log(
-    '[strava-oauth] Query-Params:',
-    Object.fromEntries(new URLSearchParams(window.location.search))
-  );
-  console.log('[strava-oauth] Hash:', window.location.hash);
-
   const url = `${VERCEL_PROXY_URL}/api/strava?action=exchange&code=${encodeURIComponent(code)}`;
-  console.log('[strava-oauth] Proxy-Call an:', url);
+  const res = await fetch(url);
 
-  try {
-    const res = await fetch(url);
-    console.log('[strava-oauth] Response status:', res.status, 'body:', await res.clone().text());
+  if (!res.ok) throw new Error('OAuth-Austausch fehlgeschlagen');
 
-    if (!res.ok) throw new Error('OAuth-Austausch fehlgeschlagen');
+  const daten = await res.json();
 
-    const daten = await res.json();
-
-    await saveToken({
-      access_token: daten.access_token,
-      refresh_token: daten.refresh_token,
-      expires_at: daten.expires_at,
-    });
-  } catch (err) {
-    console.error('[strava-oauth] Fehler:', err);
-    throw err;
-  }
+  await saveToken({
+    access_token: daten.access_token,
+    refresh_token: daten.refresh_token,
+    expires_at: daten.expires_at,
+  });
 }

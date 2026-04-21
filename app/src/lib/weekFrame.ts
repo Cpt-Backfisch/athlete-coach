@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { blobLoadOne, blobSave } from './jsonBlobStore';
 
 // ── Typen ──────────────────────────────────────────────────────────────────
 
@@ -91,15 +92,11 @@ export const SPORT_TAG_CONFIG: Record<SportTag, { label: string; color: string }
 // ── Supabase CRUD ──────────────────────────────────────────────────────────
 
 export async function fetchWeekPlan(): Promise<WeekPlan> {
-  const { data, error } = await supabase.from('week_frame').select('frame, goals').maybeSingle();
-
-  if (error || !data) {
-    return { frame: EMPTY_WEEK_FRAME, goals: EMPTY_WEEK_GOALS };
-  }
-
+  const stored = await blobLoadOne<WeekPlan>('week_frame');
+  if (!stored) return { frame: EMPTY_WEEK_FRAME, goals: EMPTY_WEEK_GOALS };
   return {
-    frame: (data.frame as WeekFrame) ?? EMPTY_WEEK_FRAME,
-    goals: (data.goals as WeekGoals) ?? EMPTY_WEEK_GOALS,
+    frame: stored.frame ?? EMPTY_WEEK_FRAME,
+    goals: stored.goals ?? EMPTY_WEEK_GOALS,
   };
 }
 
@@ -108,10 +105,5 @@ export async function saveWeekPlan(plan: WeekPlan): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Kein eingeloggter User');
-
-  const { error } = await supabase
-    .from('week_frame')
-    .upsert({ user_id: user.id, frame: plan.frame, goals: plan.goals }, { onConflict: 'user_id' });
-
-  if (error) throw new Error(`Trainingsplan speichern fehlgeschlagen: ${error.message}`);
+  await blobSave('week_frame', user.id, plan);
 }

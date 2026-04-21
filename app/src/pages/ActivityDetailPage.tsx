@@ -84,6 +84,7 @@ export function ActivityDetailPage() {
 
   useEffect(() => {
     if (!id) return;
+    // eslint-disable-next-line react-hooks/immutability
     ladeAktivitaet(id);
   }, [id]);
 

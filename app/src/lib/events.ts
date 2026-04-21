@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { blobLoadArray, blobSave } from './jsonBlobStore';
 import type { SportType } from './activities';
 
 // ── Typen ──────────────────────────────────────────────────────────────────
@@ -8,7 +9,7 @@ export type EventSportType = SportType | 'triathlon';
 
 export interface Race {
   id: string;
-  user_id: string;
+  user_id?: string; // nicht im Blob gespeichert — wird durch RLS-Zeile abgedeckt
   name: string;
   date: string; // ISO-String
   sport_type: EventSportType;
@@ -22,7 +23,7 @@ export type RaceInput = Omit<Race, 'id' | 'user_id'>;
 
 export interface PastResult {
   id: string;
-  user_id: string;
+  user_id?: string; // nicht im Blob gespeichert — wird durch RLS-Zeile abgedeckt
   name: string;
   date: string;
   sport_type: EventSportType;
@@ -48,142 +49,118 @@ export function getDaysUntil(dateStr: string): number {
   return Math.round((ziel.getTime() - heute.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-// Heutiges Datum als ISO-String (YYYY-MM-DD)
 function heuteISO(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+async function getUserId(): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kein eingeloggter User');
+  return user.id;
 }
 
 // ── Races ──────────────────────────────────────────────────────────────────
 
 export async function fetchUpcomingRaces(): Promise<Race[]> {
-  const { data, error } = await supabase
-    .from('races')
-    .select('*')
-    .gte('date', heuteISO())
-    .order('date', { ascending: true });
-
-  if (error) throw new Error(`Wettkämpfe laden fehlgeschlagen: ${error.message}`);
-  return (data ?? []) as Race[];
+  const heute = heuteISO();
+  const items = await blobLoadArray<Race>('races');
+  return items.filter((r) => r.date >= heute).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export async function fetchPastRaces(): Promise<Race[]> {
-  const { data, error } = await supabase
-    .from('races')
-    .select('*')
-    .lt('date', heuteISO())
-    .order('date', { ascending: false });
+  const heute = heuteISO();
+  const items = await blobLoadArray<Race>('races');
+  return items.filter((r) => r.date < heute).sort((a, b) => b.date.localeCompare(a.date));
+}
 
-  if (error) throw new Error(`Vergangene Wettkämpfe laden fehlgeschlagen: ${error.message}`);
-  return (data ?? []) as Race[];
+// Anstehende Wettkämpfe eines anderen Users laden (Share-View)
+export async function fetchUpcomingRacesByUser(userId: string): Promise<Race[]> {
+  const { data } = await supabase.from('races').select('data').eq('user_id', userId).maybeSingle();
+  if (!data) return [];
+  try {
+    const all = JSON.parse((data as { data: string }).data) as Race[];
+    const heute = heuteISO();
+    return Array.isArray(all)
+      ? all
+          .filter((r) => r.date >= heute)
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .slice(0, 3)
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function createRace(input: RaceInput): Promise<Race> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Kein eingeloggter User');
-
-  const { data, error } = await supabase
-    .from('races')
-    .insert({ ...input, user_id: user.id })
-    .select()
-    .single();
-
-  if (error) throw new Error(`Wettkampf erstellen fehlgeschlagen: ${error.message}`);
-  return data as Race;
+  const userId = await getUserId();
+  const items = await blobLoadArray<Race>('races');
+  const newItem: Race = { ...input, id: crypto.randomUUID() };
+  await blobSave('races', userId, [...items, newItem]);
+  return newItem;
 }
 
 export async function updateRace(id: string, input: Partial<RaceInput>): Promise<Race> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Kein eingeloggter User');
-
-  const { data, error } = await supabase
-    .from('races')
-    .update(input)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) throw new Error(`Wettkampf aktualisieren fehlgeschlagen: ${error.message}`);
-  return data as Race;
+  const userId = await getUserId();
+  const items = await blobLoadArray<Race>('races');
+  const idx = items.findIndex((r) => r.id === id);
+  if (idx === -1) throw new Error('Wettkampf nicht gefunden');
+  const updated: Race = { ...items[idx], ...input };
+  const newItems = [...items];
+  newItems[idx] = updated;
+  await blobSave('races', userId, newItems);
+  return updated;
 }
 
 export async function deleteRace(id: string): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Kein eingeloggter User');
-
-  const { error } = await supabase.from('races').delete().eq('id', id).eq('user_id', user.id);
-
-  if (error) throw new Error(`Wettkampf löschen fehlgeschlagen: ${error.message}`);
+  const userId = await getUserId();
+  const items = await blobLoadArray<Race>('races');
+  await blobSave(
+    'races',
+    userId,
+    items.filter((r) => r.id !== id)
+  );
 }
 
 // ── Past Results ───────────────────────────────────────────────────────────
 
 export async function fetchPastResults(): Promise<PastResult[]> {
-  const { data, error } = await supabase
-    .from('past_results')
-    .select('*')
-    .order('date', { ascending: false });
-
-  if (error) throw new Error(`Ergebnisse laden fehlgeschlagen: ${error.message}`);
-  return (data ?? []) as PastResult[];
+  const items = await blobLoadArray<PastResult>('past_results');
+  return items.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function createPastResult(input: PastResultInput): Promise<PastResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Kein eingeloggter User');
-
-  const { data, error } = await supabase
-    .from('past_results')
-    .insert({ ...input, user_id: user.id })
-    .select()
-    .single();
-
-  if (error) throw new Error(`Ergebnis erstellen fehlgeschlagen: ${error.message}`);
-  return data as PastResult;
+  const userId = await getUserId();
+  const items = await blobLoadArray<PastResult>('past_results');
+  const newItem: PastResult = { ...input, id: crypto.randomUUID() };
+  await blobSave('past_results', userId, [...items, newItem]);
+  return newItem;
 }
 
 export async function updatePastResult(
   id: string,
   input: Partial<PastResultInput>
 ): Promise<PastResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Kein eingeloggter User');
-
-  const { data, error } = await supabase
-    .from('past_results')
-    .update(input)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) throw new Error(`Ergebnis aktualisieren fehlgeschlagen: ${error.message}`);
-  return data as PastResult;
+  const userId = await getUserId();
+  const items = await blobLoadArray<PastResult>('past_results');
+  const idx = items.findIndex((r) => r.id === id);
+  if (idx === -1) throw new Error('Ergebnis nicht gefunden');
+  const updated: PastResult = { ...items[idx], ...input };
+  const newItems = [...items];
+  newItems[idx] = updated;
+  await blobSave('past_results', userId, newItems);
+  return updated;
 }
 
 export async function deletePastResult(id: string): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Kein eingeloggter User');
-
-  const { error } = await supabase
-    .from('past_results')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) throw new Error(`Ergebnis löschen fehlgeschlagen: ${error.message}`);
+  const userId = await getUserId();
+  const items = await blobLoadArray<PastResult>('past_results');
+  await blobSave(
+    'past_results',
+    userId,
+    items.filter((r) => r.id !== id)
+  );
 }
 
 // ── Kombinierter Verlauf ───────────────────────────────────────────────────
@@ -196,10 +173,9 @@ export async function getCombinedHistory(): Promise<EventListItem[]> {
     ...ergebnisse.map((r): EventListItem => ({ kind: 'result', data: r })),
   ];
 
-  // Neueste zuerst
   liste.sort((a, b) => {
-    const dateA = a.kind === 'race' ? a.data.date : a.data.date;
-    const dateB = b.kind === 'race' ? b.data.date : b.data.date;
+    const dateA = a.data.date;
+    const dateB = b.data.date;
     return dateB.localeCompare(dateA);
   });
 

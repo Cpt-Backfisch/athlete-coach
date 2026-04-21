@@ -7,7 +7,7 @@ import { CountdownBadge } from '@/components/CountdownBadge';
 import { CommentSection } from '@/components/CommentSection';
 import { useShare } from '@/contexts/ShareContext';
 import { fetchActivitiesByUserId } from '@/lib/activities';
-import { supabase } from '@/lib/supabase';
+import { fetchUpcomingRacesByUser } from '@/lib/events';
 import { SPORT_COLORS } from '@/lib/theme';
 import {
   getWeeklyVolumeData,
@@ -42,12 +42,9 @@ const SPORT_REIHENFOLGE: SportType[] = ['run', 'bike', 'swim', 'misc'];
 // ── Hilfsfunktion: Athletenname des Owners laden ──────────────────────────
 
 async function ladeOwnerName(ownerUserId: string): Promise<string> {
-  const { data } = await supabase
-    .from('settings')
-    .select('data')
-    .eq('user_id', ownerUserId)
-    .maybeSingle();
-
+  const { data } = await import('@/lib/supabase').then((m) =>
+    m.supabase.from('settings').select('data').eq('user_id', ownerUserId).maybeSingle()
+  );
   if (!data) return '';
   try {
     const cfg = JSON.parse((data as { data: string }).data);
@@ -55,26 +52,6 @@ async function ladeOwnerName(ownerUserId: string): Promise<string> {
   } catch {
     return '';
   }
-}
-
-// Anstehende Wettkämpfe des Owners laden (RLS Share-Policy)
-async function ladeOwnerRaces(ownerUserId: string) {
-  const heute = new Date().toISOString().slice(0, 10);
-  const { data } = await supabase
-    .from('races')
-    .select('*')
-    .eq('user_id', ownerUserId)
-    .gte('date', heute)
-    .order('date', { ascending: true })
-    .limit(3);
-
-  return (data ?? []) as Array<{
-    id: string;
-    name: string;
-    date: string;
-    sport_type: string;
-    goal?: string | null;
-  }>;
 }
 
 // ── SharePage ──────────────────────────────────────────────────────────────
@@ -97,7 +74,7 @@ export function SharePage() {
     Promise.all([
       fetchActivitiesByUserId(ownerUserId),
       ladeOwnerName(ownerUserId),
-      ladeOwnerRaces(ownerUserId),
+      fetchUpcomingRacesByUser(ownerUserId),
     ]).then(([acts, name, raceList]) => {
       setActivities(acts);
       setOwnerName(name);
@@ -105,6 +82,26 @@ export function SharePage() {
       setIsLoading(false);
     });
   }, [shareLoading, ownerUserId]);
+
+  // ── Gefilterte Aktivitäten + Chart-Daten (Hooks vor frühen Returns) ────────
+
+  const gefiltert = useMemo(() => {
+    let liste = filterByTimeRange(activities, timeRange);
+    liste = filterBySport(liste, sportFilter);
+    return liste;
+  }, [activities, timeRange, sportFilter]);
+
+  const weeklyVolumeData = useMemo(
+    () => getWeeklyVolumeData(gefiltert, timeRange),
+    [gefiltert, timeRange]
+  );
+
+  const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
+
+  const sichtbareKpiKarten = useMemo(() => {
+    if (sportFilter !== 'all') return [sportFilter as SportType];
+    return SPORT_REIHENFOLGE.filter((s) => kpiData[s].sessions > 0);
+  }, [kpiData, sportFilter]);
 
   // ── Ungültiger Link ──────────────────────────────────────────────────────
 
@@ -128,26 +125,6 @@ export function SharePage() {
       </div>
     );
   }
-
-  // ── Gefilterte Aktivitäten + Chart-Daten ─────────────────────────────────
-
-  const gefiltert = useMemo(() => {
-    let liste = filterByTimeRange(activities, timeRange);
-    liste = filterBySport(liste, sportFilter);
-    return liste;
-  }, [activities, timeRange, sportFilter]);
-
-  const weeklyVolumeData = useMemo(
-    () => getWeeklyVolumeData(gefiltert, timeRange),
-    [gefiltert, timeRange]
-  );
-
-  const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
-
-  const sichtbareKpiKarten = useMemo(() => {
-    if (sportFilter !== 'all') return [sportFilter as SportType];
-    return SPORT_REIHENFOLGE.filter((s) => kpiData[s].sessions > 0);
-  }, [kpiData, sportFilter]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
