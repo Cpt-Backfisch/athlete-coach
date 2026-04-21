@@ -40,8 +40,8 @@ export async function setSetting(key: string, value: string): Promise<void> {
 // ── Share-Link ─────────────────────────────────────────────────────────────
 
 export async function getShareToken(): Promise<string | null> {
-  const { data } = await supabase.from('public_shares').select('token').maybeSingle();
-  return (data as { token: string } | null)?.token ?? null;
+  const { data } = await supabase.from('public_shares').select('share_token').maybeSingle();
+  return (data as { share_token: string } | null)?.share_token ?? null;
 }
 
 export async function createShareToken(): Promise<string> {
@@ -58,7 +58,7 @@ export async function createShareToken(): Promise<string> {
   await supabase
     .from('public_shares')
     .upsert(
-      { user_id: user.id, token, created_at: new Date().toISOString() },
+      { user_id: user.id, share_token: token, created_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     );
 

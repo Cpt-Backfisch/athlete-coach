@@ -1,6 +1,9 @@
 import Papa from 'papaparse';
 import { supabase } from './supabase';
+import { blobLoadOne, blobLoadArray, blobSave } from './jsonBlobStore';
 import { getSetting, setSetting } from './settings';
+import { upsertActivityByStravaId, upsertActivityByNameDate } from './activities';
+import type { Activity } from './activities';
 
 const VERCEL_PROXY_URL = 'https://athlete-coach-proxy-rnuy.vercel.app';
 
@@ -35,13 +38,7 @@ function normalizeSportType(raw: string): 'run' | 'bike' | 'swim' | 'misc' {
 // ── Token-Verwaltung ───────────────────────────────────────────────────────
 
 export async function getStoredToken(): Promise<StravaToken | null> {
-  const { data, error } = await supabase.from('strava_token').select('data').maybeSingle();
-  if (error || !data) return null;
-  try {
-    return JSON.parse((data as { data: string }).data) as StravaToken;
-  } catch {
-    return null;
-  }
+  return blobLoadOne<StravaToken>('strava_token');
 }
 
 export async function saveToken(token: StravaToken): Promise<void> {
@@ -49,11 +46,7 @@ export async function saveToken(token: StravaToken): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Kein eingeloggter User');
-
-  const { error } = await supabase
-    .from('strava_token')
-    .upsert({ user_id: user.id, data: JSON.stringify(token) }, { onConflict: 'user_id' });
-  if (error) throw new Error(`Token speichern fehlgeschlagen: ${error.message}`);
+  await blobSave('strava_token', user.id, token);
 }
 
 export async function refreshStravaToken(
@@ -136,6 +129,14 @@ export async function syncAllActivities(): Promise<SyncResult> {
   const token = await getValidToken();
   if (!token) throw new Error('Kein Strava-Token vorhanden');
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kein eingeloggter User');
+
+  // Bestehende Aktivitäten einmal laden — dann in-memory verwalten
+  let current = await blobLoadArray<Activity>('activities');
+
   let page = 1;
   let total = 0;
   let synced = 0;
@@ -146,28 +147,29 @@ export async function syncAllActivities(): Promise<SyncResult> {
 
     total += aktivitaeten.length;
 
-    // Jede Aktivität in Supabase upserten
     for (const a of aktivitaeten as Record<string, unknown>[]) {
-      const { error } = await supabase.from('activities').upsert(
-        {
-          strava_id: String(a['id']),
-          name: a['name'],
-          sport_type: normalizeSportType(String(a['type'] ?? '')),
-          distance: a['distance'], // Meter, roh
-          duration: a['moving_time'],
-          date: a['start_date'],
-          avg_hr: a['average_heartrate'] ?? null,
-          elevation: a['total_elevation_gain'] ?? null,
-        },
-        { onConflict: 'strava_id' }
-      );
-      if (!error) synced++;
+      const { updated, isNew } = upsertActivityByStravaId(current, {
+        strava_id: String(a['id']),
+        name: String(a['name'] ?? ''),
+        sport_type: normalizeSportType(String(a['type'] ?? '')),
+        distance: Number(a['distance'] ?? 0),
+        duration: Number(a['moving_time'] ?? 0),
+        date: String(a['start_date'] ?? ''),
+        avg_hr: (a['average_heartrate'] as number | null) ?? null,
+        elevation: (a['total_elevation_gain'] as number | null) ?? null,
+      });
+      current = updated;
+      if (isNew) synced++;
+      else synced++; // auch Updates zählen
     }
 
     page++;
   }
 
-  await updateLastSyncTime();
+  // Einmal am Ende speichern
+  await blobSave('activities', user.id, current);
+  await setSetting('strava_last_sync', new Date().toISOString());
+
   return { synced, total };
 }
 
@@ -186,8 +188,8 @@ export async function updateLastSyncTime(): Promise<void> {
 // ── Verbindungsstatus ──────────────────────────────────────────────────────
 
 export async function isStravaConnected(): Promise<boolean> {
-  const { data, error } = await supabase.from('strava_token').select('data').maybeSingle();
-  return !error && !!data;
+  const token = await getStoredToken();
+  return token !== null;
 }
 
 export async function disconnectStrava(): Promise<void> {
@@ -213,45 +215,50 @@ export async function importFromCSV(file: File): Promise<ImportResult> {
         let skipped = 0;
         const errors: string[] = [];
 
-        for (const zeile of zeilen) {
-          try {
-            const rawTyp = zeile['Activity Type'] ?? '';
-            const sportType = normalizeSportType(rawTyp);
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) throw new Error('Kein eingeloggter User');
 
-            const rawDistanz = parseFloat(zeile['Distance'] ?? '0');
-            // Schwimmen im Strava-CSV: Distanz in Metern — alle anderen in km
-            const distanzInMeter = sportType === 'swim' ? rawDistanz : rawDistanz * 1000;
+          let current = await blobLoadArray<Activity>('activities');
 
-            const dauer = parseInt(zeile['Moving Time'] ?? '0', 10);
-            const datum = zeile['Activity Date'] ?? '';
-            const name = zeile['Activity Name'] ?? 'Importiert';
+          for (const zeile of zeilen) {
+            try {
+              const rawTyp = zeile['Activity Type'] ?? '';
+              const sportType = normalizeSportType(rawTyp);
 
-            if (!datum) {
-              skipped++;
-              continue;
-            }
+              const rawDistanz = parseFloat(zeile['Distance'] ?? '0');
+              // Schwimmen im Strava-CSV: Distanz in Metern — alle anderen in km
+              const distanzInMeter = sportType === 'swim' ? rawDistanz : rawDistanz * 1000;
 
-            // Duplikat-Check via UPSERT nach name + date
-            const { error } = await supabase.from('activities').upsert(
-              {
+              const dauer = parseInt(zeile['Moving Time'] ?? '0', 10);
+              const datum = zeile['Activity Date'] ?? '';
+              const name = zeile['Activity Name'] ?? 'Importiert';
+
+              if (!datum) {
+                skipped++;
+                continue;
+              }
+
+              current = upsertActivityByNameDate(current, {
                 name,
                 sport_type: sportType,
                 distance: distanzInMeter,
                 duration: dauer,
                 date: datum,
-              },
-              { onConflict: 'name,date' }
-            );
-
-            if (error) {
-              errors.push(`${name}: ${error.message}`);
-            } else {
+              });
               imported++;
+            } catch (e) {
+              errors.push(`Zeile übersprungen: ${String(e)}`);
+              skipped++;
             }
-          } catch (e) {
-            errors.push(`Zeile übersprungen: ${String(e)}`);
-            skipped++;
           }
+
+          await blobSave('activities', user.id, current);
+        } catch (e) {
+          reject(new Error(`Import fehlgeschlagen: ${String(e)}`));
+          return;
         }
 
         resolve({ imported, skipped, errors });

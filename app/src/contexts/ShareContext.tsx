@@ -53,7 +53,7 @@ export function ShareProvider({ children }: { children: React.ReactNode }) {
     supabase
       .from('public_shares')
       .select('user_id')
-      .eq('token', token)
+      .eq('share_token', token)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.user_id) {
