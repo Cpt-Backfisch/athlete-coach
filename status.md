@@ -3,7 +3,7 @@
 > **Zweck dieser Datei:** Lebendiger Projektstand. Hier stehen aktueller Stand, To-dos, Phasen, Bugs.
 > Vision & Architektur-Grundlagen → siehe `context.md`.
 
-**Letztes Update:** 19.04.2026
+**Letztes Update:** 20.04.2026
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 1. Aktueller Stand in einem Satz
 
-T1 MVP der React-Migration ist feature-complete (19.04.2026). Alle 12 Schritte implementiert und gemergt. App läuft unter https://cpt-backfisch.github.io/athlete-coach/app/ — Deploy-Gate aktiv. Offener Bug: Strava OAuth schlägt fehl (Verbindung fehlgeschlagen nach Redirect).
+React-Migration ist abgeschlossen, App läuft unter /app/ parallel zur alten Monolith. Der Schema-Mismatch zwischen React-App und bestehendem Supabase-Schema ist behoben (PRs #32, #33) — alle Tabellen nutzen jetzt konsistent das JSON-Blob-Pattern der alten Monolith via jsonBlobStore-Helper. Strava-OAuth funktioniert. Nächste offene Themen: Kommentar-Bug, Aktivitäten-Duplikate, Import-Strategie, Projekt-Doku-Pattern.
 
 ---
 
@@ -48,12 +48,16 @@ Die Entwicklung wird in **klar abgegrenzte Phasen** zerlegt. Eine Phase ist erst
 
 **DoD:** Push auf `main` triggert CI, Tests laufen grün, Deployment ist nachvollziehbar protokolliert, Frontend-Stack-Entscheidung für Phase 1 ist getroffen und dokumentiert.
 
-**DoD-Status (13.04.2026):** 4 von 4 erfüllt. ✅ Phase 0 abgeschlossen.
+**DoD-Status (13.04.2026):** 3 von 4 erfüllt.
 
 - ✅ CI läuft bei jedem Push/PR grün durch
-- ✅ Frontend-Stack-Entscheidung getroffen und dokumentiert
+- ✅ Frontend-Stack-Entscheidung getroffen und dokumentiert (React-Migration inzwischen durchgeführt — 19.04.2026)
 - ✅ Echte Tests eingerichtet und in CI eingebunden (PR #3, 13.04.2026)
 - ✅ Deploy-Gate scharf geschaltet, Auto-Deploy aus CI aktiv (PR #5, 13.04.2026)
+
+#### Backlog Phase 0
+
+- Schema-Drift-Check in CI — supabase-js Typescript-Codegen oder einfacher information_schema-Vergleich gegen erwartete Shapes im Code. Rationale: Der Schema-Mismatch, der in PRs #32 und #33 behoben wurde, hätte mit einem solchen Check von Anfang an auffallen müssen.
 
 #### Detail: GitHub Actions CI
 
@@ -115,7 +119,17 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - [x] **Doku-Korrektur `context.md` §4** (14.04.2026) — „HRV-Zonenverteilung" → „HF-Zonenverteilung (5 Zonen nach max HR)". (PR #13)
 - [x] **Migrations-Schritt 3b: Feature-Parity-Priorisierung abgeschlossen** (18.04.2026) — PR #14. 115 Features in 13 Gruppen, Tier-Einteilung T1 (47 MVP) / T2 (34 Polish) / T3 (5 Advanced). Neue Features identifiziert: Streak-Counter, TSS/TRIMP, ACWR, Race-Day-View u.a. Secrets (Claude API Key, Telegram Token/Chat ID) werden aus Frontend entfernt → nur noch Vercel Env Vars. Coach-Chat wird Telegram-only (kein Web-Chat mehr).
 - [x] **Migrations-Sequenz erstellt** (18.04.2026) — PR #15. `migration-sequence.md`: 13 Schritte in 5 Schichten, 2 Bug-Sessions als Zwischenschritte. Geschätzte Dauer T1-MVP: 21–31 Arbeitstage. Ziel: Umschalt-Tag August/September 2026.
-- [x] **Frontend auf Vite + React + TypeScript + Tailwind + shadcn/ui migrieren** (19.04.2026) — Alle 12 Migrations-Schritte implementiert und gemergt. T1 MVP feature-complete. PRs #16–#29.
+- [x] **Frontend auf Vite + React + TypeScript + Tailwind + shadcn/ui migrieren** _(abgeschlossen, 19.04.2026)_ — Alle 12 Migrations-Schritte implementiert und gemergt. T1 MVP feature-complete. PRs #16–#29.
+  - [x] Auth (Login/Logout, Supabase Session)
+  - [x] Layout (Sidebar Desktop / Bottom-Nav Mobile, Dark Mode)
+  - [x] Strava OAuth + Sync
+  - [x] Aktivitäten-CRUD (Liste, Detail, Bearbeiten, Löschen)
+  - [x] Trainingsplan (Wochenrahmen + Ziele)
+  - [x] Dashboard (KPI-Karten, Volumen-Chart)
+  - [x] Events (Wettkämpfe + Ergebnisse)
+  - [x] Coach + Telegram (Einstellungen, Share-Token)
+  - [x] Share-View (Read-Only für Freunde, Kommentar-Sektion)
+  - [x] Schema-Kompatibilität zur alten Monolith hergestellt (PRs #32, #33, 20.04.2026)
 
 **Beide Apps parallel live:**
 
@@ -176,9 +190,20 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 
 ## 3. Bekannte Bugs
 
-| Datum      | Bug                                                                             | Bereich                                                                                        | Status |
-| ---------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------ |
-| 19.04.2026 | Strava OAuth schlägt fehl — nach Redirect erscheint „Verbindung fehlgeschlagen" | `app/src/lib/stravaOAuth.ts` → `handleOAuthCallback()`, evtl. URL-Hash-Parsing oder Proxy-Call | Offen  |
+**1. Kommentar-Erstellung schlägt fehl**
+
+POST /rest/v1/comments?select=\* → 400 (Bad Request).
+Datum: 20.04.2026. Vermutete Ursache: gleicher Schema-Mismatch wie bei den anderen Tabellen — Tabelle comments wurde in PR #33 nicht geprüft und nicht gefixt. Reproschritte: In Share-View einen Kommentar schreiben und abschicken.
+
+**2. Aktivitäten erscheinen doppelt**
+
+In der Aktivitäten-Liste erscheinen fast alle Einheiten doppelt: einmal mit Pace-Angabe und farbigem Punkt, einmal ohne Pace und mit grauem Punkt.
+Datum: 20.04.2026. Vermutete Ursache noch offen: entweder Alt-Duplikate aus Monolith-CSV + Strava-Webhook ohne Dedup, oder beide Apps haben während der parallelen Koexistenz doppelt geschrieben. Zu untersuchen.
+
+**3. Hard-Reload auf App-Seite führt zu 404**
+
+Cmd+Shift+R auf https://cpt-backfisch.github.io/athlete-coach/app/ landet auf https://cpt-backfisch.github.io/#/activities (ohne /athlete-coach/app/).
+Datum: 20.04.2026. Vermutete Ursache: HashRouter berücksichtigt base-Path beim Reload nicht. Low priority.
 
 ---
 
@@ -187,6 +212,8 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - **Eigene Domain in Phase 2?** Kosten & Aufwand vs. Nutzen
 - **Vercel-Aufräumen:** altes Projekt `athlete-coach-proxy` löschen, sobald sicher keine Referenzen mehr dranhängen
 - **Logo-Design für PWA-Icon:** Ausstehend, blockiert Sequenz-Schritt 13 (PWA-Finalisierung). Nicht dringend.
+- **Strava-Import-Strategie:** Initialer CSV-Import (Code aus Monolith übernehmen) vs. API-Bulk-Import mit Throttling. Strava-Rate-Limits (200 req / 15 min, 2000 req / Tag) müssen berücksichtigt werden. Streams-Daten: on-demand beim Öffnen einer Aktivität cachen, nicht bulk.
+- **Doku-Pattern für status.md:** Projekt-Anweisungen dürfen nicht nur „lies die Datei im Repo" sagen, weil das Fetchen der raw-URL inkonsistent funktioniert. Sebastian trägt den aktuellen Stand beim Chat-Start manuell in den Chat ein. Entsprechend müssen die Projekt-Anweisungen angepasst werden.
 
 ---
 
@@ -194,6 +221,9 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 
 | Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 20.04.2026 | PR #33 gemergt: Systematischer Schema-Fix für activities, races, past_results, week_frame (JSON-Blob via neuem jsonBlobStore.ts-Helper) + public_shares (share_token) + Debug-Log-Cleanup aus stravaOAuth.ts. React-App jetzt vollständig schema-kompatibel zur alten Monolith.                                                                                                                                                                                                                                                    |
+| 20.04.2026 | PR #32 gemergt: Fix für Strava-OAuth-Bug — strava_token und settings auf JSON-Blob-Schema umgestellt. Pre-existing Lint-Fehler beiläufig ausgeräumt.                                                                                                                                                                                                                                                                                                                                                                               |
+| 20.04.2026 | PR #31 gemergt (Diagnose-Only): Temporäre Debug-Logs eingefügt, die den Schema-Mismatch als Ursache offengelegt haben. Logs in PR #33 wieder entfernt.                                                                                                                                                                                                                                                                                                                                                                             |
 | 19.04.2026 | T1 MVP React-Migration abgeschlossen. Alle 12 Schritte (Auth, Layout, Strava, CRUD, Listen, Detail, Trainingsplan, Dashboard, Events, Coach+Telegram, Einstellungen, Share-View) gemergt. Deploy-Gate aktiv, App live unter /athlete-coach/app/. Strava OAuth Bug offen.                                                                                                                                                                                                                                                           |
 | 18.04.2026 | Migrations-Sequenz erstellt (`migration-sequence.md`): 13 Schritte in 5 Schichten, 2 Bug-Sessions als Zwischenschritte. Geschätzte Dauer T1-MVP: 21–31 Arbeitstage. Umschalt-Tag-Ziel: August/September 2026. (PR #15)                                                                                                                                                                                                                                                                                                             |
 | 18.04.2026 | Feature-Parity-Priorisierung: 115 Features in 13 Gruppen priorisiert (47 T1, 34 T2, 5 T3, 4 Phase 2, 24 kann weg). Neue Features: Streak-Counter, TSS/TRIMP, ACWR, Race-Day-View, Tapering-Hinweis, Rennbericht, Triathlon-Splits, Besucher-Tracking, u.a. Secrets (Claude API Key, Telegram Token/Chat ID) werden aus Frontend entfernt → nur noch Vercel Env Vars. Coach-Chat wird Telegram-only (kein Web-Chat mehr). (PR #14)                                                                                                  |
@@ -235,5 +265,16 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - ein neuer kostenpflichtiger Dienst dazukommt (Abschnitt 6 „Kostenbewusstsein")
 - eine neue Sicherheitsregel nötig wird (Abschnitt 5)
 - sich die Sprache, Zielgruppe oder Solo-/Team-Konstellation ändert
+- sich die Doku-Pattern-Konventionen ändern (z.B. wie status.md in Chat-Kontext gebracht wird) — dann auch in Projekt-Anweisungen nachziehen
 
 **Regel für Claude (App und Code):** Beim Abschluss einer Phase aktiv prüfen, ob `context.md` nachgezogen werden muss, und Sebastian einen konkreten Diff vorschlagen, _bevor_ die Phase als „done" markiert wird.
+
+---
+
+## 7. Learnings aus der Migration (Stand 20.04.2026)
+
+**JSON-Blob-Pattern ist Repo-Konvention, nicht Ausnahme**: Bei der React-Migration wurde fälschlich angenommen, die Supabase-Tabellen hätten normalisierte Spalten. Tatsächlich nutzen 6 von 7 beobachteten Tabellen (activities, races, past_results, week_frame, strava_token, settings) das Pattern `user_id uuid, data text, updated_at timestamptz`, bei dem alle User-Daten als JSON-String in `data` liegen. Einzige Ausnahme: `public_shares` mit echten Spalten. Künftige Migrationsarbeit muss dieses Pattern bewusst respektieren oder explizit dagegen entscheiden — nicht implizit normalisieren.
+
+**Clientseitige Filter/Sortierung**: Weil das Schema nicht nach einzelnen Feldern filtern lässt, wird in allen JSON-Blob-Tabellen clientseitig gefiltert und sortiert (siehe jsonBlobStore.ts). Bei den Datenmengen der Solo-App (einige hundert Aktivitäten, wenige Rennen) ist das unproblematisch. Falls später Multi-User oder größere Datenmengen kommen: PostgreSQL-JSON-Queries (z.B. `data->>'date'`) oder Schema-Normalisierung sind die Eskalationsstufen.
+
+**Ein-PR-pro-Baustelle hat gelohnt**: Die Bug-Detektivarbeit hat drei gezielte PRs gebraucht (Diagnose, Teilfix, Gesamtfix) statt sich in blinden Versuchen zu verlieren. Leitprinzip: Bei komplexen Bugs erst eine Diagnose-PR mit temporärem Logging, danach gezielter Fix-PR. Logs und Fix immer in getrennten PRs.
