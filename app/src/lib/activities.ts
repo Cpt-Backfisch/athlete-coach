@@ -23,6 +23,41 @@ export interface Activity {
 
 export type ActivityInput = Omit<Activity, 'id' | 'user_id' | 'created_at' | 'strava_id'>;
 
+// Erweiterter Typ für Blob-Einträge aus der alten Monolith (camelCase-Felder)
+type LegacyActivity = Activity & {
+  stravaId?: string | number; // Monolith: camelCase statt strava_id
+  type?: string; // Monolith: 'other' statt 'misc'
+  avgHr?: number; // Monolith: camelCase statt avg_hr
+};
+
+// ── Normalisierung + Deduplizierung ───────────────────────────────────────
+//
+// Die alte Monolith speicherte Aktivitäten mit abweichenden Feldnamen
+// (stravaId, type, avgHr). Der Strava-Sync der React-App konnte diese
+// Einträge nicht per strava_id matchen und legte Duplikate an.
+// Diese Funktion normalisiert Legacy-Felder und entfernt Duplikate.
+// Spätere Einträge (React-Format) gewinnen bei Kollision.
+
+function normalizeAndDedup(raw: LegacyActivity[]): Activity[] {
+  const items: Activity[] = raw.map((a) => {
+    const rawType = (a.sport_type as SportType | undefined) ?? (a.type as string | undefined);
+    return {
+      ...a,
+      strava_id: a.strava_id ?? (a.stravaId != null ? String(a.stravaId) : undefined),
+      sport_type: (!rawType || rawType === 'other' ? 'misc' : rawType) as SportType,
+      avg_hr: a.avg_hr ?? a.avgHr ?? null,
+    };
+  });
+
+  // Map: letzte Schreibung pro Schlüssel gewinnt (React-App-Einträge stehen am Ende)
+  const seen = new Map<string, Activity>();
+  for (const a of items) {
+    const key = a.strava_id ? `s:${a.strava_id}` : `m:${a.name}|${a.date.slice(0, 10)}`;
+    seen.set(key, a);
+  }
+  return [...seen.values()];
+}
+
 // ── Hilfsfunktion ─────────────────────────────────────────────────────────
 
 async function getUserId(): Promise<string> {
@@ -36,14 +71,14 @@ async function getUserId(): Promise<string> {
 // ── CRUD-Funktionen ────────────────────────────────────────────────────────
 
 export async function fetchActivities(): Promise<Activity[]> {
-  const items = await blobLoadArray<Activity>('activities');
-  return items.sort((a, b) => b.date.localeCompare(a.date));
+  const raw = await blobLoadArray<LegacyActivity>('activities');
+  return normalizeAndDedup(raw).sort((a, b) => b.date.localeCompare(a.date));
 }
 
 // Aktivitäten eines anderen Users laden (Share-View, kein Auth nötig — RLS Share-Policy)
 export async function fetchActivitiesByUserId(userId: string): Promise<Activity[]> {
-  const items = await blobLoadArrayByUser<Activity>('activities', userId);
-  return items.sort((a, b) => b.date.localeCompare(a.date));
+  const raw = await blobLoadArrayByUser<LegacyActivity>('activities', userId);
+  return normalizeAndDedup(raw).sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function createActivity(input: ActivityInput): Promise<Activity> {
