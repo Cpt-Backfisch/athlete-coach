@@ -29,7 +29,7 @@
 
 ## 1. Aktueller Stand in einem Satz
 
-React-Migration ist abgeschlossen, App läuft unter /app/ parallel zur alten Monolith. Der Schema-Mismatch zwischen React-App und bestehendem Supabase-Schema ist behoben (PRs #32, #33) — alle Tabellen nutzen jetzt konsistent das JSON-Blob-Pattern der alten Monolith via jsonBlobStore-Helper. Strava-OAuth funktioniert. Nächste offene Themen: Kommentar-Bug, Aktivitäten-Duplikate, Import-Strategie.
+React-Migration ist abgeschlossen, App läuft unter /app/ parallel zur alten Monolith. Der Schema-Mismatch zwischen React-App und bestehendem Supabase-Schema ist behoben (PRs #32, #33) — alle Tabellen nutzen jetzt konsistent das JSON-Blob-Pattern der alten Monolith via jsonBlobStore-Helper. Strava-OAuth funktioniert. Nächste offene Themen: Kommentar-Bug, Telegram-Nachrichten-Bug, Aktivitäten-Duplikate, Import-Strategie, fehlende Features für Phase 2.
 
 ---
 
@@ -169,7 +169,38 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 
 ---
 
-### 👥 Phase 2 — Multi-User
+### 🎨 Phase 2 — App-Ausbau & Feature-Komplettheit
+
+**Ziel:** Die neue App ist für Sebastian (inkl. Read-/Social-Funktionen für „Fans") feature-complete und in der UI poliert. Phase 2 ist erst abgeschlossen, wenn Sebastian die App täglich reibungslos nutzt, alle für ihn relevanten Features drin sind und die UI state-of-the-art ist.
+
+- [ ] **Feature-Parity-Rest abarbeiten** — `feature-parity.md` durchgehen und alle noch nicht migrierten T1-Features in die React-App bringen. Besonderes Augenmerk: Features der ursprünglichen App-Version, die in der Priorisierungs-Runde möglicherweise übersehen oder falsch eingeordnet wurden. Sebastian macht dafür einen separaten Review-Pass durch die alte App und ergänzt fehlende Punkte in `feature-parity.md`.
+- [ ] **T2-Polish-Features implementieren** — die 34 T2-Features aus `feature-parity.md` (priorisiert am 18.04.2026, PR #14).
+- [ ] **UI-Polishing** — Design-Fein-Tuning, Animationen, Empty States, Loading States, Mobile-Feinschliff, Accessibility-Pass.
+- [ ] **Performance-Check** — Lighthouse-Audit, Bundle-Size-Check, Initial-Load-Time-Optimierung.
+- [ ] **Sicherheits-Audit** (aus Phase 1 übernommen, falls noch offen): RLS-Policies, Secret-Rotation, CSP-Header.
+- [ ] **Bidirektionaler Telegram-Coach** (aus Phase 1 übernommen, falls noch offen) — siehe Phase 1.
+- [ ] **Social-Features erweitern:** Likes/Reaktionen auf Share-Seite, Telegram-Notification bei Kommentaren/Likes (siehe Phase 1).
+
+**DoD:** Sebastian nutzt die neue App exklusiv und reibungslos auf Mobile und Laptop. Alle für Sebastian relevanten Features sind drin. UI ist poliert. Performance ist gut. Keine kritischen Bugs mehr offen. Die alte Monolith wird nicht mehr gebraucht.
+
+---
+
+### 🔚 Meilenstein — Abschalten der alten Monolith
+
+**Ziel:** Nach Abschluss Phase 2 kann die alte `index.html` abgeschaltet und der zugehörige Code aufgeräumt werden, ohne dass Sebastian Funktionalität oder Daten verliert.
+
+- [ ] **Smoke-Test-Woche:** Mindestens eine Woche lang ausschließlich die neue App nutzen, ohne auf die alte zurückzugreifen. Probleme in den Bug-Abschnitt eintragen.
+- [ ] **Datenmigrations-Check:** Sicherstellen, dass alle relevanten Daten aus Supabase in der neuen App sichtbar und bearbeitbar sind.
+- [ ] **Git-Tag setzen:** `v1-legacy-last` vor dem Löschen, als Rollback-Anker.
+- [ ] **Alte Dateien entfernen:** `index.html` und nicht mehr benötigte Vanilla-JS-Dateien, zugehörige CI-Schritte im Deploy-Gate.
+- [ ] **Routing anpassen:** `https://cpt-backfisch.github.io/athlete-coach/` leitet ab jetzt auf die neue App weiter oder hostet direkt die neue App auf dem Root-Pfad — Entscheidung Sebastian.
+- [ ] **`context.md` aktualisieren** — Architektur-Tabelle angleichen, Single-File-Schuld-Hinweis endgültig entfernen, Doppel-Deploy-Konstruktion aus Abschnitt „Deployment-Prozess" rausnehmen.
+
+**DoD:** Nur noch die neue React-App läuft. Alte Dateien sind entfernt. Repo ist aufgeräumt. `context.md` reflektiert den neuen Stand.
+
+---
+
+### 👥 Phase 3 — Multi-User
 
 **Ziel:** Freunde können sich registrieren und die App selbst als Athleten nutzen.
 
@@ -180,13 +211,13 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 - [ ] Quota / Rate-Limiting für Claude-API pro User (sonst frisst ein Power-User das Budget)
 - [ ] DSGVO-Basics: Datenschutzerklärung, Datenexport, Account-Löschung
 - [ ] Optional: eigene Domain (`athlete.coach`?) — vorher Verfügbarkeit & Kosten prüfen
-- [ ] **`context.md` erneut aktualisieren am Ende von Phase 2** — Vision-Abschnitt von „Solo + Lese-Freunde" auf „Multi-User produktiv" umschreiben, neue Tabellen und User-Modell ergänzen.
+- [ ] **`context.md` erneut aktualisieren am Ende von Phase 3** — Vision-Abschnitt von „Solo + Lese-Freunde" auf „Multi-User produktiv" umschreiben, neue Tabellen und User-Modell ergänzen.
 
 **DoD:** Mindestens ein zweiter realer Nutzer kann die App vollständig und sicher allein benutzen; `context.md` reflektiert den Multi-User-Stand.
 
 ---
 
-### 🚀 Phase 3+ — Ausbau (Backlog, ungewichtet)
+### 🚀 Phase 4+ — Ausbau (Backlog, ungewichtet)
 
 - KI-Trainingsplan dynamisch aus Wettkampfterminen
 - Wettkampfprognosen pro Segment
@@ -205,12 +236,18 @@ Ein dedizierter Job `build-app` baut die React-App (`cd app && npm ci && npm run
 POST /rest/v1/comments?select=\* → 400 (Bad Request).
 Datum: 20.04.2026. Vermutete Ursache: gleicher Schema-Mismatch wie bei den anderen Tabellen — Tabelle comments wurde in PR #33 nicht geprüft und nicht gefixt. Reproschritte: In Share-View einen Kommentar schreiben und abschicken.
 
-**2. Aktivitäten erscheinen doppelt**
+**2. Telegram-Nachrichten nach Aktivität kommen nicht an**
+
+Nach dem Upload/Import einer Einheit sollte über den Strava-Webhook (`api/webhook.js` auf Vercel) eine Claude-Bewertung per Telegram an Sebastian geschickt werden. Aktuell kommt keine Nachricht an.
+Datum: 20.04.2026. Vermutete Ursache noch offen: Webhook-Subscription bei Strava aktiv? Vercel Function Logs prüfen. Telegram-Credentials in Vercel Env Vars korrekt? Möglich auch, dass der Webhook die neue React-App-URL nicht richtig triggert oder aus dem Schema-Fix Folgefehler hat.
+Reproschritte: neue Einheit in Strava hochladen, 1–2 Min warten, Telegram checken.
+
+**3. Aktivitäten erscheinen doppelt**
 
 In der Aktivitäten-Liste erscheinen fast alle Einheiten doppelt: einmal mit Pace-Angabe und farbigem Punkt, einmal ohne Pace und mit grauem Punkt.
 Datum: 20.04.2026. Vermutete Ursache noch offen: entweder Alt-Duplikate aus Monolith-CSV + Strava-Webhook ohne Dedup, oder beide Apps haben während der parallelen Koexistenz doppelt geschrieben. Zu untersuchen.
 
-**3. Hard-Reload auf App-Seite führt zu 404**
+**4. Hard-Reload auf App-Seite führt zu 404**
 
 Cmd+Shift+R auf https://cpt-backfisch.github.io/athlete-coach/app/ landet auf https://cpt-backfisch.github.io/#/activities (ohne /athlete-coach/app/).
 Datum: 20.04.2026. Vermutete Ursache: HashRouter berücksichtigt base-Path beim Reload nicht. Low priority.
@@ -222,6 +259,7 @@ Datum: 20.04.2026. Vermutete Ursache: HashRouter berücksichtigt base-Path beim 
 - **Eigene Domain in Phase 2?** Kosten & Aufwand vs. Nutzen
 - **Vercel-Aufräumen:** altes Projekt `athlete-coach-proxy` löschen, sobald sicher keine Referenzen mehr dranhängen
 - **Logo-Design für PWA-Icon:** Ausstehend, blockiert Sequenz-Schritt 13 (PWA-Finalisierung). Nicht dringend.
+- **Feature-Parity-Review für Phase 2:** Sebastian macht einen separaten Durchgang durch die alte App, um Features zu identifizieren, die in der 18.04.2026-Priorisierung übersehen oder falsch eingeordnet wurden, und ergänzt diese in `feature-parity.md` vor Phase-2-Start.
 - **Strava-Import-Strategie:** Initialer CSV-Import (Code aus Monolith übernehmen) vs. API-Bulk-Import mit Throttling. Strava-Rate-Limits (200 req / 15 min, 2000 req / Tag) müssen berücksichtigt werden. Streams-Daten: on-demand beim Öffnen einer Aktivität cachen, nicht bulk.
 
 ---
@@ -230,8 +268,9 @@ Datum: 20.04.2026. Vermutete Ursache: HashRouter berücksichtigt base-Path beim 
 
 | Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 20.04.2026 | Doku-Pattern für `status.md` festgelegt und in Abschnitt 0 dokumentiert. Ergebnis einer Diagnose: Die alte Anweisung in den Projektanweisungen („lies die Datei im Repo") funktionierte inkonsistent — Claude Chat bekam teils den Platzhalter statt des echten Inhalts. Neue Regel: status.md-Inhalt wird am Ende jeder Session mit Änderungen direkt in die Projektanweisungen gepastet, zusätzlich zum Repo-Commit. Gelöste offene Frage aus Abschnitt 4 entfernt.                                                               |
-| 20.04.2026 | PR #34 gemergt: `status.md` aktualisiert nach Schema-Fix-Session (PRs #31, #32, #33). Neuer Abschnitt 7 „Learnings aus der Migration" ergänzt. Prettier-Fix als Folge-Commit.                                                                                                                                                                                                                                                                                                                                                     |
+| 20.04.2026 | Roadmap-Umbau: Phase 2 und 3 getauscht. Neue Phase 2 ist „App-Ausbau & Feature-Komplettheit", danach neuer Meilenstein „Alte Monolith abschalten", dann Phase 3 „Multi-User". Begründung: Sebastian will die App zuerst für sich selbst perfektionieren, bevor andere Nutzer aufgesattelt werden. Neuer Bug eingetragen: Telegram-Nachrichten nach Einheiten kommen nicht an.                                                                                                                                                      |
+| 20.04.2026 | Doku-Pattern für `status.md` festgelegt und in Abschnitt 0 dokumentiert. Ergebnis einer Diagnose: Die alte Anweisung in den Projektanweisungen („lies die Datei im Repo") funktionierte inkonsistent — Claude Chat bekam teils den Platzhalter statt des echten Inhalts. Neue Regel: status.md-Inhalt wird am Ende jeder Session mit Änderungen direkt in die Projektanweisungen gepastet, zusätzlich zum Repo-Commit. Gelöste offene Frage aus Abschnitt 4 entfernt.                                                              |
+| 20.04.2026 | PR #34 gemergt: `status.md` aktualisiert nach Schema-Fix-Session (PRs #31, #32, #33). Neuer Abschnitt 7 „Learnings aus der Migration" ergänzt. Prettier-Fix als Folge-Commit.                                                                                                                                                                                                                                                                                                                                                      |
 | 20.04.2026 | PR #33 gemergt: Systematischer Schema-Fix für activities, races, past_results, week_frame (JSON-Blob via neuem jsonBlobStore.ts-Helper) + public_shares (share_token) + Debug-Log-Cleanup aus stravaOAuth.ts. React-App jetzt vollständig schema-kompatibel zur alten Monolith.                                                                                                                                                                                                                                                    |
 | 20.04.2026 | PR #32 gemergt: Fix für Strava-OAuth-Bug — strava_token und settings auf JSON-Blob-Schema umgestellt. Pre-existing Lint-Fehler beiläufig ausgeräumt.                                                                                                                                                                                                                                                                                                                                                                               |
 | 20.04.2026 | PR #31 gemergt (Diagnose-Only): Temporäre Debug-Logs eingefügt, die den Schema-Mismatch als Ursache offengelegt haben. Logs in PR #33 wieder entfernt.                                                                                                                                                                                                                                                                                                                                                                             |
@@ -264,9 +303,16 @@ Datum: 20.04.2026. Vermutete Ursache: HashRouter berücksichtigt base-Path beim 
 - Abschnitt 4 „Was es heute schon kann": Single-File-Schuld-Hinweis entfernen oder umformulieren
 - Abschnitt 7 Constraints: ggf. Hinweis ergänzen, dass Build-Step nötig ist
 
-**Pflicht-Update am Ende von Phase 2:**
+**Pflicht-Update beim Meilenstein „Alte Monolith abschalten":**
 
-- Vision (Abschnitt 2): Phase 1/Phase 2 umschreiben — Multi-User ist dann Realität, nicht mehr Plan
+- Architektur-Tabelle: nur noch neue App, keine Dual-Deploy-Konstruktion
+- Abschnitt 4 „Was es heute schon kann": Single-File-Schuld-Hinweis endgültig entfernen
+- Abschnitt „Deployment-Prozess": Dualer-Deploy-Teil rausnehmen
+- Alle Verweise auf `index.html` und Monolith prüfen und entfernen
+
+**Pflicht-Update am Ende von Phase 3:**
+
+- Vision (Abschnitt 2): Phase 1/Phase 3 umschreiben — Multi-User ist dann Realität, nicht mehr Plan
 - Architektur-Tabelle: Domain ergänzen, falls eigene Domain gekauft
 - Tabellen-Liste: alles, was für Multi-User dazugekommen ist
 - Constraints: ggf. DSGVO-Hinweise
