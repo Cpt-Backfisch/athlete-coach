@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { FilterChips } from '@/components/FilterChips';
 import { KpiCard } from '@/components/KpiCard';
 import { LoadLight } from '@/components/LoadLight';
@@ -49,6 +50,7 @@ const SPORT_REIHENFOLGE: SportType[] = ['run', 'bike', 'swim', 'misc'];
 // ── DashboardPage ──────────────────────────────────────────────────────────
 
 export function DashboardPage() {
+  const { user } = useAuth();
   const { activities, isLoading } = useActivities();
 
   const [timeRange, setTimeRange] = useState<TimeRange>('12W');
@@ -221,7 +223,7 @@ export function DashboardPage() {
 
       {/* Kommentare (Owner-Ansicht) */}
       {shareToken ? (
-        <CommentSection shareToken={shareToken} isOwner={true} />
+        <CommentSection shareToken={shareToken} ownerUserId={user?.id ?? ''} isOwner={true} />
       ) : (
         <section className="space-y-3">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
