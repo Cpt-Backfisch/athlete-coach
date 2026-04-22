@@ -83,7 +83,7 @@ export async function revokeAllShareLinks(): Promise<void> {
 }
 
 export function getShareUrl(token: string): string {
-  return `${window.location.origin}/#/share?token=${token}`;
+  return `${window.location.origin}${import.meta.env.BASE_URL}#/share?token=${token}`;
 }
 
 // ── Strava Webhook registrieren ────────────────────────────────────────────
