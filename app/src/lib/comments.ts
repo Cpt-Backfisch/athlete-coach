@@ -7,14 +7,15 @@ export interface Comment {
   user_id: string; // Owner — für Lösch-Berechtigung
   share_token: string;
   author_name: string;
-  content: string;
+  message: string;
   created_at: string;
 }
 
 export interface CommentInput {
+  user_id: string; // Owner-ID, damit RLS den Insert erlaubt
   share_token: string;
   author_name: string;
-  content: string;
+  message: string;
 }
 
 // ── Funktionen ─────────────────────────────────────────────────────────────
@@ -36,9 +37,10 @@ export async function createComment(input: CommentInput): Promise<Comment> {
   const { data, error } = await supabase
     .from('comments')
     .insert({
+      user_id: input.user_id,
       share_token: input.share_token,
       author_name: input.author_name.trim(),
-      content: input.content.trim(),
+      message: input.message.trim(),
     })
     .select()
     .single();

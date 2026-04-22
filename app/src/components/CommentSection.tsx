@@ -10,6 +10,7 @@ import type { Comment } from '@/lib/comments';
 
 interface CommentSectionProps {
   shareToken: string;
+  ownerUserId: string; // für den user_id-Pflichtfeld im Insert
   isOwner: boolean; // true wenn eingeloggter User der Owner ist
 }
 
@@ -21,7 +22,7 @@ function formatDatum(dateStr: string): string {
   });
 }
 
-export function CommentSection({ shareToken, isOwner }: CommentSectionProps) {
+export function CommentSection({ shareToken, ownerUserId, isOwner }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [authorName, setAuthorName] = useState('');
   const [content, setContent] = useState('');
@@ -50,7 +51,12 @@ export function CommentSection({ shareToken, isOwner }: CommentSectionProps) {
     if (!authorName.trim() || content.trim().length < 3) return;
     setIsSubmitting(true);
     try {
-      await createComment({ share_token: shareToken, author_name: authorName, content });
+      await createComment({
+        user_id: ownerUserId,
+        share_token: shareToken,
+        author_name: authorName,
+        message: content,
+      });
       setContent('');
       toast.success('Kommentar gesendet');
       await laden();
@@ -137,7 +143,7 @@ export function CommentSection({ shareToken, isOwner }: CommentSectionProps) {
                   </button>
                 )}
               </div>
-              <p className="text-sm whitespace-pre-wrap">{c.content}</p>
+              <p className="text-sm whitespace-pre-wrap">{c.message}</p>
             </div>
           ))}
         </div>

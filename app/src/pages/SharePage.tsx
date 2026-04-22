@@ -216,7 +216,7 @@ export function SharePage() {
         )}
 
         {/* Kommentare */}
-        <CommentSection shareToken={shareToken} isOwner={false} />
+        <CommentSection shareToken={shareToken} ownerUserId={ownerUserId} isOwner={false} />
       </div>
     </div>
   );
