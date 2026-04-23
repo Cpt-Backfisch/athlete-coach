@@ -12,13 +12,15 @@ import type { Activity } from '@/lib/activities';
 // ── Filter-Optionen ────────────────────────────────────────────────────────
 
 const ZEITRAUM_OPTIONEN = [
-  { label: '4W', value: '4W' },
-  { label: '12W', value: '12W' },
-  { label: '6M', value: '6M' },
-  { label: '1J', value: '1J' },
+  { label: 'Alles', value: 'all' },
   { label: '2026', value: '2026' },
   { label: '2025', value: '2025' },
-  { label: 'Alles', value: 'all' },
+  { label: '2024', value: '2024' },
+  { label: '1J', value: '1J' },
+  { label: '6M', value: '6M' },
+  { label: '12W', value: '12W' },
+  { label: '4W', value: '4W' },
+  { label: '1W', value: '1W' },
 ];
 
 const SPORT_OPTIONEN = [
@@ -34,7 +36,7 @@ const SPORT_OPTIONEN = [
 export function ActivitiesPage() {
   const { activities, isLoading, error, removeActivity } = useActivities();
 
-  const [timeRange, setTimeRange] = useState<TimeRange>('12W');
+  const [timeRange, setTimeRange] = useState<TimeRange>('2026');
   const [sportFilter, setSportFilter] = useState('all');
 
   const [modalOpen, setModalOpen] = useState(false);
