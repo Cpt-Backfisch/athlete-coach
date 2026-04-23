@@ -55,15 +55,15 @@ Getrenntes System für Zustände wie „Form", „Belastung", „Warnung":
 
 ### 2.3 Hintergrund & Text
 
-| Rolle                          | Dark-Mode                   | Light-Mode          |
-| ------------------------------ | --------------------------- | ------------------- |
-| Haupt-Hintergrund (Background) | `#000000` echtes Schwarz    | `#FAFAF8` Off-White |
-| Surface (Karten, Header)       | `#111111`                   | `#FFFFFF`           |
-| Text primär                    | `#F5F5F7`                   | `#0A0A0B`           |
-| Text sekundär (Labels, Meta)   | `#8F8F95`                   | `#737378`           |
-| Text tertiär (Hints)           | `#6A6A70`                   | `#A8A8AE`           |
-| Border subtil                  | `rgba(255,255,255,0.06)`    | `rgba(0,0,0,0.06)`  |
-| Border deutlich                | `rgba(255,255,255,0.12)`    | `rgba(0,0,0,0.12)`  |
+| Rolle                          | Dark-Mode                | Light-Mode          |
+| ------------------------------ | ------------------------ | ------------------- |
+| Haupt-Hintergrund (Background) | `#000000` echtes Schwarz | `#FAFAF8` Off-White |
+| Surface (Karten, Header)       | `#111111`                | `#FFFFFF`           |
+| Text primär                    | `#F5F5F7`                | `#0A0A0B`           |
+| Text sekundär (Labels, Meta)   | `#8F8F95`                | `#737378`           |
+| Text tertiär (Hints)           | `#6A6A70`                | `#A8A8AE`           |
+| Border subtil                  | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.06)`  |
+| Border deutlich                | `rgba(255,255,255,0.12)` | `rgba(0,0,0,0.12)`  |
 
 **Hintergrund bewusst asymmetrisch:** Dark-BG ist echtes Schwarz (#000000) für maximalen OLED-Kontrast und Akku-Effizienz. Cards (#111111) heben sich durch minimale Helligkeit ab. Light-BG bleibt Off-White (#FAFAF8) — weicher als Reinweiß, moderner.
 
@@ -190,6 +190,7 @@ Wenn Aktivitäten oder Kategorien angezeigt werden:
 ### 5.4 Filter-Chips
 
 Aktiver Sportart-Filter zeigt Sportart-Identität durch Farbe:
+
 - **Hintergrund:** Sportart-Farbe @ 13% Opacity (`${farbe}22` in Hex)
 - **Border:** Sportart-Farbe @ 100%
 - **Text:** Sportart-Farbe @ 100%

@@ -5,3 +5,6 @@ index.html
 
 # Dokumentation — manuell gepflegt, kein Prettier-Format-Check.
 CLAUDE.md
+
+# Claude Code interne Dateien — nicht formatieren
+.claude/

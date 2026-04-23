@@ -12,13 +12,13 @@
 
 ### Sportliche Saison 2026 (Motivation für Featureplanung)
 
-| Datum  | Wettkampf                       | Ziel     | Ergebnis    |
-| ------ | ------------------------------- | -------- | ----------- |
-| 22.03. | Halbmarathon Hamburg            | 1:37     | ✅ 1:38:57  |
-| 01.05. | Eschborn–Frankfurt Rad (105 km) | Ankommen | —           |
-| 12.07. | Olympischer Triathlon Hamburg   | 2:20     | —           |
-| 02.08. | Mitteldistanz Frankfurt         | 4:45     | —           |
-| 25.10. | Marathon Frankfurt              | 3:50     | —           |
+| Datum  | Wettkampf                       | Ziel     | Ergebnis   |
+| ------ | ------------------------------- | -------- | ---------- |
+| 22.03. | Halbmarathon Hamburg            | 1:37     | ✅ 1:38:57 |
+| 01.05. | Eschborn–Frankfurt Rad (105 km) | Ankommen | —          |
+| 12.07. | Olympischer Triathlon Hamburg   | 2:20     | —          |
+| 02.08. | Mitteldistanz Frankfurt         | 4:45     | —          |
+| 25.10. | Marathon Frankfurt              | 3:50     | —          |
 
 ---
 
