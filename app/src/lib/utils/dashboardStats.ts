@@ -224,6 +224,233 @@ export function getKpiForSport(
   return null;
 }
 
-// Re-Export für bequemen Import in DashboardPage
+// ── Monatliche Hilfsdaten ──────────────────────────────────────────────────
+
+const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+export interface MonthBarData {
+  month: string;
+  run: number;
+  bike: number;
+  swim: number;
+  misc: number;
+}
+
+export function getMonthlyVolumeHours(activities: Activity[], year: number): MonthBarData[] {
+  const result: MonthBarData[] = MONATE.map((month) => ({
+    month,
+    run: 0,
+    bike: 0,
+    swim: 0,
+    misc: 0,
+  }));
+
+  for (const a of activities) {
+    const d = new Date(a.date);
+    if (d.getFullYear() !== year) continue;
+    const m = d.getMonth();
+    const h = a.duration / 3600;
+    if (a.sport_type === 'run') result[m].run += h;
+    else if (a.sport_type === 'bike') result[m].bike += h;
+    else if (a.sport_type === 'swim') result[m].swim += h;
+    else result[m].misc += h;
+  }
+
+  return result.map((d) => ({
+    ...d,
+    run: Math.round(d.run * 10) / 10,
+    bike: Math.round(d.bike * 10) / 10,
+    swim: Math.round(d.swim * 10) / 10,
+    misc: Math.round(d.misc * 10) / 10,
+  }));
+}
+
+export function getMonthlyVolumeKm(activities: Activity[], year: number): MonthBarData[] {
+  const result: MonthBarData[] = MONATE.map((month) => ({
+    month,
+    run: 0,
+    bike: 0,
+    swim: 0,
+    misc: 0,
+  }));
+
+  for (const a of activities) {
+    const d = new Date(a.date);
+    if (d.getFullYear() !== year) continue;
+    const m = d.getMonth();
+    const km = a.distance / 1000;
+    if (a.sport_type === 'run') result[m].run += km;
+    else if (a.sport_type === 'bike') result[m].bike += km;
+    else if (a.sport_type === 'swim') result[m].swim += km;
+    // misc hat keine sinnvolle Distanz
+  }
+
+  return result.map((d) => ({
+    ...d,
+    run: Math.round(d.run * 10) / 10,
+    bike: Math.round(d.bike * 10) / 10,
+    swim: Math.round(d.swim * 10) / 10,
+    misc: 0,
+  }));
+}
+
+// ── Sportverteilung (alle Zeiten) ──────────────────────────────────────────
+
+export interface SportDistributionData {
+  name: string;
+  sport: string;
+  hours: number;
+  color: string;
+}
+
+export function getSportDistribution(activities: Activity[]): SportDistributionData[] {
+  const totals = { run: 0, bike: 0, swim: 0, misc: 0 };
+  for (const a of activities) {
+    const h = a.duration / 3600;
+    if (a.sport_type === 'run') totals.run += h;
+    else if (a.sport_type === 'bike') totals.bike += h;
+    else if (a.sport_type === 'swim') totals.swim += h;
+    else totals.misc += h;
+  }
+
+  return [
+    { name: 'Laufen', sport: 'run', hours: Math.round(totals.run * 10) / 10, color: '#8E6FE0' },
+    { name: 'Rad', sport: 'bike', hours: Math.round(totals.bike * 10) / 10, color: '#FF7A1A' },
+    {
+      name: 'Schwimmen',
+      sport: 'swim',
+      hours: Math.round(totals.swim * 10) / 10,
+      color: '#3359C4',
+    },
+    {
+      name: 'Sonstiges',
+      sport: 'misc',
+      hours: Math.round(totals.misc * 10) / 10,
+      color: '#B54A2E',
+    },
+  ].filter((d) => d.hours > 0);
+}
+
+// ── Kumulierte Trainingszeit pro Jahr ──────────────────────────────────────
+
+export interface CumulativePoint {
+  label: string; // Monatsname
+  dayOfYear: number;
+  [year: string]: number | string | undefined;
+}
+
+function getDayOfYear(date: Date): number {
+  const start = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function doyToMonthLabel(doy: number): string {
+  const bounds = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  for (let i = bounds.length - 1; i >= 0; i--) {
+    if (doy >= bounds[i]) return MONATE[i];
+  }
+  return '';
+}
+
+export function getCumulativeTime(activities: Activity[]): CumulativePoint[] {
+  const years = [2024, 2025, 2026];
+  const today = new Date();
+  const thisYear = today.getFullYear();
+  const todayDoy = getDayOfYear(today);
+
+  // Pro Jahr: sortierte Aktivitäten
+  const byYear: Record<number, Activity[]> = {};
+  for (const y of years) {
+    byYear[y] = activities
+      .filter((a) => new Date(a.date).getFullYear() === y)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Monatliche Breakpoints (Tag 1 jedes Monats)
+  const monthStarts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+  const allDays = new Set<number>(monthStarts);
+
+  // Tage mit Aktivitäten ergänzen
+  for (const y of years) {
+    for (const a of byYear[y]) {
+      allDays.add(getDayOfYear(new Date(a.date)));
+    }
+  }
+
+  const sortedDays = Array.from(allDays).sort((a, b) => a - b);
+  const cumulative: Record<number, number> = { 2024: 0, 2025: 0, 2026: 0 };
+  const pointers: Record<number, number> = { 2024: 0, 2025: 0, 2026: 0 };
+  const data: CumulativePoint[] = [];
+
+  for (const doy of sortedDays) {
+    for (const y of years) {
+      while (
+        pointers[y] < byYear[y].length &&
+        getDayOfYear(new Date(byYear[y][pointers[y]].date)) <= doy
+      ) {
+        cumulative[y] += byYear[y][pointers[y]].duration / 3600;
+        pointers[y]++;
+      }
+    }
+
+    const point: CumulativePoint = {
+      label: doyToMonthLabel(doy),
+      dayOfYear: doy,
+      2024: Math.round(cumulative[2024] * 10) / 10,
+      2025: Math.round(cumulative[2025] * 10) / 10,
+    };
+
+    // 2026 nur bis heute anzeigen
+    if (thisYear > 2026 || doy <= todayDoy) {
+      point[2026] = Math.round(cumulative[2026] * 10) / 10;
+    }
+
+    data.push(point);
+  }
+
+  return data;
+}
+
+// ── Wochenstatistik für WeekCard ──────────────────────────────────────────
+
+export interface WeekStats {
+  runKm: number;
+  bikeKm: number;
+  swimM: number;
+  totalHours: number;
+  sessions: number;
+}
+
+export function getWeekStats(activities: Activity[]): WeekStats {
+  const heute = new Date();
+  const wochentag = heute.getDay() || 7;
+  const montag = new Date(heute);
+  montag.setDate(heute.getDate() - (wochentag - 1));
+  montag.setHours(0, 0, 0, 0);
+
+  const dieseWoche = activities.filter((a) => new Date(a.date) >= montag);
+
+  return {
+    runKm:
+      Math.round(
+        dieseWoche
+          .filter((a) => a.sport_type === 'run')
+          .reduce((s, a) => s + a.distance / 1000, 0) * 10
+      ) / 10,
+    bikeKm:
+      Math.round(
+        dieseWoche
+          .filter((a) => a.sport_type === 'bike')
+          .reduce((s, a) => s + a.distance / 1000, 0) * 10
+      ) / 10,
+    swimM: Math.round(
+      dieseWoche.filter((a) => a.sport_type === 'swim').reduce((s, a) => s + a.distance, 0)
+    ),
+    totalHours: Math.round(dieseWoche.reduce((s, a) => s + a.duration / 3600, 0) * 10) / 10,
+    sessions: dieseWoche.length,
+  };
+}
+
+// ── Re-Export für bequemen Import in DashboardPage ────────────────────────
 export { filterByTimeRange, filterBySport };
 export type { TimeRange };
