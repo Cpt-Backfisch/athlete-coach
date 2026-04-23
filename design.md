@@ -57,22 +57,23 @@ Getrenntes System für Zustände wie „Form", „Belastung", „Warnung":
 
 | Rolle                          | Dark-Mode                   | Light-Mode          |
 | ------------------------------ | --------------------------- | ------------------- |
-| Haupt-Hintergrund (Background) | `#141416` warmes Dunkelgrau | `#FAFAF8` Off-White |
-| Surface (Karten, Header)       | `#1A1A1D`                   | `#FFFFFF`           |
+| Haupt-Hintergrund (Background) | `#000000` echtes Schwarz    | `#FAFAF8` Off-White |
+| Surface (Karten, Header)       | `#111111`                   | `#FFFFFF`           |
 | Text primär                    | `#F5F5F7`                   | `#0A0A0B`           |
 | Text sekundär (Labels, Meta)   | `#8F8F95`                   | `#737378`           |
 | Text tertiär (Hints)           | `#6A6A70`                   | `#A8A8AE`           |
 | Border subtil                  | `rgba(255,255,255,0.06)`    | `rgba(0,0,0,0.06)`  |
 | Border deutlich                | `rgba(255,255,255,0.12)`    | `rgba(0,0,0,0.12)`  |
 
-**Reinweiß und Reinschwarz bewusst vermieden** — das warme Grau bzw. Off-White wirkt weicher fürs Auge und moderner.
+**Hintergrund bewusst asymmetrisch:** Dark-BG ist echtes Schwarz (#000000) für maximalen OLED-Kontrast und Akku-Effizienz. Cards (#111111) heben sich durch minimale Helligkeit ab. Light-BG bleibt Off-White (#FAFAF8) — weicher als Reinweiß, moderner.
 
 ### 2.4 Modus-Strategie
 
-- **Default:** Dark-Mode.
-- **Auto-Switch:** folgt `prefers-color-scheme` (OS-Einstellung).
-- **Manueller Override:** Toggle in den Einstellungen. Auswahl wird in Supabase pro User gespeichert (bzw. für Phase 1 lokal in Supabase `settings`).
-- **Persistenz:** Auswahl überlebt Page-Reload. Keine Flicker beim Initial-Load (Theme-Script im `<head>` vor React-Hydration).
+- **Default:** Dark-Mode — immer, unabhängig von OS-Einstellung.
+- **Kein OS-Auto-Switch:** `prefers-color-scheme` wird bewusst ignoriert. Dark ist die primäre, optimierte Ansicht der App.
+- **Manueller Toggle:** Sonne/Mond-Icon in Sidebar (Desktop) und Einstellungen-Seite (Mobile). Wechselt sofort ohne Reload.
+- **Persistenz:** `localStorage['theme']` — 'dark' (Default, gesetzt beim ersten Load) oder 'light'. Auswahl überlebt Page-Reload.
+- **Kein Flicker:** Inline-Script im `<head>` (vor React-Hydration) setzt `.dark`-Klasse synchron.
 
 ---
 
@@ -109,7 +110,7 @@ Basis für `tailwind.config.ts`:
 
 ### 3.4 Zahlen-Regeln
 
-- **Alle numerischen Werte:** `font-variant-numeric: tabular-nums` — damit Zahlen in Listen/Tabellen untereinander fluchten.
+- **Alle numerischen Werte:** `font-variant-numeric: tabular-nums` — globaler Default auf `body`, damit Zahlen überall in Listen/Tabellen fluchten. Kein manuelles `tabular-nums` pro Komponente nötig.
 - **Monospace für pace/time/ID-artige Werte:** z. B. `4:39 /km`, `1:52 /100 m` in Geist Mono. Macht sie sofort als „gemessene Werte" lesbar.
 - **Einheiten in Sekundär-Farbe und kleiner:** `54,7 km` → „54,7" in primärer Textfarbe, „km" in sekundärer Textfarbe und ca. 50 % der Zahlgröße.
 
@@ -186,7 +187,17 @@ Wenn Aktivitäten oder Kategorien angezeigt werden:
 - **Kacheln/Cards:** Kleiner runder Dot (8px) oder dünner Strich oben. Niemals die gesamte Karte in der Sportart-Farbe füllen — zu laut.
 - **Charts:** Farbige Balken/Punkte direkt in der Sportart-Farbe. Legende immer sichtbar.
 
-### 5.4 Wort-Marke (Header)
+### 5.4 Filter-Chips
+
+Aktiver Sportart-Filter zeigt Sportart-Identität durch Farbe:
+- **Hintergrund:** Sportart-Farbe @ 13% Opacity (`${farbe}22` in Hex)
+- **Border:** Sportart-Farbe @ 100%
+- **Text:** Sportart-Farbe @ 100%
+- Zeitraum-Filter und „Alle": Primary-Purple (gefüllt, Contrasting Foreground)
+
+**Regel:** Nie die gesamte Fläche füllen. 13%/22%-Opacity hält die App ruhig während der Filter trotzdem sofort erkennbar ist.
+
+### 5.5 Wort-Marke (Header)
 
 **Aktuell (Variante B):** `athlete.coach` als Textlogo, der Punkt in Purple `#8E6FE0` hervorgehoben.
 
@@ -201,7 +212,7 @@ Wenn Aktivitäten oder Kategorien angezeigt werden:
 - Gut lesbar auf `#141416` und `#FAFAF8`
 - Nimmt Purple `#8E6FE0` als Akzent auf (Kontinuität zum Wort-Marken-Punkt)
 
-### 5.5 Navigation
+### 5.6 Navigation
 
 **Hybrid: Sidebar auf Desktop, Bottom-Nav auf Mobile.**
 
@@ -230,7 +241,7 @@ Wenn Aktivitäten oder Kategorien angezeigt werden:
 4. Coach (Chat)
 5. Mehr / Einstellungen
 
-### 5.6 Status-Indikatoren
+### 5.7 Status-Indikatoren
 
 Für „Form" (TSB), „Belastung", Trend-Arrows:
 
@@ -288,9 +299,9 @@ Wenn Claude Code das shadcn-Theme konfiguriert, diese Werte als `cssVars` in `ta
   }
 
   .dark {
-    --background: 240 5% 9%; /* #141416 */
+    --background: 0 0% 0%; /* #000000 */
     --foreground: 240 7% 97%; /* #F5F5F7 */
-    --card: 240 6% 11%; /* #1A1A1D */
+    --card: 0 0% 7%; /* #111111 */
     --card-foreground: 240 7% 97%;
     --primary: 258 62% 66%; /* Purple Dark #8E6FE0 */
     --primary-foreground: 240 5% 9%;
