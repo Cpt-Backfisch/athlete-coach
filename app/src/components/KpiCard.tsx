@@ -37,7 +37,7 @@ export function KpiCard({ sport, distanceKm, distanceM, durationHours, sessions 
   const untertitel = `${durationHours.toFixed(1)} h · ${sessions} ${sessions === 1 ? 'Einheit' : 'Einheiten'}`;
 
   return (
-    <div className="rounded-[12px] bg-white/5 border border-border px-4 py-4 space-y-2">
+    <div className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-2">
       {/* Sportart-Label */}
       <div className="flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: farbe }} />

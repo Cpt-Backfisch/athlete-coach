@@ -572,7 +572,7 @@ function StatusBadge({ color, children }: { color: 'green' | 'grey'; children: R
   return (
     <span
       className={`text-xs px-2 py-0.5 rounded-full ${
-        color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-muted-foreground'
+        color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'
       }`}
     >
       {children}

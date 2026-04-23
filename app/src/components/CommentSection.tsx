@@ -126,7 +126,7 @@ export function CommentSection({ shareToken, ownerUserId, isOwner }: CommentSect
           {comments.map((c) => (
             <div
               key={c.id}
-              className="rounded-[10px] bg-white/5 border border-border px-4 py-3 space-y-1"
+              className="rounded-[10px] bg-card border border-border px-4 py-3 space-y-1"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

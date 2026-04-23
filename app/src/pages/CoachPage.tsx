@@ -122,7 +122,7 @@ export function CoachPage() {
                   <button
                     key={frage}
                     onClick={() => senden(frage)}
-                    className="text-sm px-3 py-1.5 rounded-full border border-border bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {frage}
                   </button>
@@ -140,7 +140,7 @@ export function CoachPage() {
                 className={`max-w-[80%] rounded-[12px] px-4 py-3 text-sm whitespace-pre-wrap ${
                   msg.role === 'user'
                     ? 'bg-[#8E6FE0] text-white'
-                    : 'bg-white/5 border border-border text-foreground'
+                    : 'bg-card border border-border text-foreground'
                 }`}
               >
                 {msg.content}
@@ -151,7 +151,7 @@ export function CoachPage() {
           {/* Typing-Indicator */}
           {isThinking && (
             <div className="flex justify-start">
-              <div className="bg-white/5 border border-border rounded-[12px] px-4 py-3 text-sm text-muted-foreground flex items-center gap-1">
+              <div className="bg-card border border-border rounded-[12px] px-4 py-3 text-sm text-muted-foreground flex items-center gap-1">
                 Coach denkt nach
                 <span className="inline-flex gap-0.5 ml-1">
                   <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:0ms]" />
@@ -187,7 +187,7 @@ export function CoachPage() {
       </div>
 
       {/* ── Einstellungen (einklappbar) ───────────────────────────────── */}
-      <div className="rounded-[12px] border border-border bg-white/5">
+      <div className="rounded-[12px] border border-border bg-card">
         <button
           className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium"
           onClick={() => setSettingsOffen((v) => !v)}
@@ -280,7 +280,7 @@ export function CoachPage() {
                     Telegram konfiguriert
                   </span>
                 ) : (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                     Nicht konfiguriert
                   </span>
                 )}
