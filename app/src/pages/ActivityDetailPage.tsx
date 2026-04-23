@@ -192,7 +192,7 @@ export function ActivityDetailPage() {
           <MetaCard label="Höhenmeter" value={String(activity.elevation)} unit="m" />
         )}
         {activity.intensity != null && (
-          <div className="rounded-[12px] bg-white/5 border border-border px-4 py-3 space-y-1">
+          <div className="rounded-[12px] bg-card border border-border px-4 py-3 space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
               Intensität
             </p>

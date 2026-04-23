@@ -232,7 +232,7 @@ function RaceCard({
   const farbe = sportFarbe(race.sport_type);
 
   return (
-    <div className="rounded-[12px] bg-white/5 border border-border px-4 py-4 space-y-2">
+    <div className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-2">
       {/* Kopfzeile: Sportpunkt + Name + Countdown */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -276,7 +276,7 @@ function RaceCard({
         <div className="flex items-center gap-1">
           <button
             onClick={onEdit}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Bearbeiten"
           >
             <Pencil size={14} />
@@ -306,12 +306,12 @@ function PastRaceRow({
   const farbe = sportFarbe(race.sport_type);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-white/5 border border-border">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-border">
       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: farbe }} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium truncate">{race.name}</span>
-          <span className="text-xs bg-white/10 text-muted-foreground px-1.5 py-0.5 rounded-full flex-shrink-0">
+          <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full flex-shrink-0">
             Vergangen
           </span>
         </div>
@@ -323,7 +323,7 @@ function PastRaceRow({
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={onEdit}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label="Bearbeiten"
         >
           <Pencil size={14} />
@@ -359,7 +359,7 @@ function ResultRow({
     .join(' · ');
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-white/5 border border-border">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-border">
       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: farbe }} />
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">{result.name}</p>
@@ -374,7 +374,7 @@ function ResultRow({
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={onEdit}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label="Bearbeiten"
         >
           <Pencil size={14} />

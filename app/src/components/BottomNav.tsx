@@ -14,8 +14,11 @@ const NAV_LINKS = [
 export function BottomNav() {
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border flex items-center justify-around"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border flex items-start justify-around"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        minHeight: '64px',
+      }}
     >
       {NAV_LINKS.map(({ to, Icon, label }) => (
         <NavLink
@@ -23,12 +26,13 @@ export function BottomNav() {
           to={to}
           end={to === '/'}
           aria-label={label}
-          className="flex items-center justify-center h-14 w-full"
+          className="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] w-full pt-3"
           style={({ isActive }) =>
             isActive ? { color: ACCENT } : { color: 'var(--muted-foreground)' }
           }
         >
-          <Icon size={22} />
+          <Icon size={22} strokeWidth={1.75} />
+          <span className="text-[10px] font-medium leading-tight">{label}</span>
         </NavLink>
       ))}
     </nav>

@@ -190,7 +190,7 @@ export function SharePage() {
                 return (
                   <div
                     key={race.id}
-                    className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-white/5 border border-border"
+                    className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-border"
                   >
                     <span
                       className="w-2.5 h-2.5 rounded-full flex-shrink-0"

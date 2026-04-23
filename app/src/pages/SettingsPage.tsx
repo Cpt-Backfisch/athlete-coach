@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
 import { isStravaConnected } from '@/lib/strava';
 import { sendTelegramTest, checkTelegramStatus } from '@/lib/telegram';
@@ -213,6 +214,16 @@ export function SettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl">
       <h1 className="text-xl font-semibold">Einstellungen</h1>
+
+      {/* ── Sektion 0: Darstellung ────────────────────────────────── */}
+      <Section title="Darstellung">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Farbschema</span>
+          <ThemeToggle />
+        </div>
+      </Section>
+
+      <Separator />
 
       {/* ── Sektion 1: Profil ─────────────────────────────────────── */}
       <Section title="Profil">
@@ -561,7 +572,7 @@ function StatusBadge({ color, children }: { color: 'green' | 'grey'; children: R
   return (
     <span
       className={`text-xs px-2 py-0.5 rounded-full ${
-        color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-muted-foreground'
+        color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'
       }`}
     >
       {children}

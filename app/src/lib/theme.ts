@@ -8,9 +8,9 @@ export const SPORT_COLORS = {
 } as const;
 
 export const STATUS_COLORS = {
-  good: { dark: '#22c55e', light: '#16a34a' },
-  warning: { dark: '#eab308', light: '#ca8a04' },
-  overload: { dark: '#ef4444', light: '#dc2626' },
+  good: { dark: '#66d9a8', light: '#0F6E56' },
+  warning: { dark: '#F5B800', light: '#A37300' },
+  overload: { dark: '#E24B4A', light: '#A32D2D' },
 } as const;
 
 export const RADIUS = {
@@ -19,9 +19,9 @@ export const RADIUS = {
 } as const;
 
 export const BG = {
-  dark: '#141416',
+  dark: '#000000',
   light: '#FAFAF8',
 } as const;
 
-// Akzent-Farbe (Laufen-Purple) — wird für Active-States und Wordmark-Punkt verwendet
+// Primary-Akzent (Purple Dark) — für Active-States, Wordmark-Punkt und Buttons
 export const ACCENT = '#8E6FE0' as const;
