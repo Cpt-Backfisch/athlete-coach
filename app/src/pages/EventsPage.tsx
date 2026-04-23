@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { Pencil, Trash2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CountdownBadge } from '@/components/CountdownBadge';
 import { EventFormModal } from '@/components/EventFormModal';
@@ -10,19 +10,19 @@ import { fetchUpcomingRaces, getCombinedHistory, deleteRace, deletePastResult } 
 import type { Race, PastResult, EventListItem } from '@/lib/events';
 import type { EventSportType } from '@/lib/events';
 
-// Farbe für Sportart (Triathlon → Lila wie Run)
+// Farbe für Sportart
 function sportFarbe(sport: EventSportType): string {
   if (sport === 'triathlon') return '#8E6FE0';
   return SPORT_COLORS[sport as keyof typeof SPORT_COLORS]?.dark ?? '#888';
 }
 
-// Datum auf Deutsch formatieren
+// Datum auf Deutsch formatieren: DD.MM.YYYY
 function formatDatum(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('de-DE', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
 }
 
 // ── EventsPage ─────────────────────────────────────────────────────────────
@@ -125,10 +125,10 @@ export function EventsPage() {
         )}
       </section>
 
-      {/* ── Abschnitt 2: Verlauf ─────────────────────────────────────────── */}
+      {/* ── Abschnitt 2: Vergangene Events ──────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold">Verlauf</h2>
+          <h2 className="text-xl font-semibold">Vergangene Events</h2>
           <Button
             size="sm"
             variant="outline"
@@ -340,6 +340,35 @@ function PastRaceRow({
   );
 }
 
+// ── Triathlon-Splits Anzeige ───────────────────────────────────────────────
+
+function TriathlonSplits({ result }: { result: PastResult }) {
+  const segmente = [
+    { label: 'Schwimmen', value: result.swim_time, color: '#3359C4' },
+    { label: 'T1', value: result.t1_time, color: '#888' },
+    { label: 'Rad', value: result.bike_time, color: '#FF7A1A' },
+    { label: 'T2', value: result.t2_time, color: '#888' },
+    { label: 'Laufen', value: result.run_time, color: '#8E6FE0' },
+  ].filter((s) => s.value);
+
+  if (segmente.length === 0) return null;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
+      {result.format_desc && <p className="text-xs text-muted-foreground">{result.format_desc}</p>}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {segmente.map((s) => (
+          <div key={s.label} className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+            <span className="text-xs text-muted-foreground">{s.label}</span>
+            <span className="text-xs tabular-nums font-medium">{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ResultRow({
   result,
   onEdit,
@@ -350,6 +379,10 @@ function ResultRow({
   onDelete: () => void;
 }) {
   const farbe = sportFarbe(result.sport_type);
+  const istTriathlon = result.sport_type === 'triathlon';
+  const hatSplits = istTriathlon && (result.swim_time || result.bike_time || result.run_time);
+
+  const [offen, setOffen] = useState(false);
 
   const zeitenText = [
     result.goal_time ? `Ziel: ${result.goal_time}` : null,
@@ -359,34 +392,55 @@ function ResultRow({
     .join(' · ');
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-border">
-      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: farbe }} />
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{result.name}</p>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {formatDatum(result.date)}
-          {result.location && <> · {result.location}</>}
-        </p>
-        {zeitenText && (
-          <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{zeitenText}</p>
-        )}
+    <div className="rounded-[10px] bg-card border border-border overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span
+          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+          style={{ backgroundColor: farbe }}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{result.name}</p>
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {formatDatum(result.date)}
+            {result.location && <> · {result.location}</>}
+          </p>
+          {zeitenText && (
+            <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{zeitenText}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {hatSplits && (
+            <button
+              onClick={() => setOffen((v) => !v)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={offen ? 'Splits ausblenden' : 'Splits anzeigen'}
+            >
+              {offen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          )}
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Bearbeiten"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            aria-label="Löschen"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <button
-          onClick={onEdit}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Bearbeiten"
-        >
-          <Pencil size={14} />
-        </button>
-        <button
-          onClick={onDelete}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
-          aria-label="Löschen"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
+
+      {/* Triathlon-Splits (ausgeklappt) */}
+      {hatSplits && offen && (
+        <div className="px-4 pb-3">
+          <TriathlonSplits result={result} />
+        </div>
+      )}
     </div>
   );
 }
