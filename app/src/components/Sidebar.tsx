@@ -10,6 +10,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { ThemeToggle } from './ThemeToggle';
 import { ACCENT } from '@/lib/theme';
 
 // Nav-Einträge der Sidebar
@@ -56,11 +57,13 @@ export function Sidebar({ isSyncing = false }: SidebarProps) {
               [
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'text-white'
+                  ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted',
               ].join(' ')
             }
-            style={({ isActive }) => (isActive ? { backgroundColor: ACCENT, color: '#fff' } : {})}
+            style={({ isActive }) =>
+              isActive ? { backgroundColor: `${ACCENT}22`, color: ACCENT } : {}
+            }
           >
             <Icon size={16} />
             {label}
@@ -73,9 +76,10 @@ export function Sidebar({ isSyncing = false }: SidebarProps) {
         <p className="px-5 py-2 text-xs text-muted-foreground animate-pulse">Synchronisiere…</p>
       )}
 
-      {/* Benutzer-Bereich unten */}
-      <div className="px-4 py-4 border-t border-border">
-        <p className="text-xs text-muted-foreground truncate mb-2">{user?.email}</p>
+      {/* Benutzer-Bereich + Theme-Toggle unten */}
+      <div className="px-4 py-4 border-t border-border space-y-2">
+        <ThemeToggle />
+        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
