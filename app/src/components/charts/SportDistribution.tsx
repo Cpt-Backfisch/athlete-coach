@@ -1,24 +1,12 @@
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSportDistribution } from '@/lib/utils/dashboardStats';
+import { ChartTooltip } from './ChartTooltip';
+import { formatDuration } from '@/lib/format';
 import type { Activity } from '@/lib/activities';
 
 interface Props {
   activities: Activity[];
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="rounded-[8px] bg-popover border border-border px-3 py-2 text-xs shadow-lg">
-      <p style={{ color: d.color }} className="font-medium">
-        {d.name}
-      </p>
-      <p className="text-muted-foreground">{d.hours.toFixed(1)} h</p>
-    </div>
-  );
 }
 
 export function SportDistribution({ activities }: Props) {
@@ -51,7 +39,9 @@ export function SportDistribution({ activities }: Props) {
                 <Cell key={i} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={<ChartTooltip formatter={(v, name) => `${name}: ${formatDuration(v)}`} />}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -68,7 +58,7 @@ export function SportDistribution({ activities }: Props) {
               <span className="text-sm truncate">{d.name}</span>
             </div>
             <div className="text-right flex-shrink-0">
-              <span className="text-sm tabular-nums">{d.hours.toFixed(1)} h</span>
+              <span className="text-sm tabular-nums">{formatDuration(d.hours)}</span>
               {total > 0 && (
                 <span className="text-xs text-muted-foreground ml-1.5 tabular-nums">
                   {Math.round((d.hours / total) * 100)}%
@@ -79,7 +69,7 @@ export function SportDistribution({ activities }: Props) {
         ))}
         <div className="border-t border-border pt-2 flex justify-between text-xs text-muted-foreground">
           <span>Gesamt</span>
-          <span className="tabular-nums">{total.toFixed(1)} h</span>
+          <span className="tabular-nums">{formatDuration(total)}</span>
         </div>
       </div>
     </div>

@@ -171,7 +171,7 @@ export function WeekCard({ activities, weekGoals }: WeekCardProps) {
               label="Gesamt"
               ist={stats.totalHours}
               soll={weekGoals.total_hours}
-              unit="h"
+              unit="Std"
               color="#888"
             />
           )}

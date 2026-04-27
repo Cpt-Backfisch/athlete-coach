@@ -369,7 +369,25 @@ Nutzung dann z. B. `text-sport-run`, `bg-sport-bike/20`, `border-status-fresh`.
 
 ---
 
-## 9. Was nicht in dieser Datei steht (bewusst)
+## 9. Gradients
+
+Sportart-Gradients für Charts und Badges. Richtung immer vertikal (unten dunkel → oben hell), damit aufsteigende Balken Tiefe bekommen. Kernfarbe bleibt klar erkennbar.
+
+| Sportart  | Von (dunkel) | Zu (hell) | SVG-ID               | Kernfarbe (Dark) |
+| --------- | ------------ | --------- | -------------------- | ---------------- |
+| Laufen    | `#6B4FC8`    | `#B49FF0` | `gradient-run`       | `#8E6FE0`        |
+| Rad       | `#CC5500`    | `#FFB066` | `gradient-bike`      | `#FF7A1A`        |
+| Schwimmen | `#1A3FA0`    | `#6685E0` | `gradient-swim`      | `#3359C4`        |
+| Sonstiges | `#8A3520`    | `#D4724A` | `gradient-misc`      | `#B54A2E`        |
+| Triathlon | `#0A7A76`    | `#40C8C3` | `gradient-triathlon` | `#0EA5A0`        |
+
+**Implementierung:** `app/src/lib/sportColors.ts` (Konstanten) + `app/src/components/charts/SportGradientDefs.tsx` (SVG `<defs>` als React-Komponente). Einbinden in Recharts-Charts via `<Bar fill="url(#gradient-run)" />`.
+
+**Regel:** Triathlon-Gradient ist definiert, aber noch nicht in Charts eingesetzt — kommt in Session S2 mit den Events-Charts.
+
+---
+
+## 10. Was nicht in dieser Datei steht (bewusst)
 
 - **Copy-Texte, UX-Microcopy:** Werden bei Komponenten-Bau geschrieben, nicht vorab definiert.
 - **Icon-Set:** Lucide-Icons (via `lucide-react`) als Default. Konsistent, gut gewartet, passt zum Geist-Vibe. Wird erst bei Bedarf dokumentiert.
@@ -378,7 +396,7 @@ Nutzung dann z. B. `text-sport-run`, `bg-sport-bike/20`, `border-status-fresh`.
 
 ---
 
-## 10. Änderungsregel
+## 11. Änderungsregel
 
 **Diese Datei ist stabil, aber nicht heilig.**
 

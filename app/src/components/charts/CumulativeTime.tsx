@@ -10,6 +10,8 @@ import {
   Legend,
 } from 'recharts';
 import { getCumulativeTime } from '@/lib/utils/dashboardStats';
+import { ChartTooltip } from './ChartTooltip';
+import { formatDuration } from '@/lib/format';
 import type { Activity } from '@/lib/activities';
 
 const JAHRES_FARBEN: Record<string, string> = {
@@ -22,28 +24,9 @@ interface Props {
   activities: Activity[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-[8px] bg-popover border border-border px-3 py-2 text-xs space-y-1 shadow-lg">
-      <p className="text-muted-foreground">{label}</p>
-      {payload.map(
-        (p: { name: string; value: number; stroke: string }) =>
-          p.value !== undefined && (
-            <p key={p.name} style={{ color: p.stroke }}>
-              {p.name}: {p.value.toFixed(1)} h
-            </p>
-          )
-      )}
-    </div>
-  );
-}
-
 export function CumulativeTime({ activities }: Props) {
   const data = useMemo(() => getCumulativeTime(activities), [activities]);
 
-  // Nur Monatsstartpunkte für X-Achse zeigen
   const ticks = useMemo(
     () =>
       data.filter((d, i, arr) => i === 0 || d.label !== arr[i - 1].label).map((d) => d.dayOfYear),
@@ -56,7 +39,6 @@ export function CumulativeTime({ activities }: Props) {
     return <p className="text-sm text-muted-foreground py-4 text-center">Keine Daten</p>;
   }
 
-  // Welche Jahre haben Daten?
   const activeYears = ['2024', '2025', '2026'].filter((y) =>
     data.some((d) => (d[y] as number | undefined) !== undefined && (d[y] as number) > 0)
   );
@@ -80,10 +62,12 @@ export function CumulativeTime({ activities }: Props) {
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}
-          unit=" h"
-          width={36}
+          unit=" Std"
+          width={40}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip
+          content={<ChartTooltip formatter={(v, name) => `${name}: ${formatDuration(v)}`} />}
+        />
         <Legend
           wrapperStyle={{ fontSize: '11px', color: 'var(--muted-foreground)' }}
           iconType="circle"

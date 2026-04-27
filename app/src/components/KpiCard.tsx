@@ -8,33 +8,27 @@ const SPORT_LABELS: Record<SportType, string> = {
   misc: 'Sonstiges',
 };
 
+const DE_1 = new Intl.NumberFormat('de-DE', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
 interface KpiCardProps {
   sport: SportType;
-  distanceKm?: number; // Laufen + Rad
-  distanceM?: number; // Schwimmen
+  distanceKm?: number;
   durationHours: number;
   sessions: number;
 }
 
-export function KpiCard({ sport, distanceKm, distanceM, durationHours, sessions }: KpiCardProps) {
+export function KpiCard({ sport, distanceKm, durationHours, sessions }: KpiCardProps) {
   const farbe = SPORT_COLORS[sport]?.dark ?? '#888';
 
-  // Hauptzahl: Distanz wenn vorhanden, sonst Dauer
-  let hauptwert: string;
-  let haupteinheit: string;
+  const hasDistance = distanceKm !== undefined && distanceKm > 0;
 
-  if (distanceKm !== undefined) {
-    hauptwert = distanceKm.toFixed(1);
-    haupteinheit = 'km';
-  } else if (distanceM !== undefined) {
-    hauptwert = Math.round(distanceM).toLocaleString('de-DE');
-    haupteinheit = 'm';
-  } else {
-    hauptwert = durationHours.toFixed(1);
-    haupteinheit = 'h';
-  }
+  const hauptwert = hasDistance ? DE_1.format(distanceKm!) : DE_1.format(durationHours);
+  const haupteinheit = hasDistance ? 'km' : 'Std';
 
-  const untertitel = `${durationHours.toFixed(1)} h · ${sessions} ${sessions === 1 ? 'Einheit' : 'Einheiten'}`;
+  const untertitel = `${DE_1.format(durationHours)} Std · ${sessions} ${sessions === 1 ? 'Einheit' : 'Einheiten'}`;
 
   return (
     <div className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-2">
