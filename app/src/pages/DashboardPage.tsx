@@ -17,7 +17,7 @@ import { fetchWeekPlan, EMPTY_WEEK_GOALS } from '@/lib/weekFrame';
 import { fetchUpcomingRaces } from '@/lib/events';
 import { getShareToken } from '@/lib/settings';
 import {
-  getWeeklyVolumeData,
+  getVolumeChartData,
   getKpiData,
   getLoadLight,
   filterByTimeRange,
@@ -29,7 +29,7 @@ import type { WeekGoals } from '@/lib/weekFrame';
 import type { SportType } from '@/lib/activities';
 import type { Race } from '@/lib/events';
 
-// ── Filter-Optionen — neue Reihenfolge: Alles · Jahre · Zeiträume ─────────
+// ── Filter-Optionen ────────────────────────────────────────────────────────
 
 const ZEITRAUM_OPTIONEN = [
   { label: 'Alles', value: 'all' },
@@ -65,33 +65,31 @@ export function DashboardPage() {
   const [naechsteRaces, setNaechsteRaces] = useState<Race[]>([]);
   const [shareToken, setShareToken] = useState<string | null>(null);
 
-  // Wochenziele + anstehende Wettkämpfe + Share-Token laden
   useEffect(() => {
     fetchWeekPlan().then((plan) => setWeekGoals(plan.goals));
     fetchUpcomingRaces().then((races) => setNaechsteRaces(races.slice(0, 3)));
     getShareToken().then(setShareToken);
   }, []);
 
-  // Gefilterte Aktivitäten
   const gefiltert = useMemo(() => {
     let liste = filterByTimeRange(activities, timeRange);
     liste = filterBySport(liste, sportFilter);
     return liste;
   }, [activities, timeRange, sportFilter]);
 
-  // Chart-Daten
-  const weeklyVolumeData = useMemo(
-    () => getWeeklyVolumeData(gefiltert, timeRange),
+  // Volume-Chart-Daten (dynamisch: Wochen oder Monate je nach Zeitraum)
+  const volumeChartResult = useMemo(
+    () => getVolumeChartData(gefiltert, timeRange),
     [gefiltert, timeRange]
   );
 
   // KPI-Daten
   const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
 
-  // Belastungsampel — immer alle Aktivitäten (nicht gefilterte), laufende Woche
+  // Belastungsampel — immer alle Aktivitäten (nicht gefiltert)
   const loadLight = useMemo(() => getLoadLight(activities, weekGoals), [activities, weekGoals]);
 
-  // KPI-Karten: nur Sportarten mit mindestens 1 Session
+  // Sichtbare KPI-Karten
   const sichtbareKpiKarten = useMemo(() => {
     const sportarten =
       sportFilter !== 'all'
@@ -106,15 +104,24 @@ export function DashboardPage() {
     return sportarten;
   }, [kpiData, sportFilter]);
 
-  // Jahresfilter ermitteln (für Monats-Charts)
+  // Jahresfilter für Monats-Charts
   const jahrFuerCharts = useMemo(() => {
     if (timeRange === '2024') return 2024;
     if (timeRange === '2025') return 2025;
-    return 2026; // Default: laufendes Jahr
+    return 2026;
   }, [timeRange]);
 
   if (isLoading) {
     return <p className="text-muted-foreground text-sm">Dashboard wird geladen…</p>;
+  }
+
+  // Distanz-Prop pro Sportart: swim in km (aus distanceM / 1000), misc aus distanceKm
+  function kpiDistanceKm(sport: SportType): number | undefined {
+    if (sport === 'run') return kpiData.run.distanceKm;
+    if (sport === 'bike') return kpiData.bike.distanceKm;
+    if (sport === 'swim') return Math.round((kpiData.swim.distanceM / 1000) * 10) / 10;
+    if (sport === 'misc') return kpiData.misc.distanceKm;
+    return undefined;
   }
 
   return (
@@ -142,32 +149,9 @@ export function DashboardPage() {
             <KpiCard
               key={sport}
               sport={sport}
-              distanceKm={
-                sport === 'run'
-                  ? kpiData.run.distanceKm
-                  : sport === 'bike'
-                    ? kpiData.bike.distanceKm
-                    : undefined
-              }
-              distanceM={sport === 'swim' ? kpiData.swim.distanceM : undefined}
-              durationHours={
-                sport === 'run'
-                  ? kpiData.run.durationHours
-                  : sport === 'bike'
-                    ? kpiData.bike.durationHours
-                    : sport === 'swim'
-                      ? kpiData.swim.durationHours
-                      : kpiData.misc.durationHours
-              }
-              sessions={
-                sport === 'run'
-                  ? kpiData.run.sessions
-                  : sport === 'bike'
-                    ? kpiData.bike.sessions
-                    : sport === 'swim'
-                      ? kpiData.swim.sessions
-                      : kpiData.misc.sessions
-              }
+              distanceKm={kpiDistanceKm(sport)}
+              durationHours={kpiData[sport].durationHours}
+              sessions={kpiData[sport].sessions}
             />
           ))}
         </div>
@@ -178,15 +162,17 @@ export function DashboardPage() {
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Trainingsvolumen
         </h2>
-        <VolumeBarChart data={weeklyVolumeData} sport={sportFilter} />
+        <VolumeBarChart
+          data={volumeChartResult.data}
+          sport={sportFilter}
+          yearChangeLabels={volumeChartResult.yearChangeLabels}
+        />
       </section>
 
       {/* ── Neue Charts ──────────────────────────────────────────────────── */}
 
-      {/* Wochenkarte */}
       <WeekCard activities={activities} weekGoals={weekGoals} />
 
-      {/* Monatsvolumen Stunden */}
       <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Monatliches Volumen {jahrFuerCharts} — Stunden
@@ -194,7 +180,6 @@ export function DashboardPage() {
         <VolumeChartHours activities={activities} year={jahrFuerCharts} />
       </section>
 
-      {/* Monatsvolumen Kilometer */}
       <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Monatliches Volumen {jahrFuerCharts} — Kilometer
@@ -202,7 +187,6 @@ export function DashboardPage() {
         <VolumeChartKm activities={activities} year={jahrFuerCharts} />
       </section>
 
-      {/* Sportverteilung */}
       <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Sportverteilung — Gesamt
@@ -210,7 +194,6 @@ export function DashboardPage() {
         <SportDistribution activities={gefiltert} />
       </section>
 
-      {/* Kumulierte Trainingszeit */}
       <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Kumulierte Trainingszeit
@@ -270,7 +253,7 @@ export function DashboardPage() {
         )}
       </section>
 
-      {/* Kommentare (Owner-Ansicht) */}
+      {/* Kommentare */}
       {shareToken ? (
         <CommentSection shareToken={shareToken} ownerUserId={user?.id ?? ''} isOwner={true} />
       ) : (

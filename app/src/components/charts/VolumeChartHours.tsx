@@ -1,42 +1,21 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getMonthlyVolumeHours } from '@/lib/utils/dashboardStats';
+import { ChartTooltip } from './ChartTooltip';
+import { SportGradientDefs } from './SportGradientDefs';
+import { formatDuration } from '@/lib/format';
 import type { Activity } from '@/lib/activities';
 
-const FARBEN = {
-  run: '#8E6FE0',
-  bike: '#FF7A1A',
-  swim: '#3359C4',
-  misc: '#B54A2E',
+const SPORT_LABELS: Record<string, string> = {
+  run: 'Laufen',
+  bike: 'Rad',
+  swim: 'Schwimmen',
+  misc: 'Sonstiges',
 };
 
 interface Props {
   activities: Activity[];
   year: number;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const total = payload.reduce((s: number, p: { value: number }) => s + (p.value ?? 0), 0);
-  return (
-    <div className="rounded-[8px] bg-popover border border-border px-3 py-2 text-xs space-y-1 shadow-lg">
-      <p className="font-medium text-foreground">{label}</p>
-      {payload.map(
-        (p: { name: string; value: number; fill: string }) =>
-          p.value > 0 && (
-            <p key={p.name} style={{ color: p.fill }}>
-              {p.name}: {p.value.toFixed(1)} h
-            </p>
-          )
-      )}
-      {total > 0 && (
-        <p className="text-muted-foreground border-t border-border pt-1 mt-1">
-          Gesamt: {total.toFixed(1)} h
-        </p>
-      )}
-    </div>
-  );
 }
 
 export function VolumeChartHours({ activities, year }: Props) {
@@ -50,6 +29,7 @@ export function VolumeChartHours({ activities, year }: Props) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} barSize={14} barCategoryGap="30%">
+        <SportGradientDefs />
         <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
         <XAxis
           dataKey="month"
@@ -61,14 +41,44 @@ export function VolumeChartHours({ activities, year }: Props) {
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}
-          unit=" h"
-          width={32}
+          unit=" Std"
+          width={36}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-        <Bar dataKey="run" name="Laufen" stackId="a" fill={FARBEN.run} radius={[0, 0, 0, 0]} />
-        <Bar dataKey="bike" name="Rad" stackId="a" fill={FARBEN.bike} />
-        <Bar dataKey="swim" name="Schwimmen" stackId="a" fill={FARBEN.swim} />
-        <Bar dataKey="misc" name="Sonstiges" stackId="a" fill={FARBEN.misc} radius={[3, 3, 0, 0]} />
+        <Tooltip
+          content={
+            <ChartTooltip
+              showTotal
+              formatter={(v, name) => {
+                const label = SPORT_LABELS[name] ?? name;
+                return `${label}: ${formatDuration(v)}`;
+              }}
+            />
+          }
+          cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+        />
+        {/* Nur das oberste Segment (misc) erhält den abgerundeten Radius */}
+        <Bar dataKey="run" name="run" stackId="a" fill="url(#gradient-run)" radius={[0, 0, 0, 0]} />
+        <Bar
+          dataKey="bike"
+          name="bike"
+          stackId="a"
+          fill="url(#gradient-bike)"
+          radius={[0, 0, 0, 0]}
+        />
+        <Bar
+          dataKey="swim"
+          name="swim"
+          stackId="a"
+          fill="url(#gradient-swim)"
+          radius={[0, 0, 0, 0]}
+        />
+        <Bar
+          dataKey="misc"
+          name="misc"
+          stackId="a"
+          fill="url(#gradient-misc)"
+          radius={[6, 6, 0, 0]}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

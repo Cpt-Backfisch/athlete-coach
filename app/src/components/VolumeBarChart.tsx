@@ -7,20 +7,24 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
+  ReferenceLine,
 } from 'recharts';
-import type { WeekBarData } from '@/lib/utils/dashboardStats';
+import { ChartTooltip } from '@/components/charts/ChartTooltip';
+import { SportGradientDefs } from '@/components/charts/SportGradientDefs';
+import { formatDuration } from '@/lib/format';
+import type { VolumeBarData } from '@/lib/utils/dashboardStats';
 
 interface VolumeBarChartProps {
-  data: WeekBarData[];
-  sport: string; // 'all' oder SportType
+  data: VolumeBarData[];
+  sport: string;
+  yearChangeLabels?: string[];
 }
 
-// Farben aus dem Design-System — Dark-Mode-Werte
 const SPORT_FARBEN = {
-  run: '#8E6FE0',
-  bike: '#FF7A1A',
-  swim: '#3359C4',
-  misc: '#B54A2E',
+  run: 'url(#gradient-run)',
+  bike: 'url(#gradient-bike)',
+  swim: 'url(#gradient-swim)',
+  misc: 'url(#gradient-misc)',
 };
 
 const SPORT_LABELS = {
@@ -30,12 +34,13 @@ const SPORT_LABELS = {
   misc: 'Sonstiges',
 };
 
-// Y-Achse: Stunden-Formatierung ohne unnötige Dezimalstellen
 function formatStunden(v: number): string {
-  return Number.isInteger(v) ? `${v}` : v.toFixed(1);
+  if (!v) return '0';
+  if (Number.isInteger(v)) return String(v);
+  return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(v);
 }
 
-export function VolumeBarChart({ data, sport }: VolumeBarChartProps) {
+export function VolumeBarChart({ data, sport, yearChangeLabels = [] }: VolumeBarChartProps) {
   if (data.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-8 text-center">
@@ -45,19 +50,14 @@ export function VolumeBarChart({ data, sport }: VolumeBarChartProps) {
   }
 
   const alleSporten = sport === 'all';
-  const tooltipStyle = {
-    backgroundColor: 'var(--popover)',
-    border: '1px solid var(--border)',
-    borderRadius: '8px',
-    fontSize: 12,
-  };
 
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+        <SportGradientDefs />
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
         <XAxis
-          dataKey="weekLabel"
+          dataKey="label"
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           tickLine={false}
           axisLine={false}
@@ -67,35 +67,82 @@ export function VolumeBarChart({ data, sport }: VolumeBarChartProps) {
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           tickLine={false}
           axisLine={false}
-          unit=" h"
-          width={40}
+          unit=" Std"
+          width={44}
         />
         <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(value, name) => {
-            const v = typeof value === 'number' ? value : Number(value);
-            const n = String(name ?? '');
-            return [`${formatStunden(v)} h`, SPORT_LABELS[n as keyof typeof SPORT_LABELS] ?? n];
-          }}
+          content={
+            <ChartTooltip
+              showTotal={alleSporten}
+              formatter={(v, name) => {
+                const label = SPORT_LABELS[name as keyof typeof SPORT_LABELS] ?? name;
+                return `${label}: ${formatDuration(v)}`;
+              }}
+            />
+          }
+          cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
         />
         {alleSporten && (
-          <Legend formatter={(v) => SPORT_LABELS[v as keyof typeof SPORT_LABELS] ?? v} />
+          <Legend
+            formatter={(v) => SPORT_LABELS[v as keyof typeof SPORT_LABELS] ?? v}
+            wrapperStyle={{ fontSize: '11px' }}
+          />
         )}
 
+        {/* Jahrestrenner */}
+        {yearChangeLabels.map((lbl) => (
+          <ReferenceLine
+            key={lbl}
+            x={lbl}
+            stroke="rgba(255,255,255,0.2)"
+            strokeDasharray="4 4"
+            strokeWidth={1}
+            label={{
+              value: lbl.replace(/^KW \d+ /, ''),
+              position: 'top',
+              fontSize: 10,
+              fill: 'var(--muted-foreground)',
+            }}
+          />
+        ))}
+
         {alleSporten ? (
-          // Gestapelte Bars für alle Sportarten
           <>
-            <Bar dataKey="run" stackId="a" fill={SPORT_FARBEN.run} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="bike" stackId="a" fill={SPORT_FARBEN.bike} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="swim" stackId="a" fill={SPORT_FARBEN.swim} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="misc" stackId="a" fill={SPORT_FARBEN.misc} radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="run"
+              name="run"
+              stackId="a"
+              fill={SPORT_FARBEN.run}
+              radius={[0, 0, 0, 0]}
+            />
+            <Bar
+              dataKey="bike"
+              name="bike"
+              stackId="a"
+              fill={SPORT_FARBEN.bike}
+              radius={[0, 0, 0, 0]}
+            />
+            <Bar
+              dataKey="swim"
+              name="swim"
+              stackId="a"
+              fill={SPORT_FARBEN.swim}
+              radius={[0, 0, 0, 0]}
+            />
+            <Bar
+              dataKey="misc"
+              name="misc"
+              stackId="a"
+              fill={SPORT_FARBEN.misc}
+              radius={[6, 6, 0, 0]}
+            />
           </>
         ) : (
-          // Einzelne Bar für gewählte Sportart
           <Bar
             dataKey={sport}
-            fill={SPORT_FARBEN[sport as keyof typeof SPORT_FARBEN] ?? '#8E6FE0'}
-            radius={[4, 4, 0, 0]}
+            name={sport}
+            fill={SPORT_FARBEN[sport as keyof typeof SPORT_FARBEN] ?? 'url(#gradient-run)'}
+            radius={[6, 6, 0, 0]}
           />
         )}
       </BarChart>

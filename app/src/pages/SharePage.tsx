@@ -10,7 +10,7 @@ import { fetchActivitiesByUserId } from '@/lib/activities';
 import { fetchUpcomingRacesByUser } from '@/lib/events';
 import { SPORT_COLORS } from '@/lib/theme';
 import {
-  getWeeklyVolumeData,
+  getVolumeChartData,
   getKpiData,
   filterByTimeRange,
   filterBySport,
@@ -91,8 +91,8 @@ export function SharePage() {
     return liste;
   }, [activities, timeRange, sportFilter]);
 
-  const weeklyVolumeData = useMemo(
-    () => getWeeklyVolumeData(gefiltert, timeRange),
+  const volumeChartResult = useMemo(
+    () => getVolumeChartData(gefiltert, timeRange),
     [gefiltert, timeRange]
   );
 
@@ -148,22 +148,23 @@ export function SharePage() {
           <p className="text-sm text-muted-foreground">Keine Aktivitäten im gewählten Zeitraum</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {sichtbareKpiKarten.map((sport) => (
-              <KpiCard
-                key={sport}
-                sport={sport}
-                distanceKm={
-                  sport === 'run'
-                    ? kpiData.run.distanceKm
-                    : sport === 'bike'
-                      ? kpiData.bike.distanceKm
-                      : undefined
-                }
-                distanceM={sport === 'swim' ? kpiData.swim.distanceM : undefined}
-                durationHours={kpiData[sport].durationHours}
-                sessions={kpiData[sport].sessions}
-              />
-            ))}
+            {sichtbareKpiKarten.map((sport) => {
+              let distKm: number | undefined;
+              if (sport === 'run') distKm = kpiData.run.distanceKm;
+              else if (sport === 'bike') distKm = kpiData.bike.distanceKm;
+              else if (sport === 'swim')
+                distKm = Math.round((kpiData.swim.distanceM / 1000) * 10) / 10;
+              else if (sport === 'misc') distKm = kpiData.misc.distanceKm;
+              return (
+                <KpiCard
+                  key={sport}
+                  sport={sport}
+                  distanceKm={distKm}
+                  durationHours={kpiData[sport].durationHours}
+                  sessions={kpiData[sport].sessions}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -172,7 +173,11 @@ export function SharePage() {
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
             Trainingsvolumen
           </h2>
-          <VolumeBarChart data={weeklyVolumeData} sport={sportFilter} />
+          <VolumeBarChart
+            data={volumeChartResult.data}
+            sport={sportFilter}
+            yearChangeLabels={volumeChartResult.yearChangeLabels}
+          />
         </section>
 
         {/* Anstehende Wettkämpfe */}

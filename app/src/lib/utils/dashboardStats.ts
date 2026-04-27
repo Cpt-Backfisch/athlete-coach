@@ -1,20 +1,29 @@
-import { filterByTimeRange, filterBySport } from './dateFilter';
+import { filterByTimeRange, filterBySport, getTimeRangeStart } from './dateFilter';
 import type { TimeRange } from './dateFilter';
 import type { Activity } from '../activities';
 import type { WeekGoals } from '../weekFrame';
 
 // ── Chart-Typ ──────────────────────────────────────────────────────────────
 
-export interface WeekBarData {
-  weekLabel: string; // z.B. „KW 15"
+export interface VolumeBarData {
+  label: string; // z.B. „KW 15" oder „Jan" oder „Jan 25"
   run: number; // Stunden
   bike: number;
   swim: number;
   misc: number;
   total: number;
+  _year?: number; // intern für Jahrestrenner-Erkennung
 }
 
-// ── Kalendarwoche berechnen ────────────────────────────────────────────────
+// Rückwärts-kompatibler Alias
+export type WeekBarData = VolumeBarData;
+
+export interface VolumeChartResult {
+  data: VolumeBarData[];
+  yearChangeLabels: string[]; // Labels, wo ein Jahreswechsel beginnt
+}
+
+// ── Kalenderwochen-Hilfsfunktionen ─────────────────────────────────────────
 
 function getISOWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -28,21 +37,36 @@ function wochenKey(date: Date): string {
   return `${date.getFullYear()}-W${String(getISOWeek(date)).padStart(2, '0')}`;
 }
 
-// ── Wochenvolumen-Daten für das Balkendiagramm ────────────────────────────
+function montagVon(date: Date): Date {
+  const d = new Date(date);
+  const dow = d.getDay() || 7;
+  d.setDate(d.getDate() - (dow - 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
-export function getWeeklyVolumeData(activities: Activity[], range: TimeRange): WeekBarData[] {
+// ── Wöchentliche Aggregation ───────────────────────────────────────────────
+
+function wochendatenBerechnen(activities: Activity[], range: TimeRange): VolumeChartResult {
   const gefiltert = filterByTimeRange(activities, range);
-
-  // Aktivitäten nach Kalendarwoche gruppieren
-  const wochenMap = new Map<string, WeekBarData>();
+  const wochenMap = new Map<string, VolumeBarData>();
 
   for (const a of gefiltert) {
     const datum = new Date(a.date);
     const key = wochenKey(datum);
     const kw = getISOWeek(datum);
+    const year = datum.getFullYear();
 
     if (!wochenMap.has(key)) {
-      wochenMap.set(key, { weekLabel: `KW ${kw}`, run: 0, bike: 0, swim: 0, misc: 0, total: 0 });
+      wochenMap.set(key, {
+        label: `KW ${kw}`,
+        run: 0,
+        bike: 0,
+        swim: 0,
+        misc: 0,
+        total: 0,
+        _year: year,
+      });
     }
 
     const eintrag = wochenMap.get(key)!;
@@ -56,17 +80,135 @@ export function getWeeklyVolumeData(activities: Activity[], range: TimeRange): W
     eintrag.total += stunden;
   }
 
-  // Chronologisch aufsteigend sortieren (älteste Woche links)
-  return Array.from(wochenMap.entries())
+  // Wochen ohne Daten im Zeitraum mit 0 auffüllen (B4)
+  const start = getTimeRangeStart(range);
+  if (start) {
+    const montag = montagVon(start);
+    const heute = new Date();
+    const current = new Date(montag);
+    while (current <= heute) {
+      const key = wochenKey(current);
+      const kw = getISOWeek(current);
+      const year = current.getFullYear();
+      if (!wochenMap.has(key)) {
+        wochenMap.set(key, {
+          label: `KW ${kw}`,
+          run: 0,
+          bike: 0,
+          swim: 0,
+          misc: 0,
+          total: 0,
+          _year: year,
+        });
+      }
+      current.setDate(current.getDate() + 7);
+    }
+  }
+
+  const sortiert = Array.from(wochenMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, daten]) => ({
-      ...daten,
-      run: Math.round(daten.run * 10) / 10,
-      bike: Math.round(daten.bike * 10) / 10,
-      swim: Math.round(daten.swim * 10) / 10,
-      misc: Math.round(daten.misc * 10) / 10,
-      total: Math.round(daten.total * 10) / 10,
+    .map(([, d]) => ({
+      ...d,
+      run: Math.round(d.run * 10) / 10,
+      bike: Math.round(d.bike * 10) / 10,
+      swim: Math.round(d.swim * 10) / 10,
+      misc: Math.round(d.misc * 10) / 10,
+      total: Math.round(d.total * 10) / 10,
     }));
+
+  // Jahreswechsel-Labels ermitteln
+  const yearChangeLabels: string[] = [];
+  for (let i = 1; i < sortiert.length; i++) {
+    if ((sortiert[i]._year ?? 0) > (sortiert[i - 1]._year ?? 0)) {
+      yearChangeLabels.push(sortiert[i].label);
+    }
+  }
+
+  return { data: sortiert, yearChangeLabels };
+}
+
+// ── Monatliche Aggregation ─────────────────────────────────────────────────
+
+const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+function monatsdatenBerechnen(activities: Activity[], range: TimeRange): VolumeChartResult {
+  const gefiltert = filterByTimeRange(activities, range);
+  const brauchJahrLabel = range === 'all' || range === '1J';
+
+  type MonatEntry = VolumeBarData & { _month: number };
+  const monthMap = new Map<string, MonatEntry>();
+
+  for (const a of gefiltert) {
+    const d = new Date(a.date);
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const label = brauchJahrLabel ? `${MONATE[month]} ${String(year).slice(2)}` : MONATE[month];
+
+    if (!monthMap.has(key)) {
+      monthMap.set(key, {
+        label,
+        run: 0,
+        bike: 0,
+        swim: 0,
+        misc: 0,
+        total: 0,
+        _year: year,
+        _month: month,
+      });
+    }
+
+    const eintrag = monthMap.get(key)!;
+    const stunden = a.duration / 3600;
+
+    if (a.sport_type === 'run') eintrag.run += stunden;
+    else if (a.sport_type === 'bike') eintrag.bike += stunden;
+    else if (a.sport_type === 'swim') eintrag.swim += stunden;
+    else eintrag.misc += stunden;
+
+    eintrag.total += stunden;
+  }
+
+  const sortiert = Array.from(monthMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, d]) => ({
+      label: d.label,
+      run: Math.round(d.run * 10) / 10,
+      bike: Math.round(d.bike * 10) / 10,
+      swim: Math.round(d.swim * 10) / 10,
+      misc: Math.round(d.misc * 10) / 10,
+      total: Math.round(d.total * 10) / 10,
+      _year: d._year,
+    }));
+
+  // Jahreswechsel-Labels ermitteln
+  const sortedEntries = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const yearChangeLabels: string[] = [];
+  for (let i = 1; i < sortedEntries.length; i++) {
+    const prevYear = sortedEntries[i - 1][1]._year ?? 0;
+    const currYear = sortedEntries[i][1]._year ?? 0;
+    if (currYear > prevYear) {
+      yearChangeLabels.push(sortedEntries[i][1].label);
+    }
+  }
+
+  return { data: sortiert, yearChangeLabels };
+}
+
+// ── Öffentliche Funktion: Volume-Chart-Daten ───────────────────────────────
+
+const MONATLICHE_RANGES: TimeRange[] = ['1J', '2024', '2025', '2026', 'all'];
+
+export function getVolumeChartData(activities: Activity[], range: TimeRange): VolumeChartResult {
+  if (MONATLICHE_RANGES.includes(range)) {
+    return monatsdatenBerechnen(activities, range);
+  }
+  return wochendatenBerechnen(activities, range);
+}
+
+// Rückwärts-kompatibler Alias (gibt jetzt nur data zurück)
+export function getWeeklyVolumeData(activities: Activity[], range: TimeRange): VolumeBarData[] {
+  return getVolumeChartData(activities, range).data;
 }
 
 // ── KPI-Daten pro Sportart ─────────────────────────────────────────────────
@@ -75,7 +217,7 @@ export interface KpiData {
   run: { distanceKm: number; durationHours: number; sessions: number };
   bike: { distanceKm: number; durationHours: number; sessions: number };
   swim: { distanceM: number; durationHours: number; sessions: number };
-  misc: { durationHours: number; sessions: number };
+  misc: { distanceKm: number; durationHours: number; sessions: number };
 }
 
 export function getKpiData(activities: Activity[], range: TimeRange): KpiData {
@@ -85,7 +227,7 @@ export function getKpiData(activities: Activity[], range: TimeRange): KpiData {
     run: { distanceKm: 0, durationHours: 0, sessions: 0 },
     bike: { distanceKm: 0, durationHours: 0, sessions: 0 },
     swim: { distanceM: 0, durationHours: 0, sessions: 0 },
-    misc: { durationHours: 0, sessions: 0 },
+    misc: { distanceKm: 0, durationHours: 0, sessions: 0 },
   };
 
   for (const a of gefiltert) {
@@ -103,6 +245,7 @@ export function getKpiData(activities: Activity[], range: TimeRange): KpiData {
       kpi.swim.durationHours += h;
       kpi.swim.sessions++;
     } else {
+      kpi.misc.distanceKm += a.distance / 1000;
       kpi.misc.durationHours += h;
       kpi.misc.sessions++;
     }
@@ -115,6 +258,7 @@ export function getKpiData(activities: Activity[], range: TimeRange): KpiData {
   kpi.bike.durationHours = Math.round(kpi.bike.durationHours * 10) / 10;
   kpi.swim.distanceM = Math.round(kpi.swim.distanceM);
   kpi.swim.durationHours = Math.round(kpi.swim.durationHours * 10) / 10;
+  kpi.misc.distanceKm = Math.round(kpi.misc.distanceKm * 10) / 10;
   kpi.misc.durationHours = Math.round(kpi.misc.durationHours * 10) / 10;
 
   return kpi;
@@ -128,7 +272,6 @@ export interface LoadLightResult {
 }
 
 export function getLoadLight(activities: Activity[], goals: WeekGoals): LoadLightResult {
-  // Wenn keine Ziele gesetzt: grün
   const keineZiele =
     goals.run_km === null &&
     goals.run_sessions === null &&
@@ -140,9 +283,8 @@ export function getLoadLight(activities: Activity[], goals: WeekGoals): LoadLigh
 
   if (keineZiele) return { status: 'green', message: 'Keine Ziele gesetzt' };
 
-  // Nur aktuelle Woche (Montag bis heute)
   const heute = new Date();
-  const wochentag = heute.getDay() || 7; // 1=Mo … 7=So
+  const wochentag = heute.getDay() || 7;
   const montag = new Date(heute);
   montag.setDate(heute.getDate() - (wochentag - 1));
   montag.setHours(0, 0, 0, 0);
@@ -153,10 +295,7 @@ export function getLoadLight(activities: Activity[], goals: WeekGoals): LoadLigh
     return { status: 'red', message: 'Noch keine Aktivität diese Woche' };
   }
 
-  // Anteiliger Wochenfortschritt: wie weit sind wir in der Woche? (1/7 bis 7/7)
   const fortschritt = wochentag / 7;
-
-  // Ziel-Erfüllungsgrade berechnen
   const quoten: number[] = [];
 
   function quote(ist: number, soll: number | null): void {
@@ -220,13 +359,15 @@ export function getKpiForSport(
       sessions: kpi.swim.sessions,
     };
   if (sport === 'misc')
-    return { durationHours: kpi.misc.durationHours, sessions: kpi.misc.sessions };
+    return {
+      distanceKm: kpi.misc.distanceKm,
+      durationHours: kpi.misc.durationHours,
+      sessions: kpi.misc.sessions,
+    };
   return null;
 }
 
-// ── Monatliche Hilfsdaten ──────────────────────────────────────────────────
-
-const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+// ── Monatliche Chart-Daten (für VolumeChartHours / VolumeChartKm) ──────────
 
 export interface MonthBarData {
   month: string;
@@ -334,7 +475,7 @@ export function getSportDistribution(activities: Activity[]): SportDistributionD
 // ── Kumulierte Trainingszeit pro Jahr ──────────────────────────────────────
 
 export interface CumulativePoint {
-  label: string; // Monatsname
+  label: string;
   dayOfYear: number;
   [year: string]: number | string | undefined;
 }
@@ -358,7 +499,6 @@ export function getCumulativeTime(activities: Activity[]): CumulativePoint[] {
   const thisYear = today.getFullYear();
   const todayDoy = getDayOfYear(today);
 
-  // Pro Jahr: sortierte Aktivitäten
   const byYear: Record<number, Activity[]> = {};
   for (const y of years) {
     byYear[y] = activities
@@ -366,11 +506,9 @@ export function getCumulativeTime(activities: Activity[]): CumulativePoint[] {
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  // Monatliche Breakpoints (Tag 1 jedes Monats)
   const monthStarts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
   const allDays = new Set<number>(monthStarts);
 
-  // Tage mit Aktivitäten ergänzen
   for (const y of years) {
     for (const a of byYear[y]) {
       allDays.add(getDayOfYear(new Date(a.date)));
@@ -400,7 +538,6 @@ export function getCumulativeTime(activities: Activity[]): CumulativePoint[] {
       2025: Math.round(cumulative[2025] * 10) / 10,
     };
 
-    // 2026 nur bis heute anzeigen
     if (thisYear > 2026 || doy <= todayDoy) {
       point[2026] = Math.round(cumulative[2026] * 10) / 10;
     }
@@ -451,6 +588,6 @@ export function getWeekStats(activities: Activity[]): WeekStats {
   };
 }
 
-// ── Re-Export für bequemen Import in DashboardPage ────────────────────────
+// ── Re-Export ──────────────────────────────────────────────────────────────
 export { filterByTimeRange, filterBySport };
 export type { TimeRange };
