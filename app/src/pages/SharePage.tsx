@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
+import { Toaster } from '@/components/ui/sonner';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
 import { FilterChips } from '@/components/FilterChips';
 import { KpiCard } from '@/components/KpiCard';
@@ -79,6 +82,8 @@ export function SharePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('2026');
   const [sportFilter, setSportFilter] = useState('all');
+  const [commentCount, setCommentCount] = useState(0);
+  const [commentSheetOpen, setCommentSheetOpen] = useState(false);
 
   useEffect(() => {
     if (shareLoading || !ownerUserId) return;
@@ -157,16 +162,35 @@ export function SharePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Toaster />
       <ReadOnlyBanner ownerName={ownerName} />
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Filter */}
-        <FilterChips
-          options={ZEITRAUM_OPTIONEN}
-          value={timeRange}
-          onChange={(v) => setTimeRange(v as TimeRange)}
-        />
-        <FilterChips options={SPORT_OPTIONEN} value={sportFilter} onChange={setSportFilter} />
+        {/* Filter + Kommentare-Button (Desktop) */}
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex-1 space-y-3">
+            <FilterChips
+              options={ZEITRAUM_OPTIONEN}
+              value={timeRange}
+              onChange={(v) => setTimeRange(v as TimeRange)}
+            />
+            <FilterChips options={SPORT_OPTIONEN} value={sportFilter} onChange={setSportFilter} />
+          </div>
+          <Sheet open={commentSheetOpen} onOpenChange={setCommentSheetOpen}>
+            <SheetTrigger className="hidden md:flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 mt-0.5">
+              <MessageCircle size={14} />
+              <span>Kommentare{commentCount > 0 ? ` (${commentCount})` : ''}</span>
+            </SheetTrigger>
+            <SheetContent title="Kommentare">
+              <CommentSection
+                shareToken={shareToken}
+                ownerUserId={ownerUserId}
+                isOwner={false}
+                onCountChange={setCommentCount}
+              />
+            </SheetContent>
+          </Sheet>
+        </div>
 
         {/* KPI-Karten — read-only, kein Filter-Klick */}
         {isLoading ? (
@@ -282,8 +306,15 @@ export function SharePage() {
           </section>
         )}
 
-        {/* Kommentare */}
-        <CommentSection shareToken={shareToken} ownerUserId={ownerUserId} isOwner={false} />
+        {/* Kommentare: Mobile unten, Desktop im Sheet */}
+        <section className="md:hidden">
+          <CommentSection
+            shareToken={shareToken}
+            ownerUserId={ownerUserId}
+            isOwner={false}
+            onCountChange={setCommentCount}
+          />
+        </section>
       </div>
     </div>
   );

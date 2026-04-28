@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Trash2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Pencil,
+  Trash2,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Trophy,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/EmptyState';
 import { CountdownBadge } from '@/components/CountdownBadge';
 import { EventFormModal } from '@/components/EventFormModal';
 import { ResultFormModal } from '@/components/ResultFormModal';
@@ -98,9 +107,18 @@ export function EventsPage() {
         </div>
 
         {upcomingRaces.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Keine anstehenden Wettkämpfe. Füge deinen nächsten Wettkampf hinzu.
-          </p>
+          <EmptyState
+            icon={Calendar}
+            title="Keine Wettkämpfe geplant"
+            description="Trag deinen nächsten Wettkampf ein und behalte den Countdown im Blick."
+            cta={{
+              label: 'Wettkampf eintragen',
+              onClick: () => {
+                setEditRace(undefined);
+                setEventModalOpen(true);
+              },
+            }}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {upcomingRaces.map((race) => (
@@ -135,7 +153,11 @@ export function EventsPage() {
         </div>
 
         {history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Noch keine vergangenen Wettkämpfe.</p>
+          <EmptyState
+            icon={Trophy}
+            title="Noch keine Wettkampfergebnisse"
+            description="Erfasse vergangene Ergebnisse, um deinen Fortschritt zu verfolgen."
+          />
         ) : (
           <div className="space-y-2">
             {history.map((item) =>

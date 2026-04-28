@@ -1,17 +1,19 @@
-import { useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { EmptyState } from '@/components/EmptyState';
 import { fetchComments, createComment, deleteComment } from '@/lib/comments';
 import type { Comment } from '@/lib/comments';
 
 interface CommentSectionProps {
   shareToken: string;
-  ownerUserId: string; // für den user_id-Pflichtfeld im Insert
-  isOwner: boolean; // true wenn eingeloggter User der Owner ist
+  ownerUserId: string;
+  isOwner: boolean;
+  onCountChange?: (count: number) => void;
 }
 
 function formatDatum(dateStr: string): string {
@@ -22,17 +24,24 @@ function formatDatum(dateStr: string): string {
   });
 }
 
-export function CommentSection({ shareToken, ownerUserId, isOwner }: CommentSectionProps) {
+export function CommentSection({
+  shareToken,
+  ownerUserId,
+  isOwner,
+  onCountChange,
+}: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [authorName, setAuthorName] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function laden() {
     try {
       const data = await fetchComments(shareToken);
       setComments(data);
+      onCountChange?.(data.length);
     } catch {
       // Fehler still ignorieren — Kommentare sind optional
     } finally {
@@ -84,7 +93,7 @@ export function CommentSection({ shareToken, ownerUserId, isOwner }: CommentSect
       </h2>
 
       {/* Kommentar-Formular */}
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1.5">
           <Label htmlFor="cs-name">Dein Name</Label>
           <Input
@@ -120,7 +129,15 @@ export function CommentSection({ shareToken, ownerUserId, isOwner }: CommentSect
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Kommentare laden…</p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Noch keine Kommentare. Sei der Erste!</p>
+        <EmptyState
+          icon={MessageCircle}
+          title="Noch keine Kommentare"
+          description="Sei der Erste und hinterlasse eine Nachricht."
+          cta={{
+            label: 'Ersten Kommentar schreiben',
+            onClick: () => formRef.current?.querySelector('input')?.focus(),
+          }}
+        />
       ) : (
         <div className="space-y-3">
           {comments.map((c) => (

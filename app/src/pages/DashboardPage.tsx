@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { KpiCard } from '@/components/KpiCard';
+import { EmptyState } from '@/components/EmptyState';
+import { KpiCardSkeleton, BarChartSkeleton } from '@/components/charts/ChartSkeleton';
 import { LoadLight } from '@/components/LoadLight';
 import { VolumeBarChart } from '@/components/VolumeBarChart';
 import { CountdownBadge } from '@/components/CountdownBadge';
 import { CommentSection } from '@/components/CommentSection';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { WeekCard } from '@/components/charts/WeekCard';
 import { WeekGoalCard } from '@/components/WeekGoalCard';
 import { VolumeChartHours } from '@/components/charts/VolumeChartHours';
@@ -26,6 +29,7 @@ import {
 } from '@/lib/utils/dashboardStats';
 import { TRIATHLON_COLOR } from '@/lib/sportColors';
 import { SPORT_COLORS } from '@/lib/theme';
+import { BarChart2, MessageCircle } from 'lucide-react';
 import type { TimeRange } from '@/lib/utils/dateFilter';
 import type { WeekGoals } from '@/lib/weekFrame';
 import type { SportType } from '@/lib/activities';
@@ -54,18 +58,30 @@ const SPORT_REIHENFOLGE: SportType[] = ['run', 'bike', 'swim', 'misc'];
 export function DashboardPage() {
   const { user } = useAuth();
   const { activities, isLoading } = useActivities();
+  const navigate = useNavigate();
+  const [kpiHasAnimated, setKpiHasAnimated] = useState(false);
 
   const [timeRange, setTimeRange] = useState<TimeRange>('2026');
   const [sportFilter, setSportFilter] = useState<SportFilter>('all');
   const [weekGoals, setWeekGoals] = useState<WeekGoals>(EMPTY_WEEK_GOALS);
   const [naechsteRaces, setNaechsteRaces] = useState<Race[]>([]);
   const [shareToken, setShareToken] = useState<string | null>(null);
+  const [commentCount, setCommentCount] = useState(0);
+  const [commentSheetOpen, setCommentSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchWeekPlan().then((plan) => setWeekGoals(plan.goals));
     fetchUpcomingRaces().then((races) => setNaechsteRaces(races.slice(0, 3)));
     getShareToken().then(setShareToken);
   }, []);
+
+  // Nach erstem Mount mit Daten → Animation deaktivieren (kein Re-Animate bei Filter-Wechsel)
+  useEffect(() => {
+    if (!kpiHasAnimated && !isLoading && activities.length > 0) {
+      const t = setTimeout(() => setKpiHasAnimated(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [kpiHasAnimated, isLoading, activities.length]);
 
   // Zeitraum-gefiltert (ohne Sportart) — Basis für KPI-Karten und Volume-Chart
   const gefiltertNachZeit = useMemo(
@@ -113,7 +129,21 @@ export function DashboardPage() {
   }
 
   if (isLoading) {
-    return <p className="text-muted-foreground text-sm">Dashboard wird geladen…</p>;
+    return (
+      <div className="space-y-5 max-w-4xl">
+        <div className="h-6 w-32 animate-pulse rounded-md bg-muted" />
+        <div className="h-8 w-full animate-pulse rounded-md bg-muted" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <KpiCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
+          <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+          <BarChartSkeleton height={200} />
+        </div>
+      </div>
+    );
   }
 
   function kpiDistanceKm(sport: SportType): number | undefined {
@@ -126,9 +156,25 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 max-w-4xl">
-      {/* Belastungsampel + Zeitraum-Filter */}
+      {/* Belastungsampel + Kommentare-Button (Desktop) */}
       <div className="flex items-center justify-between gap-3">
         <LoadLight status={loadLight.status} message={loadLight.message} />
+        {shareToken && (
+          <Sheet open={commentSheetOpen} onOpenChange={setCommentSheetOpen}>
+            <SheetTrigger className="hidden md:flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              <MessageCircle size={14} />
+              <span>Kommentare{commentCount > 0 ? ` (${commentCount})` : ''}</span>
+            </SheetTrigger>
+            <SheetContent title="Kommentare">
+              <CommentSection
+                shareToken={shareToken}
+                ownerUserId={user?.id ?? ''}
+                isOwner={true}
+                onCountChange={setCommentCount}
+              />
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
 
       {/* F7: Segmented Control — Zeitraum */}
@@ -140,10 +186,19 @@ export function DashboardPage() {
 
       {/* F6: KPI-Kacheln als Sportart-Filter — zweite Filter-Zeile entfällt */}
       {sichtbareKpiKarten.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Keine Aktivitäten im gewählten Zeitraum</p>
+        activities.length === 0 ? (
+          <EmptyState
+            icon={BarChart2}
+            title="Noch keine Trainingsdaten"
+            description="Verbinde Strava und lade deine Aktivitäten, um das Dashboard zu sehen."
+            cta={{ label: 'Strava verbinden', onClick: () => navigate('/settings') }}
+          />
+        ) : (
+          <p className="text-muted-foreground text-sm">Keine Aktivitäten im gewählten Zeitraum</p>
+        )
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {sichtbareKpiKarten.map((sport) => (
+          {sichtbareKpiKarten.map((sport, i) => (
             <KpiCard
               key={sport}
               sport={sport}
@@ -152,6 +207,8 @@ export function DashboardPage() {
               sessions={kpiData[sport].sessions}
               isActive={sportFilter === sport}
               onClick={() => toggleSport(sport)}
+              animate={!kpiHasAnimated}
+              animationDelay={i * 60}
             />
           ))}
         </div>
@@ -259,9 +316,16 @@ export function DashboardPage() {
         )}
       </section>
 
-      {/* Kommentare */}
+      {/* Kommentare: auf Mobile unten, auf Desktop im Sheet (oben) */}
       {shareToken ? (
-        <CommentSection shareToken={shareToken} ownerUserId={user?.id ?? ''} isOwner={true} />
+        <section className="md:hidden">
+          <CommentSection
+            shareToken={shareToken}
+            ownerUserId={user?.id ?? ''}
+            isOwner={true}
+            onCountChange={setCommentCount}
+          />
+        </section>
       ) : (
         <section className="space-y-3">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">

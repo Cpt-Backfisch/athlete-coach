@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Activity as ActivityIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useActivities } from '@/hooks/useActivities';
 import { ActivityFormModal } from '@/components/ActivityFormModal';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { FilterChips } from '@/components/FilterChips';
 import { ActivityRow } from '@/components/ActivityRow';
+import { EmptyState } from '@/components/EmptyState';
 import { filterByTimeRange, filterBySport } from '@/lib/utils/dateFilter';
 import type { TimeRange } from '@/lib/utils/dateFilter';
 import type { Activity } from '@/lib/activities';
@@ -35,6 +37,7 @@ const SPORT_OPTIONEN = [
 
 export function ActivitiesPage() {
   const { activities, isLoading, error, removeActivity } = useActivities();
+  const navigate = useNavigate();
 
   const [timeRange, setTimeRange] = useState<TimeRange>('2026');
   const [sportFilter, setSportFilter] = useState('all');
@@ -112,16 +115,21 @@ export function ActivitiesPage() {
 
           {/* Leerzustand: gar keine Aktivitäten vorhanden */}
           {activities.length === 0 && (
-            <p className="text-muted-foreground text-sm mt-4">
-              Noch keine Einheiten. Importiere deine Aktivitäten oder füge eine manuell hinzu.
-            </p>
+            <EmptyState
+              icon={ActivityIcon}
+              title="Noch keine Aktivitäten"
+              description="Verbinde Strava oder importiere eine CSV-Datei, um deine Einheiten zu sehen."
+              cta={{ label: 'Strava verbinden', onClick: () => navigate('/settings') }}
+            />
           )}
 
           {/* Leerzustand: Filter liefert keine Treffer */}
           {activities.length > 0 && gefiltert.length === 0 && (
-            <p className="text-muted-foreground text-sm mt-4">
-              Keine Einheiten im gewählten Zeitraum.
-            </p>
+            <EmptyState
+              icon={ActivityIcon}
+              title="Keine Einheiten im gewählten Zeitraum"
+              description="Probiere einen anderen Zeitraum oder Sportart-Filter."
+            />
           )}
 
           {/* Aktivitätsliste */}
