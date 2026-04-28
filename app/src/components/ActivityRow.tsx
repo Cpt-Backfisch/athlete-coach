@@ -22,9 +22,15 @@ export function ActivityRow({ activity: a, onEdit, onDelete }: ActivityRowProps)
 
   return (
     <div
-      className="grid items-center gap-x-3 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors
-      grid-cols-[12px_1fr_auto_auto]
-      md:grid-cols-[12px_1fr_80px_72px_64px_80px_48px_56px_40px]"
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/activities/${a.id}`)}
+      onKeyDown={(e) => e.key === 'Enter' && navigate(`/activities/${a.id}`)}
+      className="grid items-center gap-x-3 px-4 py-3 border-b border-border last:border-0
+        hover:bg-muted/50 hover:shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all duration-150
+        active:scale-[0.99] cursor-pointer select-none
+        grid-cols-[12px_1fr_auto_auto]
+        md:grid-cols-[12px_1fr_80px_72px_64px_80px_48px_56px_40px]"
     >
       {/* 1. Sportart-Farbpunkt */}
       <span
@@ -32,13 +38,8 @@ export function ActivityRow({ activity: a, onEdit, onDelete }: ActivityRowProps)
         style={{ backgroundColor: sportFarbe }}
       />
 
-      {/* 2. Name — klickbar → Detailansicht */}
-      <button
-        onClick={() => navigate(`/activities/${a.id}`)}
-        className="font-medium truncate text-left hover:underline hover:text-foreground transition-colors"
-      >
-        {a.name}
-      </button>
+      {/* 2. Name */}
+      <span className="font-medium truncate">{a.name}</span>
 
       {/* 3. Datum — auf Mobile versteckt */}
       <span className="hidden md:block text-sm text-muted-foreground tabular-nums">
@@ -73,17 +74,17 @@ export function ActivityRow({ activity: a, onEdit, onDelete }: ActivityRowProps)
       </span>
 
       {/* 9. Aktionen */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onEdit}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="p-1 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           title="Bearbeiten"
         >
           <Pencil size={14} />
         </button>
         <button
           onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive transition-colors"
+          className="p-1 text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           title="Löschen"
         >
           <Trash2 size={14} />

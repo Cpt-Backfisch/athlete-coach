@@ -8,11 +8,12 @@ import {
 } from 'lucide-react';
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // Theme wird via OS-Einstellung gesteuert — next-themes wird nicht verwendet
   return (
     <Sonner
       theme="system"
       className="toaster group"
+      richColors
+      position="top-center"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

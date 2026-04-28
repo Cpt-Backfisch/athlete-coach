@@ -159,3 +159,53 @@
     @apply font-sans;
   }
 }
+
+/* ── KPI-Kacheln Eingangs-Animation ──────────────────────────────────────── */
+@keyframes kpi-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kpi-enter {
+  animation: kpi-enter 250ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi-enter {
+    animation: none;
+  }
+}
+
+/* ── Splash-Screen Animation ─────────────────────────────────────────────── */
+@keyframes splash-zoom-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.5);
+  }
+}
+
+.splash-zoom-out {
+  animation: splash-zoom-out 500ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-zoom-out {
+    animation: splash-fade-out 300ms ease-out forwards;
+  }
+}
+
+@keyframes splash-fade-out {
+  to {
+    opacity: 0;
+  }
+}

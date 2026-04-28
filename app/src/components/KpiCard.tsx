@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { SPORT_COLORS } from '@/lib/theme';
 import type { SportType } from '@/lib/activities';
+import type { CSSProperties } from 'react';
 
 const SPORT_LABELS: Record<SportType, string> = {
   run: 'Laufen',
@@ -21,6 +22,8 @@ interface KpiCardProps {
   sessions: number;
   isActive?: boolean;
   onClick?: () => void;
+  animationDelay?: number;
+  animate?: boolean;
 }
 
 export function KpiCard({
@@ -30,6 +33,8 @@ export function KpiCard({
   sessions,
   isActive = false,
   onClick,
+  animationDelay = 0,
+  animate = false,
 }: KpiCardProps) {
   const farbe = SPORT_COLORS[sport]?.dark ?? '#888';
 
@@ -38,6 +43,8 @@ export function KpiCard({
   const haupteinheit = hasDistance ? 'km' : 'Std';
   const untertitel = `${DE_1.format(durationHours)} Std · ${sessions} ${sessions === 1 ? 'Einheit' : 'Einheiten'}`;
 
+  const animStyle: CSSProperties = animate ? { animationDelay: `${animationDelay}ms` } : {};
+
   return (
     <button
       onClick={onClick}
@@ -45,9 +52,12 @@ export function KpiCard({
       className={cn(
         'rounded-[12px] bg-card px-4 py-4 space-y-2 text-left w-full transition-all duration-150',
         onClick && 'cursor-pointer active:scale-[0.98]',
-        isActive ? 'border-2' : 'border border-border'
+        isActive ? 'border-2' : 'border border-border',
+        animate && 'kpi-enter'
       )}
-      style={isActive ? { borderColor: farbe, backgroundColor: `${farbe}0D` } : {}}
+      style={
+        isActive ? { borderColor: farbe, backgroundColor: `${farbe}0D`, ...animStyle } : animStyle
+      }
     >
       {/* Sportart-Label */}
       <div className="flex items-center gap-1.5">
