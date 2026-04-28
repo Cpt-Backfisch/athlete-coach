@@ -5,9 +5,15 @@ import { KpiCard } from '@/components/KpiCard';
 import { VolumeBarChart } from '@/components/VolumeBarChart';
 import { CountdownBadge } from '@/components/CountdownBadge';
 import { CommentSection } from '@/components/CommentSection';
+import { WeekGoalCard } from '@/components/WeekGoalCard';
+import { VolumeChartHours } from '@/components/charts/VolumeChartHours';
+import { VolumeChartKm } from '@/components/charts/VolumeChartKm';
+import { CumulativeTime } from '@/components/charts/CumulativeTime';
+import { SportDistribution } from '@/components/charts/SportDistribution';
 import { useShare } from '@/contexts/ShareContext';
 import { fetchActivitiesByUserId } from '@/lib/activities';
 import { fetchUpcomingRacesByUser } from '@/lib/events';
+import { blobLoadOneByUser } from '@/lib/jsonBlobStore';
 import { SPORT_COLORS } from '@/lib/theme';
 import {
   getVolumeChartData,
@@ -18,15 +24,20 @@ import {
 import type { Activity } from '@/lib/activities';
 import type { TimeRange } from '@/lib/utils/dateFilter';
 import type { SportType } from '@/lib/activities';
+import type { WeekGoals, WeekPlan } from '@/lib/weekFrame';
+import { EMPTY_WEEK_GOALS } from '@/lib/weekFrame';
 
 // ── Filter-Optionen ────────────────────────────────────────────────────────
 
 const ZEITRAUM_OPTIONEN = [
-  { label: '4W', value: '4W' },
-  { label: '12W', value: '12W' },
-  { label: '6M', value: '6M' },
-  { label: '1J', value: '1J' },
   { label: 'Alles', value: 'all' },
+  { label: '2026', value: '2026' },
+  { label: '2025', value: '2025' },
+  { label: '2024', value: '2024' },
+  { label: '1J', value: '1J' },
+  { label: '6M', value: '6M' },
+  { label: '12W', value: '12W' },
+  { label: '4W', value: '4W' },
 ];
 
 const SPORT_OPTIONEN = [
@@ -60,12 +71,13 @@ export function SharePage() {
   const { isShareMode, shareToken, ownerUserId, isLoading: shareLoading } = useShare();
 
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [weekGoals, setWeekGoals] = useState<WeekGoals>(EMPTY_WEEK_GOALS);
   const [ownerName, setOwnerName] = useState('');
   const [races, setRaces] = useState<
     Array<{ id: string; name: string; date: string; sport_type: string; goal?: string | null }>
   >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>('12W');
+  const [timeRange, setTimeRange] = useState<TimeRange>('2026');
   const [sportFilter, setSportFilter] = useState('all');
 
   useEffect(() => {
@@ -75,33 +87,48 @@ export function SharePage() {
       fetchActivitiesByUserId(ownerUserId),
       ladeOwnerName(ownerUserId),
       fetchUpcomingRacesByUser(ownerUserId),
-    ]).then(([acts, name, raceList]) => {
+      blobLoadOneByUser<WeekPlan>('week_frame', ownerUserId),
+    ]).then(([acts, name, raceList, weekPlan]) => {
       setActivities(acts);
       setOwnerName(name);
       setRaces(raceList);
+      setWeekGoals(weekPlan?.goals ?? EMPTY_WEEK_GOALS);
       setIsLoading(false);
     });
   }, [shareLoading, ownerUserId]);
 
-  // ── Gefilterte Aktivitäten + Chart-Daten (Hooks vor frühen Returns) ────────
+  // ── Gefilterte Aktivitäten + Chart-Daten ──────────────────────────────────
 
-  const gefiltert = useMemo(() => {
-    let liste = filterByTimeRange(activities, timeRange);
-    liste = filterBySport(liste, sportFilter);
-    return liste;
-  }, [activities, timeRange, sportFilter]);
+  const gefiltertNachZeit = useMemo(
+    () => filterByTimeRange(activities, timeRange),
+    [activities, timeRange]
+  );
+
+  const gefiltert = useMemo(
+    () => filterBySport(gefiltertNachZeit, sportFilter),
+    [gefiltertNachZeit, sportFilter]
+  );
 
   const volumeChartResult = useMemo(
     () => getVolumeChartData(gefiltert, timeRange),
     [gefiltert, timeRange]
   );
 
-  const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
+  const kpiData = useMemo(
+    () => getKpiData(gefiltertNachZeit, timeRange),
+    [gefiltertNachZeit, timeRange]
+  );
 
   const sichtbareKpiKarten = useMemo(() => {
     if (sportFilter !== 'all') return [sportFilter as SportType];
     return SPORT_REIHENFOLGE.filter((s) => kpiData[s].sessions > 0);
   }, [kpiData, sportFilter]);
+
+  const jahrFuerCharts = useMemo(() => {
+    if (timeRange === '2024') return 2024;
+    if (timeRange === '2025') return 2025;
+    return 2026;
+  }, [timeRange]);
 
   // ── Ungültiger Link ──────────────────────────────────────────────────────
 
@@ -141,7 +168,7 @@ export function SharePage() {
         />
         <FilterChips options={SPORT_OPTIONEN} value={sportFilter} onChange={setSportFilter} />
 
-        {/* KPI-Karten */}
+        {/* KPI-Karten — read-only, kein Filter-Klick */}
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Aktivitäten laden…</p>
         ) : sichtbareKpiKarten.length === 0 ? (
@@ -168,7 +195,10 @@ export function SharePage() {
           </div>
         )}
 
-        {/* Wochenvolumen-Chart */}
+        {/* Wochenziel-Karte */}
+        {!isLoading && <WeekGoalCard activities={activities} weekGoals={weekGoals} />}
+
+        {/* Trainingsvolumen-Chart */}
         <section className="space-y-3">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
             Trainingsvolumen
@@ -178,6 +208,38 @@ export function SharePage() {
             sport={sportFilter}
             yearChangeLabels={volumeChartResult.yearChangeLabels}
           />
+        </section>
+
+        {/* Monatliches Volumen — Stunden */}
+        <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Monatliches Volumen {jahrFuerCharts} — Stunden
+          </h2>
+          <VolumeChartHours activities={activities} year={jahrFuerCharts} />
+        </section>
+
+        {/* Monatliches Volumen — Kilometer */}
+        <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Monatliches Volumen {jahrFuerCharts} — Kilometer
+          </h2>
+          <VolumeChartKm activities={activities} year={jahrFuerCharts} />
+        </section>
+
+        {/* Sportverteilung */}
+        <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Sportverteilung — Gesamt
+          </h2>
+          <SportDistribution activities={gefiltert} />
+        </section>
+
+        {/* Kumulierte Trainingszeit */}
+        <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Kumulierte Trainingszeit
+          </h2>
+          <CumulativeTime activities={activities} />
         </section>
 
         {/* Anstehende Wettkämpfe */}

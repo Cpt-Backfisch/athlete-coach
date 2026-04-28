@@ -8,6 +8,7 @@ import { VolumeBarChart } from '@/components/VolumeBarChart';
 import { CountdownBadge } from '@/components/CountdownBadge';
 import { CommentSection } from '@/components/CommentSection';
 import { WeekCard } from '@/components/charts/WeekCard';
+import { WeekGoalCard } from '@/components/WeekGoalCard';
 import { VolumeChartHours } from '@/components/charts/VolumeChartHours';
 import { VolumeChartKm } from '@/components/charts/VolumeChartKm';
 import { SportDistribution } from '@/components/charts/SportDistribution';
@@ -155,6 +156,9 @@ export function DashboardPage() {
           ))}
         </div>
       )}
+
+      {/* F1: Wochenziel-Karte */}
+      <WeekGoalCard activities={activities} weekGoals={weekGoals} />
 
       {/* F8: Trainingsvolumen-Chart — immer gestapelt, Balken-Klick setzt Filter */}
       <section className="space-y-3">

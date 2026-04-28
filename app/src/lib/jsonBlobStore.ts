@@ -40,6 +40,13 @@ export async function blobLoadArrayByUser<T>(table: string, userId: string): Pro
   return Array.isArray(parsed) ? parsed : [];
 }
 
+// ── Einzelnes Objekt laden — fremder User (Share-View) ────────────────────
+
+export async function blobLoadOneByUser<T>(table: string, userId: string): Promise<T | null> {
+  const { data } = await supabase.from(table).select('data').eq('user_id', userId).maybeSingle();
+  return parseBlob<T>(data as { data: string } | null);
+}
+
 // ── Objekt oder Array speichern ───────────────────────────────────────────
 
 export async function blobSave<T>(table: string, userId: string, payload: T): Promise<void> {
