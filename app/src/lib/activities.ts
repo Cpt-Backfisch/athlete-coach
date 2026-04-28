@@ -19,6 +19,11 @@ export interface Activity {
   intensity?: number | null; // 1–5
   notes?: string | null;
   created_at?: string;
+  // F2/F3: Radrolle + Orts-Erkennung
+  isEstimatedDistance?: boolean; // Distanz geschätzt (Radrolle: Dauer × 30 km/h)
+  isCyclingRoller?: boolean; // Radrolle erkannt
+  location_city?: string | null; // Strava location_city
+  titleEditedByUser?: boolean; // Titel manuell geändert — Sync überschreibt ihn nicht
 }
 
 export type ActivityInput = Omit<Activity, 'id' | 'user_id' | 'created_at' | 'strava_id'>;
@@ -98,7 +103,12 @@ export async function updateActivity(id: string, input: Partial<ActivityInput>):
   const items = await blobLoadArray<Activity>('activities');
   const idx = items.findIndex((a) => a.id === id);
   if (idx === -1) throw new Error('Aktivität nicht gefunden');
-  const updated: Activity = { ...items[idx], ...input };
+  const updated: Activity = {
+    ...items[idx],
+    ...input,
+    // Titel manuell bearbeitet → Sync soll ihn nicht überschreiben
+    ...(input.name !== undefined ? { titleEditedByUser: true } : {}),
+  };
   const newItems = [...items];
   newItems[idx] = updated;
   await blobSave('activities', userId, newItems);
@@ -128,8 +138,15 @@ export function upsertActivityByStravaId(
 ): { updated: Activity[]; isNew: boolean } {
   const idx = items.findIndex((a) => a.strava_id === newData.strava_id);
   if (idx >= 0) {
+    const existing = items[idx];
     const updatedItems = [...items];
-    updatedItems[idx] = { ...items[idx], ...newData };
+    updatedItems[idx] = {
+      ...existing,
+      ...newData,
+      // Manuell bearbeiteter Titel bleibt erhalten
+      name: existing.titleEditedByUser ? existing.name : newData.name,
+      titleEditedByUser: existing.titleEditedByUser,
+    };
     return { updated: updatedItems, isNew: false };
   }
   return {

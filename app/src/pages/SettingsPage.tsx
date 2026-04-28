@@ -21,7 +21,15 @@ import {
   registerStravaWebhook,
   getWebhookStatus,
 } from '@/lib/settings';
+import { SPORT_COLORS } from '@/lib/theme';
 import type { WebhookStatus } from '@/lib/settings';
+
+interface AthleteSkills {
+  running: number;
+  cycling: number;
+  swimming: number;
+  transitions: number;
+}
 
 // ── SettingsPage ──────────────────────────────────────────────────────────
 
@@ -56,6 +64,15 @@ export function SettingsPage() {
   const [webhookStatus, setWebhookStatus] = useState<WebhookStatus | null>(null);
   const [webhookStatusLaed, setWebhookStatusLaed] = useState(false);
 
+  // Athletenprofil / Skills
+  const [skills, setSkills] = useState<AthleteSkills>({
+    running: 5,
+    cycling: 5,
+    swimming: 5,
+    transitions: 5,
+  });
+  const [skillsLaden, setSkillsLaden] = useState(false);
+
   // ── Daten laden ──────────────────────────────────────────────────────────
 
   const ladeWebhookStatus = useCallback(async () => {
@@ -86,7 +103,18 @@ export function SettingsPage() {
       setStravaVerbunden(stravaOk);
       setTelegramKonfiguriert(tgOk);
     }
+    async function ladenSkills() {
+      const raw = await getSetting('skills');
+      if (raw) {
+        try {
+          setSkills(JSON.parse(raw) as AthleteSkills);
+        } catch {
+          /* Fallback */
+        }
+      }
+    }
     laden();
+    ladenSkills();
     ladeWebhookStatus();
   }, [ladeWebhookStatus]);
 
@@ -169,6 +197,20 @@ export function SettingsPage() {
     }
   }
 
+  async function handleSkillChange(key: keyof AthleteSkills, value: number) {
+    const next = { ...skills, [key]: value };
+    setSkills(next);
+    setSkillsLaden(true);
+    try {
+      await setSetting('skills', JSON.stringify(next));
+      toast.success('Skills gespeichert');
+    } catch (e) {
+      toast.error(`Fehler: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSkillsLaden(false);
+    }
+  }
+
   function handleShareKopieren() {
     if (!shareToken) return;
     navigator.clipboard.writeText(getShareUrl(shareToken)).then(() => {
@@ -242,6 +284,56 @@ export function SettingsPage() {
             </Button>
           </div>
         </div>
+      </Section>
+
+      <Separator />
+
+      {/* ── Sektion 1b: Athletenprofil / Skills ──────────────────── */}
+      <Section title="Athletenprofil — Stärken (1–10)">
+        <div className="space-y-5">
+          {(
+            [
+              { key: 'running', label: 'Laufen', color: SPORT_COLORS.run.dark },
+              { key: 'cycling', label: 'Rad', color: SPORT_COLORS.bike.dark },
+              { key: 'swimming', label: 'Schwimmen', color: SPORT_COLORS.swim.dark },
+              { key: 'transitions', label: 'Wechsel', color: '#0EA5A0' },
+            ] as { key: keyof AthleteSkills; label: string; color: string }[]
+          ).map(({ key, label, color }) => (
+            <div key={key} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>{label}</Label>
+                <span className="text-sm font-semibold tabular-nums" style={{ color }}>
+                  {skills[key]}/10
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleSkillChange(key, Math.max(1, skills[key] - 1))}
+                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-sm hover:bg-muted/80 transition-colors"
+                  aria-label={`${label} verringern`}
+                >
+                  −
+                </button>
+                <div className="flex-1 relative h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${(skills[key] / 10) * 100}%`, backgroundColor: color }}
+                  />
+                </div>
+                <button
+                  onClick={() => handleSkillChange(key, Math.min(10, skills[key] + 1))}
+                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-sm hover:bg-muted/80 transition-colors"
+                  aria-label={`${label} erhöhen`}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {skillsLaden && (
+          <p className="text-xs text-muted-foreground animate-pulse mt-2">Gespeichert…</p>
+        )}
       </Section>
 
       <Separator />

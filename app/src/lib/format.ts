@@ -38,3 +38,29 @@ export function formatSwimMeters(meters: number): string {
 export function formatNumberDE(n: number): string {
   return DE_INT.format(n);
 }
+
+/** Pace aus Rennergebnis-String "H:MM:SS" und Distanz in km → "4:39 /km" */
+export function formatRacePace(timeStr: string, distanceKm: number): string {
+  const parts = timeStr.split(':').map(Number);
+  let totalSec: number;
+  if (parts.length === 3) totalSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  else if (parts.length === 2) totalSec = parts[0] * 60 + parts[1];
+  else return '—';
+  if (distanceKm <= 0 || totalSec <= 0) return '—';
+  const paceSecPerKm = totalSec / distanceKm;
+  const paceMin = Math.floor(paceSecPerKm / 60);
+  const paceSec = Math.round(paceSecPerKm % 60);
+  return `${paceMin}:${String(paceSec).padStart(2, '0')} /km`;
+}
+
+/** Geschätzte Distanz (Radrolle) als "~32,5 km" */
+export function formatEstimatedKm(meters: number): string {
+  const km = meters / 1000;
+  return (
+    '~' +
+    new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+      km
+    ) +
+    ' km'
+  );
+}

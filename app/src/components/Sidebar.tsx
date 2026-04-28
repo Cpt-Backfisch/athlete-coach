@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
+import { ProfileModal } from './ProfileModal';
+import { AvatarIcon } from './AvatarIcon';
 import { ACCENT } from '@/lib/theme';
 
 // Nav-Einträge der Sidebar
@@ -31,6 +34,7 @@ interface SidebarProps {
 export function Sidebar({ isSyncing = false }: SidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [profilOffen, setProfilOffen] = useState(false);
 
   async function handleSignOut() {
     await signOut();
@@ -78,6 +82,19 @@ export function Sidebar({ isSyncing = false }: SidebarProps) {
 
       {/* Benutzer-Bereich + Theme-Toggle unten */}
       <div className="px-4 py-4 border-t border-border space-y-2">
+        {/* Profil-Avatar-Button */}
+        <button
+          onClick={() => setProfilOffen(true)}
+          className="flex items-center gap-2.5 w-full rounded-lg px-1 py-1 hover:bg-muted transition-colors group"
+          aria-label="Athletenprofil öffnen"
+        >
+          <div className="w-7 h-7 rounded-full overflow-hidden border border-border group-hover:border-primary transition-colors flex-shrink-0">
+            <AvatarIcon size={28} />
+          </div>
+          <span className="text-xs text-muted-foreground truncate group-hover:text-foreground transition-colors">
+            Profil
+          </span>
+        </button>
         <ThemeToggle />
         <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
         <button
@@ -88,6 +105,8 @@ export function Sidebar({ isSyncing = false }: SidebarProps) {
           Abmelden
         </button>
       </div>
+
+      <ProfileModal open={profilOffen} onClose={() => setProfilOffen(false)} />
     </aside>
   );
 }

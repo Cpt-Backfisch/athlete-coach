@@ -29,6 +29,7 @@ import {
 } from '@/lib/utils/dashboardStats';
 import { TRIATHLON_COLOR } from '@/lib/sportColors';
 import { SPORT_COLORS } from '@/lib/theme';
+import { RunCompetitionChart } from '@/components/charts/RunCompetitionChart';
 import { BarChart2, MessageCircle } from 'lucide-react';
 import type { TimeRange } from '@/lib/utils/dateFilter';
 import type { WeekGoals } from '@/lib/weekFrame';
@@ -314,6 +315,14 @@ export function DashboardPage() {
             })}
           </div>
         )}
+      </section>
+
+      {/* F11: Sebi & Nico gegen die 1.000 km */}
+      <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          Sebi & Nico — 1.000 km Lauf-Challenge {new Date().getFullYear()}
+        </h2>
+        <RunCompetitionChart activities={activities} />
       </section>
 
       {/* Kommentare: auf Mobile unten, auf Desktop im Sheet (oben) */}
