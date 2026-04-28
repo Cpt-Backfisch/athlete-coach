@@ -8,7 +8,6 @@ import { ResultFormModal } from '@/components/ResultFormModal';
 import { getEventColor } from '@/lib/sportColors';
 import { fetchUpcomingRaces, getCombinedHistory, deleteRace, deletePastResult } from '@/lib/events';
 import type { Race, PastResult, EventListItem } from '@/lib/events';
-import type { EventSportType } from '@/lib/events';
 
 // Datum auf Deutsch formatieren: DD.MM.YYYY
 function formatDatum(dateStr: string): string {
