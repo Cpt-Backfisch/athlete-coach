@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { FilterChips } from '@/components/FilterChips';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { KpiCard } from '@/components/KpiCard';
 import { LoadLight } from '@/components/LoadLight';
 import { VolumeBarChart } from '@/components/VolumeBarChart';
@@ -23,14 +23,17 @@ import {
   filterByTimeRange,
   filterBySport,
 } from '@/lib/utils/dashboardStats';
+import { TRIATHLON_COLOR } from '@/lib/sportColors';
 import { SPORT_COLORS } from '@/lib/theme';
 import type { TimeRange } from '@/lib/utils/dateFilter';
 import type { WeekGoals } from '@/lib/weekFrame';
 import type { SportType } from '@/lib/activities';
 import type { Race } from '@/lib/events';
 
-// ── Filter-Optionen ────────────────────────────────────────────────────────
+// ── Typen ─────────────────────────────────────────────────────────────────
+type SportFilter = 'all' | SportType;
 
+// ── Filter-Optionen ────────────────────────────────────────────────────────
 const ZEITRAUM_OPTIONEN = [
   { label: 'Alles', value: 'all' },
   { label: '2026', value: '2026' },
@@ -43,14 +46,6 @@ const ZEITRAUM_OPTIONEN = [
   { label: '1W', value: '1W' },
 ];
 
-const SPORT_OPTIONEN = [
-  { label: 'Alle', value: 'all' },
-  { label: 'Laufen', value: 'run' },
-  { label: 'Rad', value: 'bike' },
-  { label: 'Schwimmen', value: 'swim' },
-  { label: 'Sonstiges', value: 'misc' },
-];
-
 const SPORT_REIHENFOLGE: SportType[] = ['run', 'bike', 'swim', 'misc'];
 
 // ── DashboardPage ──────────────────────────────────────────────────────────
@@ -60,7 +55,7 @@ export function DashboardPage() {
   const { activities, isLoading } = useActivities();
 
   const [timeRange, setTimeRange] = useState<TimeRange>('2026');
-  const [sportFilter, setSportFilter] = useState('all');
+  const [sportFilter, setSportFilter] = useState<SportFilter>('all');
   const [weekGoals, setWeekGoals] = useState<WeekGoals>(EMPTY_WEEK_GOALS);
   const [naechsteRaces, setNaechsteRaces] = useState<Race[]>([]);
   const [shareToken, setShareToken] = useState<string | null>(null);
@@ -71,38 +66,38 @@ export function DashboardPage() {
     getShareToken().then(setShareToken);
   }, []);
 
-  const gefiltert = useMemo(() => {
-    let liste = filterByTimeRange(activities, timeRange);
-    liste = filterBySport(liste, sportFilter);
-    return liste;
-  }, [activities, timeRange, sportFilter]);
-
-  // Volume-Chart-Daten (dynamisch: Wochen oder Monate je nach Zeitraum)
-  const volumeChartResult = useMemo(
-    () => getVolumeChartData(gefiltert, timeRange),
-    [gefiltert, timeRange]
+  // Zeitraum-gefiltert (ohne Sportart) — Basis für KPI-Karten und Volume-Chart
+  const gefiltertNachZeit = useMemo(
+    () => filterByTimeRange(activities, timeRange),
+    [activities, timeRange]
   );
 
-  // KPI-Daten
-  const kpiData = useMemo(() => getKpiData(gefiltert, timeRange), [gefiltert, timeRange]);
+  // Zeitraum + Sportart gefiltert — für SportDistribution und andere Sektionen
+  const gefiltert = useMemo(
+    () => filterBySport(gefiltertNachZeit, sportFilter),
+    [gefiltertNachZeit, sportFilter]
+  );
+
+  // Volume-Chart verwendet immer alle Sportarten (Dimming statt Ausblenden)
+  const volumeChartResult = useMemo(
+    () => getVolumeChartData(gefiltertNachZeit, timeRange),
+    [gefiltertNachZeit, timeRange]
+  );
+
+  // KPI-Daten per Sportart — immer aus zeit-gefiltertem Datensatz (nicht sport-gefiltert)
+  const kpiData = useMemo(
+    () => getKpiData(gefiltertNachZeit, timeRange),
+    [gefiltertNachZeit, timeRange]
+  );
 
   // Belastungsampel — immer alle Aktivitäten (nicht gefiltert)
   const loadLight = useMemo(() => getLoadLight(activities, weekGoals), [activities, weekGoals]);
 
-  // Sichtbare KPI-Karten
-  const sichtbareKpiKarten = useMemo(() => {
-    const sportarten =
-      sportFilter !== 'all'
-        ? [sportFilter as SportType]
-        : SPORT_REIHENFOLGE.filter((s) => {
-            if (s === 'run') return kpiData.run.sessions > 0;
-            if (s === 'bike') return kpiData.bike.sessions > 0;
-            if (s === 'swim') return kpiData.swim.sessions > 0;
-            if (s === 'misc') return kpiData.misc.sessions > 0;
-            return false;
-          });
-    return sportarten;
-  }, [kpiData, sportFilter]);
+  // Zeige alle Sportarten mit Daten im gewählten Zeitraum
+  const sichtbareKpiKarten = useMemo(
+    () => SPORT_REIHENFOLGE.filter((s) => kpiData[s].sessions > 0),
+    [kpiData]
+  );
 
   // Jahresfilter für Monats-Charts
   const jahrFuerCharts = useMemo(() => {
@@ -111,11 +106,15 @@ export function DashboardPage() {
     return 2026;
   }, [timeRange]);
 
+  // F6/F8: Toggle Sportart-Filter (gleicher Klick = deaktivieren)
+  function toggleSport(sport: string) {
+    setSportFilter((prev) => (prev === sport ? 'all' : (sport as SportType)));
+  }
+
   if (isLoading) {
     return <p className="text-muted-foreground text-sm">Dashboard wird geladen…</p>;
   }
 
-  // Distanz-Prop pro Sportart: swim in km (aus distanceM / 1000), misc aus distanceKm
   function kpiDistanceKm(sport: SportType): number | undefined {
     if (sport === 'run') return kpiData.run.distanceKm;
     if (sport === 'bike') return kpiData.bike.distanceKm;
@@ -126,21 +125,19 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 max-w-4xl">
-      {/* Zeile 1: Titel + Belastungsampel */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+      {/* Belastungsampel + Zeitraum-Filter */}
+      <div className="flex items-center justify-between gap-3">
         <LoadLight status={loadLight.status} message={loadLight.message} />
       </div>
 
-      {/* Zeile 2 + 3: Filter */}
-      <FilterChips
+      {/* F7: Segmented Control — Zeitraum */}
+      <SegmentedControl
         options={ZEITRAUM_OPTIONEN}
         value={timeRange}
         onChange={(v) => setTimeRange(v as TimeRange)}
       />
-      <FilterChips options={SPORT_OPTIONEN} value={sportFilter} onChange={setSportFilter} />
 
-      {/* Zeile 4: KPI-Karten */}
+      {/* F6: KPI-Kacheln als Sportart-Filter — zweite Filter-Zeile entfällt */}
       {sichtbareKpiKarten.length === 0 ? (
         <p className="text-muted-foreground text-sm">Keine Aktivitäten im gewählten Zeitraum</p>
       ) : (
@@ -152,12 +149,14 @@ export function DashboardPage() {
               distanceKm={kpiDistanceKm(sport)}
               durationHours={kpiData[sport].durationHours}
               sessions={kpiData[sport].sessions}
+              isActive={sportFilter === sport}
+              onClick={() => toggleSport(sport)}
             />
           ))}
         </div>
       )}
 
-      {/* Zeile 5: Wochenvolumen-Chart */}
+      {/* F8: Trainingsvolumen-Chart — immer gestapelt, Balken-Klick setzt Filter */}
       <section className="space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Trainingsvolumen
@@ -166,10 +165,11 @@ export function DashboardPage() {
           data={volumeChartResult.data}
           sport={sportFilter}
           yearChangeLabels={volumeChartResult.yearChangeLabels}
+          onSportClick={toggleSport}
         />
       </section>
 
-      {/* ── Neue Charts ──────────────────────────────────────────────────── */}
+      {/* ── Weitere Charts ────────────────────────────────────────────────── */}
 
       <WeekCard activities={activities} weekGoals={weekGoals} />
 
@@ -194,6 +194,7 @@ export function DashboardPage() {
         <SportDistribution activities={gefiltert} />
       </section>
 
+      {/* F10: Kumulierte Trainingszeit — mit lokalen Jahr-Filtern (in der Komponente) */}
       <section className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           Kumulierte Trainingszeit
@@ -224,12 +225,13 @@ export function DashboardPage() {
             {naechsteRaces.map((race) => {
               const farbe =
                 race.sport_type === 'triathlon'
-                  ? '#8E6FE0'
+                  ? TRIATHLON_COLOR
                   : (SPORT_COLORS[race.sport_type as keyof typeof SPORT_COLORS]?.dark ?? '#888');
               return (
                 <div
                   key={race.id}
-                  className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-border"
+                  className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-l-[4px] border-border"
+                  style={{ borderLeftColor: farbe }}
                 >
                   <span
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"

@@ -20,3 +20,10 @@ export function getSportGradientId(sport: string): string {
   const key = sport as keyof typeof SPORT_GRADIENTS;
   return SPORT_GRADIENTS[key]?.id ?? 'gradient-run';
 }
+
+// Einheitliche Farbauflösung für Events (inkl. Triathlon Türkis)
+export function getEventColor(sport: string): string {
+  if (sport === 'triathlon') return TRIATHLON_COLOR;
+  const key = sport as keyof typeof SPORT_COLORS;
+  return SPORT_COLORS[key]?.dark ?? '#888888';
+}
