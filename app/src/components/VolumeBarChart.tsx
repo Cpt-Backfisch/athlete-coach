@@ -16,8 +16,9 @@ import type { VolumeBarData } from '@/lib/utils/dashboardStats';
 
 interface VolumeBarChartProps {
   data: VolumeBarData[];
-  sport: string;
+  sport: string; // aktiver Sportart-Filter ('all' = kein Dimming)
   yearChangeLabels?: string[];
+  onSportClick?: (sport: string) => void; // F8: Balken-Klick setzt globalen Filter
 }
 
 const SPORT_FARBEN = {
@@ -27,7 +28,7 @@ const SPORT_FARBEN = {
   misc: 'url(#gradient-misc)',
 };
 
-const SPORT_LABELS = {
+const SPORT_LABELS: Record<string, string> = {
   run: 'Laufen',
   bike: 'Rad',
   swim: 'Schwimmen',
@@ -40,7 +41,16 @@ function formatStunden(v: number): string {
   return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(v);
 }
 
-export function VolumeBarChart({ data, sport, yearChangeLabels = [] }: VolumeBarChartProps) {
+function barOpacity(barSport: string, aktiverFilter: string): number {
+  return aktiverFilter === 'all' || aktiverFilter === barSport ? 1 : 0.3;
+}
+
+export function VolumeBarChart({
+  data,
+  sport,
+  yearChangeLabels = [],
+  onSportClick,
+}: VolumeBarChartProps) {
   if (data.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-8 text-center">
@@ -49,7 +59,7 @@ export function VolumeBarChart({ data, sport, yearChangeLabels = [] }: VolumeBar
     );
   }
 
-  const alleSporten = sport === 'all';
+  const cursor = onSportClick ? 'pointer' : 'default';
 
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -73,21 +83,19 @@ export function VolumeBarChart({ data, sport, yearChangeLabels = [] }: VolumeBar
         <Tooltip
           content={
             <ChartTooltip
-              showTotal={alleSporten}
+              showTotal
               formatter={(v, name) => {
-                const label = SPORT_LABELS[name as keyof typeof SPORT_LABELS] ?? name;
+                const label = SPORT_LABELS[name as string] ?? name;
                 return `${label}: ${formatDuration(v)}`;
               }}
             />
           }
           cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
         />
-        {alleSporten && (
-          <Legend
-            formatter={(v) => SPORT_LABELS[v as keyof typeof SPORT_LABELS] ?? v}
-            wrapperStyle={{ fontSize: '11px' }}
-          />
-        )}
+        <Legend
+          formatter={(v) => SPORT_LABELS[v as string] ?? v}
+          wrapperStyle={{ fontSize: '11px' }}
+        />
 
         {/* Jahrestrenner */}
         {yearChangeLabels.map((lbl) => (
@@ -106,45 +114,47 @@ export function VolumeBarChart({ data, sport, yearChangeLabels = [] }: VolumeBar
           />
         ))}
 
-        {alleSporten ? (
-          <>
-            <Bar
-              dataKey="run"
-              name="run"
-              stackId="a"
-              fill={SPORT_FARBEN.run}
-              radius={[0, 0, 0, 0]}
-            />
-            <Bar
-              dataKey="bike"
-              name="bike"
-              stackId="a"
-              fill={SPORT_FARBEN.bike}
-              radius={[0, 0, 0, 0]}
-            />
-            <Bar
-              dataKey="swim"
-              name="swim"
-              stackId="a"
-              fill={SPORT_FARBEN.swim}
-              radius={[0, 0, 0, 0]}
-            />
-            <Bar
-              dataKey="misc"
-              name="misc"
-              stackId="a"
-              fill={SPORT_FARBEN.misc}
-              radius={[6, 6, 0, 0]}
-            />
-          </>
-        ) : (
-          <Bar
-            dataKey={sport}
-            name={sport}
-            fill={SPORT_FARBEN[sport as keyof typeof SPORT_FARBEN] ?? 'url(#gradient-run)'}
-            radius={[6, 6, 0, 0]}
-          />
-        )}
+        {/* Immer gestapelt — alle 4 Sportarten, mit Opacity-Dimming je aktivem Filter */}
+        <Bar
+          dataKey="run"
+          name="run"
+          stackId="a"
+          fill={SPORT_FARBEN.run}
+          fillOpacity={barOpacity('run', sport)}
+          radius={[0, 0, 0, 0]}
+          cursor={cursor}
+          onClick={() => onSportClick?.('run')}
+        />
+        <Bar
+          dataKey="bike"
+          name="bike"
+          stackId="a"
+          fill={SPORT_FARBEN.bike}
+          fillOpacity={barOpacity('bike', sport)}
+          radius={[0, 0, 0, 0]}
+          cursor={cursor}
+          onClick={() => onSportClick?.('bike')}
+        />
+        <Bar
+          dataKey="swim"
+          name="swim"
+          stackId="a"
+          fill={SPORT_FARBEN.swim}
+          fillOpacity={barOpacity('swim', sport)}
+          radius={[0, 0, 0, 0]}
+          cursor={cursor}
+          onClick={() => onSportClick?.('swim')}
+        />
+        <Bar
+          dataKey="misc"
+          name="misc"
+          stackId="a"
+          fill={SPORT_FARBEN.misc}
+          fillOpacity={barOpacity('misc', sport)}
+          radius={[6, 6, 0, 0]}
+          cursor={cursor}
+          onClick={() => onSportClick?.('misc')}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

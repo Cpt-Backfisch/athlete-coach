@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { MobileHeader } from './MobileHeader';
 import { Toaster } from './ui/sonner';
 import { useStravaSync } from '@/hooks/useStravaSync';
 
@@ -17,11 +18,14 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile Top-Header mit Wortmarke */}
+      <MobileHeader />
+
       {/* Desktop-Sidebar */}
       <Sidebar isSyncing={isSyncing} />
 
-      {/* Haupt-Content — auf Desktop Abstand zur Sidebar lassen */}
-      <main className="md:ml-[220px] px-4 pb-20 pt-4 md:px-6 md:pb-6 md:pt-6">
+      {/* Haupt-Content — auf Mobile Abstand zum Top-Header, auf Desktop zur Sidebar */}
+      <main className="md:ml-[220px] px-4 pb-20 pt-[52px] md:px-6 md:pb-6 md:pt-6">
         <Outlet />
       </main>
 

@@ -5,16 +5,9 @@ import { Button } from '@/components/ui/button';
 import { CountdownBadge } from '@/components/CountdownBadge';
 import { EventFormModal } from '@/components/EventFormModal';
 import { ResultFormModal } from '@/components/ResultFormModal';
-import { SPORT_COLORS } from '@/lib/theme';
+import { getEventColor } from '@/lib/sportColors';
 import { fetchUpcomingRaces, getCombinedHistory, deleteRace, deletePastResult } from '@/lib/events';
 import type { Race, PastResult, EventListItem } from '@/lib/events';
-import type { EventSportType } from '@/lib/events';
-
-// Farbe für Sportart
-function sportFarbe(sport: EventSportType): string {
-  if (sport === 'triathlon') return '#8E6FE0';
-  return SPORT_COLORS[sport as keyof typeof SPORT_COLORS]?.dark ?? '#888';
-}
 
 // Datum auf Deutsch formatieren: DD.MM.YYYY
 function formatDatum(dateStr: string): string {
@@ -229,10 +222,13 @@ function RaceCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const farbe = sportFarbe(race.sport_type);
+  const farbe = getEventColor(race.sport_type);
 
   return (
-    <div className="rounded-[12px] bg-card border border-border px-4 py-4 space-y-2">
+    <div
+      className="rounded-[12px] bg-card border border-l-[4px] border-border px-4 py-4 space-y-2"
+      style={{ borderLeftColor: farbe }}
+    >
       {/* Kopfzeile: Sportpunkt + Name + Countdown */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -303,10 +299,13 @@ function PastRaceRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const farbe = sportFarbe(race.sport_type);
+  const farbe = getEventColor(race.sport_type);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-border">
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-[10px] bg-card border border-l-[4px] border-border"
+      style={{ borderLeftColor: farbe }}
+    >
       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: farbe }} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -378,7 +377,7 @@ function ResultRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const farbe = sportFarbe(result.sport_type);
+  const farbe = getEventColor(result.sport_type);
   const istTriathlon = result.sport_type === 'triathlon';
   const hatSplits = istTriathlon && (result.swim_time || result.bike_time || result.run_time);
 
@@ -392,7 +391,10 @@ function ResultRow({
     .join(' · ');
 
   return (
-    <div className="rounded-[10px] bg-card border border-border overflow-hidden">
+    <div
+      className="rounded-[10px] bg-card border border-l-[4px] border-border overflow-hidden"
+      style={{ borderLeftColor: farbe }}
+    >
       <div className="flex items-center gap-3 px-4 py-3">
         <span
           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
