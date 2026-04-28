@@ -276,29 +276,6 @@ export function RunCompetitionChart({ activities }: RunCompetitionChartProps) {
     return Math.max(1100, Math.ceil((Math.max(sebiMax, nicoMax) * 1.1) / 100) * 100);
   }, [chartData]);
 
-  const customTooltip = (props: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-    label?: string;
-  }) => {
-    if (!props.active || !props.payload?.length) return null;
-    return (
-      <div className="rounded-[8px] bg-card border border-border px-3 py-2 text-xs space-y-1 shadow-lg">
-        <p className="font-medium text-foreground mb-1">{props.label}</p>
-        {props.payload.map((entry) => (
-          <div key={entry.name} className="flex items-center gap-2">
-            <span
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-muted-foreground">{entry.name}:</span>
-            <span className="font-semibold tabular-nums">{Math.round(entry.value)} km</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -335,7 +312,7 @@ export function RunCompetitionChart({ activities }: RunCompetitionChartProps) {
             width={40}
             tickFormatter={(v) => `${v}`}
           />
-          <Tooltip content={customTooltip as React.FC} />
+          <Tooltip content={<RunChartTooltip />} />
           {/* Ziel-Linie */}
           <Line
             type="linear"
@@ -388,6 +365,34 @@ export function RunCompetitionChart({ activities }: RunCompetitionChartProps) {
         entries={nicoData.entries}
         onSave={saveNicoEntries}
       />
+    </div>
+  );
+}
+
+// Tooltip als eigenständige Komponente — Recharts akzeptiert JSX-Element als content-Prop
+function RunChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-[8px] bg-card border border-border px-3 py-2 text-xs space-y-1 shadow-lg">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((entry) => (
+        <div key={entry.name} className="flex items-center gap-2">
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="font-semibold tabular-nums">{Math.round(entry.value)} km</span>
+        </div>
+      ))}
     </div>
   );
 }
