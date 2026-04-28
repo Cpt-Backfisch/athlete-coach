@@ -148,15 +148,37 @@ export async function syncAllActivities(): Promise<SyncResult> {
     total += aktivitaeten.length;
 
     for (const a of aktivitaeten as Record<string, unknown>[]) {
+      const rawName = String(a['name'] ?? '');
+      const sportType = normalizeSportType(String(a['type'] ?? ''));
+      const rawDistance = Number(a['distance'] ?? 0);
+      const duration = Number(a['moving_time'] ?? 0);
+      const locationCity = a['location_city'] ? String(a['location_city']) : null;
+
+      // F2: Radrolle-Erkennung — Rad + Distanz nahe 0 (<500 m)
+      const isRoller = sportType === 'bike' && rawDistance < 500;
+      // Geschätzte Distanz: Dauer (h) × 30 km/h, in Metern
+      const distance = isRoller ? (duration / 3600) * 30 * 1000 : rawDistance;
+
+      // F3: Titel-Suffix — Radrolle hat Vorrang vor Orts-Suffix
+      let title = rawName;
+      if (isRoller) {
+        if (!rawName.includes('Radrolle')) title = rawName + ' · Radrolle';
+      } else if (locationCity && !rawName.includes(locationCity)) {
+        title = rawName + ' · ' + locationCity;
+      }
+
       const { updated, isNew } = upsertActivityByStravaId(current, {
         strava_id: String(a['id']),
-        name: String(a['name'] ?? ''),
-        sport_type: normalizeSportType(String(a['type'] ?? '')),
-        distance: Number(a['distance'] ?? 0),
-        duration: Number(a['moving_time'] ?? 0),
+        name: title,
+        sport_type: sportType,
+        distance,
+        duration,
         date: String(a['start_date'] ?? ''),
         avg_hr: (a['average_heartrate'] as number | null) ?? null,
         elevation: (a['total_elevation_gain'] as number | null) ?? null,
+        isEstimatedDistance: isRoller || undefined,
+        isCyclingRoller: isRoller || undefined,
+        location_city: locationCity,
       });
       current = updated;
       if (isNew) synced++;
