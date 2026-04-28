@@ -1,11 +1,13 @@
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface SkeletonProps {
   className?: string;
+  style?: React.CSSProperties;
 }
 
-function Pulse({ className }: SkeletonProps) {
-  return <div className={cn('animate-pulse rounded-md bg-muted', className)} />;
+function Pulse({ className, style }: SkeletonProps) {
+  return <div className={cn('animate-pulse rounded-md bg-muted', className)} style={style} />;
 }
 
 export function BarChartSkeleton({ height = 280 }: { height?: number }) {
