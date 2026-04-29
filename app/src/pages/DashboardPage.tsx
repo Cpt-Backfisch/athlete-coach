@@ -227,6 +227,7 @@ export function DashboardPage() {
           data={volumeChartResult.data}
           sport={sportFilter}
           yearChangeLabels={volumeChartResult.yearChangeLabels}
+          yearChangeIndices={volumeChartResult.yearChangeIndices}
           onSportClick={toggleSport}
         />
       </section>
