@@ -3,7 +3,7 @@
 > **Zweck dieser Datei:** Lebendiger Projektstand. Hier stehen aktueller Stand, To-dos, Phasen, Bugs.
 > Vision & Architektur-Grundlagen → siehe `context.md`.
 
-**Letztes Update:** 28.04.2026
+**Letztes Update:** 29.04.2026
 
 ---
 
@@ -29,7 +29,7 @@
 
 ## 1. Aktueller Stand in einem Satz
 
-Polish-Phase S1–S5 abgeschlossen — PRs #43–#47 gemergt: Foundation (Formatter `format.ts`, Sportart-Gradienten, einheitlicher `ChartTooltip`), Filter-UX (Segmented Control F7, KPI-Filter-Buttons F6, Volume-Chart-Klick F8, CumulativeTime-Jahr-Pills F10), Wochenziel-Karte F1 + Share-View-Chart-Parität B1, Polish-Paket (Toasts, Empty States, Skeleton-Loader, Pull-to-Refresh, Hover-States, Stagger-Animation F9, Comments-Sheet, Splash-Screen F12), Athletenprofil F4/F13 + Radrolle-Erkennung F2 + Orts-Erkennung F3 + Sebi-vs-Nico-Chart F11. Behobene Bugs: B1–B4, B6–B12. Nächster Schritt: Bug-Session (Telegram-Wochen-Review ISO-Logik, Kommentar-Löschen Share-View, Menü-Wechsel-Performance-Diagnose).
+Polish-Phase S1–S5 abgeschlossen (PRs #43–#47). Bug-Session abgeschlossen: Bug 1 (Telegram-Push) behoben via Proxy PRs #5–#7, Bug 2 (Telegram-Wochen-Review ISO-Logik) behoben via Proxy PR #8, Bug 3 (Kommentar-Löschen Share-View) behoben via PR #50, PR #51 (Volumen-Chart-Ecken-Fix). Offene Bugs: Bug 4 (Menü-Wechsel-Performance-Diagnose), Bug 5 (Jahrestrennlinie im Volumen-Chart falsch positioniert).
 
 ---
 
@@ -146,35 +146,45 @@ CI mit 5 Jobs (Lint, Secret-Scan, Unit, E2E, Deploy-Gate), Branch-Protection auf
 
 ## 3. Bekannte Bugs
 
-**1. Telegram-Push nach Aktivität — Test ausstehend**
+**1. Telegram-Push nach Aktivität — ✅ behoben (29.04.2026)**
 
-Ursachen wurden identifiziert und gefixt (Proxy PR #3, 22.04.2026):
+Drei verschachtelte Migrations-Bugs, alle gefixt:
 
-- `telegram-coach.js` nutzte Spaltenfilter die im JSON-Blob-Schema nicht existieren → Fix: `select=data&limit=1`, dann clientseitig filtern analog zu `weekly.js`
-- `webhook.js` suchte Coach-Prompt unter `cfg.coachPrompt` (alter Monolith-Key), React-App schreibt unter `cfg.coach_system_prompt` → Fix: React-App-Key hat jetzt Vorrang mit Fallback auf alten Key
+- Proxy PR #3 (22.04.2026): Coach-Prompt-Key-Mismatch + Spaltenfilter im JSON-Blob-Schema
+- Proxy PR #5 (29.04.2026): Webhook returnte 200 an Strava bevor async work fertig war → Vercel killed Function-Instanz vor Telegram-Send. Fix: alle async-Operationen mit await synchron, 200 erst am Ende
+- Proxy PR #6 (29.04.2026): Refresh Token wurde aus Vercel-Env-Var gelesen statt aus Supabase. Env-Var wurde nach Re-Authorisierung in Strava-Settings nicht aktualisiert. Fix: Token aus Supabase strava_token-Tabelle lesen, Token-Rotation mit PATCH zurückspeichern
+- Proxy PR #7 (29.04.2026): Diagnose-Logging-Cleanup nach erfolgreicher Bestätigung
+- Vercel-Env-Var STRAVA_ATHLETE_REFRESH_TOKEN entfernt am 29.04.2026
 
-Vercel redeployed am 22.04.2026. **Bestätigung steht aus — nächste Trainingseinheit abwarten.**
-Reproschritte: neue Einheit in Strava hochladen, 1–2 Min warten, Telegram checken.
-
----
-
-**2. Telegram-Wochen-Review — falsche Wochen-Logik**
-
-`api/weekly.js` berechnet die Woche als beliebiges 7-Tages-Fenster statt ISO 8601 (Montag–Sonntag). Auswirkung: wöchentlicher Review-Push enthält teils falsche Einheitenauswahl.
-
-Fix: ISO-8601-Wochen-Logik aus `WeekGoalCard.tsx` (S3/PR #45) auf die Vercel-Function übertragen.
+Bestätigt: echte Aktivitätsdaten kommen mit Coach-Feedback in Telegram an.
 
 ---
 
-**3. Kommentar-Löschen in Share-View funktioniert nicht**
+**2. Telegram-Wochen-Review — falsche Wochen-Logik ✅ Behoben (Proxy PR #8, 29.04.2026)**
 
-Eingeloggter Owner kann Kommentare in der Share-View nicht löschen. Vermutlicher Bereich: RLS-Policy oder Owner-Check in Supabase. Bug existiert bereits in der Legacy-App (feature-parity.md 12.6).
+`api/weekly.js` berechnete die Woche als UTC-Fenster statt ISO 8601 (Montag–Sonntag, Zeitzone Europe/Berlin). Aktivitäten vom Sonntag (z.B. 14:00 Uhr) fehlten im Sonntags-Review (Cron 20:00 CEST).
+
+Fix: Wochen-Berechnung auf `Intl.DateTimeFormat` mit `timeZone: 'Europe/Berlin'` umgestellt (DST-sicher), ISO-8601-Donnerstag-Basis-Algorithmus 1:1 aus `WeekGoalCard.tsx` übernommen, Wettkampf-Filter nutzt jetzt `berlinTodayStr` statt UTC `todayStr`.
+
+---
+
+**3. Kommentar-Löschen in Share-View — ✅ behoben (PR #50, 29.04.2026)**
+
+Ursache: Fehlende RLS DELETE-Policy in Supabase (silent fail — 0 Rows, kein Error). Code prüfte nur error, nicht ob Rows betroffen wurden.
+
+Fix: RLS-Policy "Owner kann eigene Kommentare löschen" in Supabase angelegt (auth.uid() = user_id). deleteComment() nutzt jetzt .select() nach dem Delete und wirft echten Error bei 0 Rows. Share-View: isOwner kommt jetzt aus useAuth() statt hartkodiert false.
 
 ---
 
 **4. Menü-Wechsel-Performance (B5)**
 
 Merkliche Trägheit beim Tab-Wechsel zwischen App-Sektionen auf Mobile. Separate Diagnose-Session geplant (Opus empfohlen für Profiling-Analyse).
+
+---
+
+**5. Jahrestrennlinie im Volumen-Chart falsch positioniert**
+
+Die gestrichelte vertikale Linie zwischen den Jahren steht auf dem Januar-Balken statt zwischen Dezember und Januar. PR #51 hat einen Fix-Versuch unternommen (numerische X-Achse mit `yearChangeIndices`), aber die Linie sitzt weiterhin falsch. Nächster Ansatz: den x-Offset so berechnen, dass die Linie exakt in der Lücke zwischen den Balken liegt (z.B. `index - 0.5` oder Pixel-basierte Berechnung).
 
 ---
 
@@ -195,6 +205,7 @@ Merkliche Trägheit beim Tab-Wechsel zwischen App-Sektionen auf Mobile. Separate
 
 | Datum      | Was                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 29.04.2026 | **Bug-Session komplett + PR #51 gemergt.** Bug 1 (Telegram-Push) endgültig behoben: Proxy PRs #5–#7 fixen async-Return-Timing, Refresh-Token-Quelle (jetzt Supabase statt Env-Var), Logging-Cleanup; Env-Var `STRAVA_ATHLETE_REFRESH_TOKEN` entfernt. Bug 2 (Telegram-Wochen-Review): Proxy PR #8 stellt auf ISO-8601-Wochen-Logik mit Zeitzone Europe/Berlin um (DST-sicher). Bug 3 (Kommentar-Löschen Share-View): PR #50 legt RLS DELETE-Policy an, `deleteComment()` prüft jetzt affected Rows, Share-View isOwner dynamisch aus useAuth(). PR #51: `roundedTop()`-Funktion in allen Chart-Dateien — oberste Sportart im Stack bekommt immer abgerundete Ecken. Jahrestrennlinie-Fix aus PR #51 wirkt noch nicht korrekt → neuer Bug 5.                                                                                                                                                                                                                                                                                            |
 | 28.04.2026 | **PRs #43–#47 (S1–S5) gemergt:** Foundation (Formatter `format.ts` + Sportart-Gradienten `sportColors.ts` + einheitlicher `ChartTooltip`), Filter-UX (Segmented Control F7, KPI-Filter-Buttons F6, Volume-Chart-Balken-Klick F8, CumulativeTime-Jahr-Pills F10, MobileHeader-Wortmarke B11, Triathlon-Farbe B12), Wochenziel-Karte F1 (SVG-Fortschrittsring, ISO-8601-Wochenlogik) + Share-View-Chart-Parität B1, Polish-Paket (Sonner-Toasts PR3-P4, Empty States PR3-P2, KpiCard-/BarChart-Skeleton PR3-P3, Pull-to-Refresh PR3-P5, Hover-Shadow PR3-P6, KPI-Stagger-Animation F9, Comments-Sheet PR3-P1, Splash-Screen F12), Athletenprofil-Modal F4/F13 + Radrolle-Erkennung F2 + Orts-Erkennung F3 + Sebi-vs-Nico-Chart F11. Behobene Bugs: B1, B2, B3, B4, B6, B7, B8, B9, B10, B11, B12. Neue Features: F1–F3, F4/F13, F5–F12. Hinweis: CI-Lücke beobachtet — `tsc -b --noEmit` fängt strict-mode-TS-Fehler ab, die ESLint übersieht (PR #44 hatte initial roten CI durch toten Import); als Backlog-Punkt in Phase 0 vermerkt. |
 | 27.04.2026 | **PR 2 gemergt (PR #41): Dashboard-Charts und Events-Polish.** Fünf neue Chart-Komponenten (`WeekCard`, `VolumeChartHours`, `VolumeChartKm`, `SportDistribution`, `CumulativeTime`) in `app/src/components/charts/` ausgelagert. Filter-Reihenfolge neu (Alles, 2026, 2025, 2024, 1J, 6M, 12W, 4W, 1W) mit Default 2026 für Dashboard und Einheiten-Menü. `TimeRange` um `'2024'` erweitert. Events-Liste mit Vollformat-Datum (DD.MM.YYYY), „Verlauf" umbenannt zu „Vergangene Events". Triathlon-Detail-View mit Splits (Schwimmen, Wechsel 1, Rad, Wechsel 2, Lauf) und Format-Info (Distanz, Neo). Renn-Daten in Supabase `past_results` via `SPLIT_SEED` ergänzt: 8 Triathlons (FFM Mitteldistanz 2025, HH Kurzdistanz 2024+2025, Würzburg Olympisch 2025, FFM Olympisch 2024, HH Olympisch 2023) und 3 Halbmarathons (FFM 2026+2025, Offenbach 2024). Schema-Migration für alte Feldnamen (`type`→`sport_type`, `goalTime`→`goal_time`) läuft einmalig automatisch beim ersten Laden.                                            |
 | 27.04.2026 | **PR 1 gemergt (PR #40): Foundation für Dark Mode und Mobile.** Dark Mode jetzt Default beim App-Start (kein OS-Auto-Switch mehr), echtes Schwarz #000000 als Hintergrund, manueller Toggle im Menü mit localStorage-Persistenz. Hardcoded Farbklassen (`bg-white/5` etc.) durch semantische Tokens (`bg-card`, `bg-muted`) ersetzt → behebt iOS-Bug (schwarze Schrift auf dunkel). Bottom-Nav mit `env(safe-area-inset-bottom)`, Mindesthöhe 64px und `viewport-fit=cover` — fixt schwer-erreichbares Menü am iPhone. Tabular-Nums global aktiviert für stabile Zahlen-Darstellung. Sport-Farben (Purple/Orange/Blau/Rost) jetzt sichtbar in aktiven Filter-Buttons. `design.md` mit allen geänderten Werten aktualisiert. `context.md` korrigiert: FFM Halbmarathon 2026 abgeschlossen am 22.03.2026 mit 1:38:57 (war fälschlich noch als kommendes Event mit 26.04. + Ziel 1:37 eingetragen).                                                                                                                                       |
