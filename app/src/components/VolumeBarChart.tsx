@@ -10,6 +10,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
+import type { BarShapeProps } from 'recharts';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { SportGradientDefs } from '@/components/charts/SportGradientDefs';
 import { formatDuration } from '@/lib/format';
@@ -29,26 +30,16 @@ function roundedBarPath(x: number, y: number, width: number, height: number, r: 
   return `M${x + rr},${y} h${width - 2 * rr} a${rr},${rr} 0 0 1 ${rr},${rr} v${height - rr} h${-width} v${-(height - rr)} a${rr},${rr} 0 0 1 ${rr},${-rr} Z`;
 }
 
-function roundedTop(
-  sportsAbove: string[]
-): (props: Record<string, unknown>) => ReactElement | null {
-  return function Shape(props) {
-    const { x, y, width, height, fill, fillOpacity, payload } = props as {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      fill: string;
-      fillOpacity: number;
-      payload: Record<string, number>;
-    };
+function roundedTop(sportsAbove: string[]): (props: BarShapeProps) => ReactElement | null {
+  return function Shape({ x, y, width, height, fill, fillOpacity, payload }: BarShapeProps) {
     if (!height || height <= 0) return null;
-    const isTop = sportsAbove.every((s) => !payload?.[s]);
+    const row = payload as Record<string, number> | undefined;
+    const isTop = sportsAbove.every((s) => !row?.[s]);
     return (
       <path
         d={roundedBarPath(x, y, width, height, isTop ? 4 : 0)}
-        fill={fill}
-        fillOpacity={fillOpacity ?? 1}
+        fill={fill as string}
+        fillOpacity={(fillOpacity as number) ?? 1}
       />
     );
   };
