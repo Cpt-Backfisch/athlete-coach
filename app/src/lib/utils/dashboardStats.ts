@@ -21,6 +21,7 @@ export type WeekBarData = VolumeBarData;
 export interface VolumeChartResult {
   data: VolumeBarData[];
   yearChangeLabels: string[]; // Labels, wo ein Jahreswechsel beginnt
+  yearChangeIndices: number[]; // 0-basierte Indizes der ersten Einträge eines neuen Jahres
 }
 
 // ── Kalenderwochen-Hilfsfunktionen ─────────────────────────────────────────
@@ -116,15 +117,17 @@ function wochendatenBerechnen(activities: Activity[], range: TimeRange): VolumeC
       total: Math.round(d.total * 10) / 10,
     }));
 
-  // Jahreswechsel-Labels ermitteln
+  // Jahreswechsel-Labels und -Indizes ermitteln
   const yearChangeLabels: string[] = [];
+  const yearChangeIndices: number[] = [];
   for (let i = 1; i < sortiert.length; i++) {
     if ((sortiert[i]._year ?? 0) > (sortiert[i - 1]._year ?? 0)) {
       yearChangeLabels.push(sortiert[i].label);
+      yearChangeIndices.push(i);
     }
   }
 
-  return { data: sortiert, yearChangeLabels };
+  return { data: sortiert, yearChangeLabels, yearChangeIndices };
 }
 
 // ── Monatliche Aggregation ─────────────────────────────────────────────────
@@ -181,18 +184,20 @@ function monatsdatenBerechnen(activities: Activity[], range: TimeRange): VolumeC
       _year: d._year,
     }));
 
-  // Jahreswechsel-Labels ermitteln
+  // Jahreswechsel-Labels und -Indizes ermitteln
   const sortedEntries = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b));
   const yearChangeLabels: string[] = [];
+  const yearChangeIndices: number[] = [];
   for (let i = 1; i < sortedEntries.length; i++) {
     const prevYear = sortedEntries[i - 1][1]._year ?? 0;
     const currYear = sortedEntries[i][1]._year ?? 0;
     if (currYear > prevYear) {
       yearChangeLabels.push(sortedEntries[i][1].label);
+      yearChangeIndices.push(i);
     }
   }
 
-  return { data: sortiert, yearChangeLabels };
+  return { data: sortiert, yearChangeLabels, yearChangeIndices };
 }
 
 // ── Öffentliche Funktion: Volume-Chart-Daten ───────────────────────────────

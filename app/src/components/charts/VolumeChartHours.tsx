@@ -1,10 +1,33 @@
+import type { ReactElement } from 'react';
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import type { BarShapeProps } from 'recharts';
 import { getMonthlyVolumeHours } from '@/lib/utils/dashboardStats';
 import { ChartTooltip } from './ChartTooltip';
 import { SportGradientDefs } from './SportGradientDefs';
 import { formatDuration } from '@/lib/format';
 import type { Activity } from '@/lib/activities';
+
+function roundedBarPath(x: number, y: number, width: number, height: number, r: number): string {
+  const rr = Math.min(r, width / 2);
+  if (rr <= 0 || height <= 0) return `M${x},${y}h${width}v${height}h${-width}Z`;
+  return `M${x + rr},${y} h${width - 2 * rr} a${rr},${rr} 0 0 1 ${rr},${rr} v${height - rr} h${-width} v${-(height - rr)} a${rr},${rr} 0 0 1 ${rr},${-rr} Z`;
+}
+
+function roundedTop(sportsAbove: string[]): (props: BarShapeProps) => ReactElement | null {
+  return function Shape({ x, y, width, height, fill, fillOpacity, payload }: BarShapeProps) {
+    if (!height || height <= 0) return null;
+    const row = payload as Record<string, number> | undefined;
+    const isTop = sportsAbove.every((s) => !row?.[s]);
+    return (
+      <path
+        d={roundedBarPath(x, y, width, height, isTop ? 4 : 0)}
+        fill={fill as string}
+        fillOpacity={(fillOpacity as number) ?? 1}
+      />
+    );
+  };
+}
 
 const SPORT_LABELS: Record<string, string> = {
   run: 'Laufen',
@@ -56,28 +79,33 @@ export function VolumeChartHours({ activities, year }: Props) {
           }
           cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
         />
-        {/* Nur das oberste Segment (misc) erhält den abgerundeten Radius */}
-        <Bar dataKey="run" name="run" stackId="a" fill="url(#gradient-run)" radius={[0, 0, 0, 0]} />
+        <Bar
+          dataKey="run"
+          name="run"
+          stackId="a"
+          fill="url(#gradient-run)"
+          shape={roundedTop(['bike', 'swim', 'misc'])}
+        />
         <Bar
           dataKey="bike"
           name="bike"
           stackId="a"
           fill="url(#gradient-bike)"
-          radius={[0, 0, 0, 0]}
+          shape={roundedTop(['swim', 'misc'])}
         />
         <Bar
           dataKey="swim"
           name="swim"
           stackId="a"
           fill="url(#gradient-swim)"
-          radius={[0, 0, 0, 0]}
+          shape={roundedTop(['misc'])}
         />
         <Bar
           dataKey="misc"
           name="misc"
           stackId="a"
           fill="url(#gradient-misc)"
-          radius={[6, 6, 0, 0]}
+          shape={roundedTop([])}
         />
       </BarChart>
     </ResponsiveContainer>

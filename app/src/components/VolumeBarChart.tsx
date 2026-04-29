@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -9,6 +10,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
+import type { BarShapeProps } from 'recharts';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { SportGradientDefs } from '@/components/charts/SportGradientDefs';
 import { formatDuration } from '@/lib/format';
@@ -18,7 +20,29 @@ interface VolumeBarChartProps {
   data: VolumeBarData[];
   sport: string; // aktiver Sportart-Filter ('all' = kein Dimming)
   yearChangeLabels?: string[];
+  yearChangeIndices?: number[]; // 0-basierte Indizes für präzise Linienpositionierung
   onSportClick?: (sport: string) => void; // F8: Balken-Klick setzt globalen Filter
+}
+
+function roundedBarPath(x: number, y: number, width: number, height: number, r: number): string {
+  const rr = Math.min(r, width / 2);
+  if (rr <= 0 || height <= 0) return `M${x},${y}h${width}v${height}h${-width}Z`;
+  return `M${x + rr},${y} h${width - 2 * rr} a${rr},${rr} 0 0 1 ${rr},${rr} v${height - rr} h${-width} v${-(height - rr)} a${rr},${rr} 0 0 1 ${rr},${-rr} Z`;
+}
+
+function roundedTop(sportsAbove: string[]): (props: BarShapeProps) => ReactElement | null {
+  return function Shape({ x, y, width, height, fill, fillOpacity, payload }: BarShapeProps) {
+    if (!height || height <= 0) return null;
+    const row = payload as Record<string, number> | undefined;
+    const isTop = sportsAbove.every((s) => !row?.[s]);
+    return (
+      <path
+        d={roundedBarPath(x, y, width, height, isTop ? 4 : 0)}
+        fill={fill as string}
+        fillOpacity={(fillOpacity as number) ?? 1}
+      />
+    );
+  };
 }
 
 const SPORT_FARBEN = {
@@ -49,6 +73,7 @@ export function VolumeBarChart({
   data,
   sport,
   yearChangeLabels = [],
+  yearChangeIndices = [],
   onSportClick,
 }: VolumeBarChartProps) {
   if (data.length === 0) {
@@ -72,6 +97,8 @@ export function VolumeBarChart({
           tickLine={false}
           axisLine={false}
         />
+        {/* Versteckte numerische Achse für präzise ReferenceLine-Positionierung zwischen Balken */}
+        <XAxis xAxisId="numeric" type="number" domain={[0, data.length]} hide />
         <YAxis
           tickFormatter={formatStunden}
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
@@ -97,16 +124,17 @@ export function VolumeBarChart({
           wrapperStyle={{ fontSize: '11px' }}
         />
 
-        {/* Jahrestrenner */}
-        {yearChangeLabels.map((lbl) => (
+        {/* Jahrestrenner — x=Index positioniert die Linie genau zwischen Dez und Jan */}
+        {yearChangeIndices.map((idx, i) => (
           <ReferenceLine
-            key={lbl}
-            x={lbl}
+            key={idx}
+            xAxisId="numeric"
+            x={idx}
             stroke="rgba(255,255,255,0.2)"
             strokeDasharray="4 4"
             strokeWidth={1}
             label={{
-              value: lbl.replace(/^KW \d+ /, ''),
+              value: (yearChangeLabels[i] ?? '').replace(/^KW \d+ /, ''),
               position: 'top',
               fontSize: 10,
               fill: 'var(--muted-foreground)',
@@ -121,7 +149,7 @@ export function VolumeBarChart({
           stackId="a"
           fill={SPORT_FARBEN.run}
           fillOpacity={barOpacity('run', sport)}
-          radius={[0, 0, 0, 0]}
+          shape={roundedTop(['bike', 'swim', 'misc'])}
           cursor={cursor}
           onClick={() => onSportClick?.('run')}
         />
@@ -131,7 +159,7 @@ export function VolumeBarChart({
           stackId="a"
           fill={SPORT_FARBEN.bike}
           fillOpacity={barOpacity('bike', sport)}
-          radius={[0, 0, 0, 0]}
+          shape={roundedTop(['swim', 'misc'])}
           cursor={cursor}
           onClick={() => onSportClick?.('bike')}
         />
@@ -141,7 +169,7 @@ export function VolumeBarChart({
           stackId="a"
           fill={SPORT_FARBEN.swim}
           fillOpacity={barOpacity('swim', sport)}
-          radius={[0, 0, 0, 0]}
+          shape={roundedTop(['misc'])}
           cursor={cursor}
           onClick={() => onSportClick?.('swim')}
         />
@@ -151,7 +179,7 @@ export function VolumeBarChart({
           stackId="a"
           fill={SPORT_FARBEN.misc}
           fillOpacity={barOpacity('misc', sport)}
-          radius={[6, 6, 0, 0]}
+          shape={roundedTop([])}
           cursor={cursor}
           onClick={() => onSportClick?.('misc')}
         />

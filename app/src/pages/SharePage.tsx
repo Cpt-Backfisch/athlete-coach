@@ -234,6 +234,7 @@ export function SharePage() {
             data={volumeChartResult.data}
             sport={sportFilter}
             yearChangeLabels={volumeChartResult.yearChangeLabels}
+            yearChangeIndices={volumeChartResult.yearChangeIndices}
           />
         </section>
 
