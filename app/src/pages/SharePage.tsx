@@ -14,6 +14,7 @@ import { VolumeChartKm } from '@/components/charts/VolumeChartKm';
 import { CumulativeTime } from '@/components/charts/CumulativeTime';
 import { SportDistribution } from '@/components/charts/SportDistribution';
 import { useShare } from '@/contexts/ShareContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { fetchActivitiesByUserId } from '@/lib/activities';
 import { fetchUpcomingRacesByUser } from '@/lib/events';
 import { blobLoadOneByUser } from '@/lib/jsonBlobStore';
@@ -72,6 +73,8 @@ async function ladeOwnerName(ownerUserId: string): Promise<string> {
 
 export function SharePage() {
   const { isShareMode, shareToken, ownerUserId, isLoading: shareLoading } = useShare();
+  const { user } = useAuth();
+  const isOwner = !!user && user.id === ownerUserId;
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [weekGoals, setWeekGoals] = useState<WeekGoals>(EMPTY_WEEK_GOALS);
@@ -185,7 +188,7 @@ export function SharePage() {
               <CommentSection
                 shareToken={shareToken}
                 ownerUserId={ownerUserId}
-                isOwner={false}
+                isOwner={isOwner}
                 onCountChange={setCommentCount}
               />
             </SheetContent>

@@ -51,6 +51,8 @@ export async function createComment(input: CommentInput): Promise<Comment> {
 
 // Nur eingeloggter Owner kann löschen (RLS)
 export async function deleteComment(id: string): Promise<void> {
-  const { error } = await supabase.from('comments').delete().eq('id', id);
+  const { data, error } = await supabase.from('comments').delete().eq('id', id).select();
   if (error) throw new Error(`Kommentar löschen fehlgeschlagen: ${error.message}`);
+  if (!data || data.length === 0)
+    throw new Error('Kommentar löschen fehlgeschlagen: Keine Berechtigung oder nicht gefunden');
 }
