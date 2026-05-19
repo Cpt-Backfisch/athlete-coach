@@ -51,30 +51,39 @@ function buildChartData(activities: Activity[], nicoEntries: NicoEntry[]): Chart
   const year = new Date().getFullYear();
   const heute = new Date();
   heute.setHours(23, 59, 59, 999);
+  const currentMonth = heute.getMonth(); // 0-indexed
 
   const runActivities = activities.filter(
     (a) => a.sport_type === 'run' && new Date(a.date).getFullYear() === year
   );
 
   const sortedNico = [...nicoEntries].sort((a, b) => a.date.localeCompare(b.date));
+  const lastNicoEntry = sortedNico.length > 0 ? sortedNico[sortedNico.length - 1] : null;
+  // "YYYY-MM" des letzten Nico-Eintrags — danach keine Linie mehr
+  const lastNicoMonth = lastNicoEntry ? lastNicoEntry.date.slice(0, 7) : null;
 
   return MONATE.map((label, idx) => {
     const monatEndDatum = new Date(year, idx + 1, 0, 23, 59, 59);
+    const monthKey = `${year}-${String(idx + 1).padStart(2, '0')}`;
 
-    // Sebi: nur bis heute anzeigen
+    // Sebi: bis einschließlich laufendem Monat (Bedingung war monatEndDatum <= heute,
+    // was den aktuellen Monat ausschloss, da Monatsende in der Zukunft liegt)
     const sebi =
-      monatEndDatum <= heute
+      idx <= currentMonth
         ? runActivities
             .filter((a) => new Date(a.date) <= monatEndDatum)
             .reduce((sum, a) => sum + a.distance / 1000, 0)
         : null;
 
-    // Nico: letzter kumulierter Stand bis Monatsende
+    // Nico: letzter kumulierter Stand bis Monatsende, aber nicht über den letzten
+    // Eintrags-Monat hinaus (verhindert flache horizontale Linie für Folgmonate)
     const nicoEntriesToDate = sortedNico.filter(
       (e) => e.date <= monatEndDatum.toISOString().slice(0, 10)
     );
     const nico =
-      nicoEntriesToDate.length > 0 ? nicoEntriesToDate[nicoEntriesToDate.length - 1].km : null;
+      nicoEntriesToDate.length > 0 && lastNicoMonth !== null && monthKey <= lastNicoMonth
+        ? nicoEntriesToDate[nicoEntriesToDate.length - 1].km
+        : null;
 
     // Ziel: linear 0 → 1000 km über das Jahr
     const ziel = Math.round(((idx + 1) / 12) * GOAL_KM);
@@ -300,6 +309,7 @@ export function RunCompetitionChart({ activities }: RunCompetitionChartProps) {
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis
             dataKey="label"
+            interval={0}
             tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
             axisLine={false}
             tickLine={false}
